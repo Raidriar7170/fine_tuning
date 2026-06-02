@@ -71,6 +71,41 @@ missing, or an unresolved template root, keeps the workflow from starting heavy 
 evidence is limited to sanitized metadata, aggregate metrics, controlled smoke status, leak-scan
 status, and the public-safe report under `reports/public-sample/a100-sft-smoke/`.
 
+## A100 SFT Prediction/Eval Smoke Runbook
+
+After a private A100 public-sample SFT adapter exists, the prediction/eval smoke records whether the
+trained-path evidence pipeline can produce public-sample prediction rows, contract metrics, and
+controlled smoke results without publishing model artifacts. Keep private adapter paths, checkpoints,
+raw logs, remote caches, host details, and SSH information outside git.
+
+The committed prediction config is a public-safe template. On the A100 machine, create a private
+override outside the committed artifact set that resolves `<a100_project_root>`, `base_model`, and
+`adapter_path` to private paths under the approved project root. Then run prediction with that private
+override, not with the unresolved public template:
+
+```bash
+PYTHONPATH=src python -m voice2task.cli.train sft-predict \
+  --config <private_prediction_config> \
+  --manifest data/public-samples/manifest_public_sample.json \
+  --output <a100_project_root>/evidence/a100-sft-prediction-eval-smoke/predictions.jsonl \
+  --run-prediction
+```
+
+Local validation may use `--fixture-mode` to verify the evidence pipeline without loading private
+model artifacts. Fixture-mode predictions are deterministic public-sample contract fixtures; they are
+not private adapter model outputs and must not be presented as model-quality evidence. The committed
+evidence pack lives under `reports/public-sample/a100-sft-prediction-eval-smoke/` and remains a
+public-sample prediction/evaluation smoke, not a checkpoint release or live-browser benchmark claim.
+
+```bash
+PYTHONPATH=src python -m voice2task.cli.train sft-predict \
+  --config configs/sft-a100-prediction-public-smoke.json \
+  --manifest data/public-samples/manifest_public_sample.json \
+  --output reports/public-sample/a100-sft-prediction-eval-smoke/predictions.jsonl \
+  --run-prediction \
+  --fixture-mode
+```
+
 ## Artifact Boundaries
 
 - `data/public-samples/`: committed sanitized seed traces, generated public SFT rows, DPO pairs, and public manifest.

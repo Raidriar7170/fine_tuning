@@ -1,0 +1,46 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false
+  },
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "live_browser_benchmark_claim": false,
+    "production_readiness_claim": false
+  },
+  "controlled_smoke_status": {
+    "enabled": true,
+    "failed": 12,
+    "notes": "controlled_validation_command",
+    "passed": 0,
+    "target": "data/public-samples/execution_smoke_target.json"
+  },
+  "dataset_manifest_id": "public-sample-20260601T162313Z",
+  "evidence_kind": "a100_sft_prediction_eval_smoke",
+  "evidence_status": "private_adapter_predictions_written",
+  "generated_at": "2026-06-02T09:04:29.407086+00:00",
+  "leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-02T09:03:27.279020+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "data/public-samples",
+      "reports/public-sample",
+      "README.md",
+      "CONTEXT.md",
+      "docs",
+      "openspec"
+    ]
+  },
+  "metrics_path": "reports/public-sample/a100-sft-prediction-eval-smoke/metrics.json",
+  "model_source": "modelscope",
+  "prediction_artifact_path": "reports/public-sample/a100-sft-prediction-eval-smoke/predictions.jsonl",
+  "prediction_count": 12,
+  "prediction_source_kind": "private_a100_adapter",
+  "release_status": "not_released"
+}

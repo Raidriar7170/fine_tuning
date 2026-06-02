@@ -8,9 +8,9 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
-from voice2task.formatting import format_dpo_pair, format_sft_messages
+from voice2task.formatting import format_dpo_pair, format_sft_messages, format_sft_prompt_messages
 from voice2task.io import read_json, read_jsonl, write_json
-from voice2task.schemas import DPOPair, SFTDatasetRow
+from voice2task.schemas import DPOPair, SFTDatasetRow, as_contract
 
 
 def _load_config(config_path: Path) -> dict[str, Any]:
@@ -73,6 +73,16 @@ def _gpu_selection_policy(config: dict[str, Any]) -> dict[str, str]:
         "policy": policy,
         "identifier_policy": identifier_policy,
     }
+
+
+PRIVATE_PATH_PREFIXES = ("/mnt/data/", "/Users/", "/root/", "/tmp/", "/private/")
+
+
+def _public_display_path(value: Path | str, placeholder: str) -> str:
+    raw = value.as_posix() if isinstance(value, Path) else str(value)
+    if any(raw.startswith(prefix) for prefix in PRIVATE_PATH_PREFIXES):
+        return placeholder
+    return raw
 
 
 def _heavy_training_gate(config: dict[str, Any], dry_run: bool) -> dict[str, bool]:
@@ -308,6 +318,217 @@ def _load_sft_training_rows(manifest_path: Path, split: str) -> list[SFTDatasetR
     if dataset_path is None:
         return []
     return [row for row in (SFTDatasetRow(**record) for record in read_jsonl(Path(dataset_path))) if row.split == split]
+
+
+def _load_sft_prediction_rows(manifest_path: Path, split: str) -> list[SFTDatasetRow]:
+    summary = _manifest_load_summary(manifest_path, "sft")
+    dataset_path = summary["dataset_path"]
+    if dataset_path is None:
+        return []
+    rows = [SFTDatasetRow(**record) for record in read_jsonl(Path(dataset_path))]
+    if split == "all":
+        return rows
+    return [row for row in rows if row.split == split]
+
+
+def _prediction_gate(config: dict[str, Any], dry_run: bool, fixture_mode: bool) -> dict[str, bool]:
+    config_allows = bool(config.get("allow_private_prediction"))
+    adapter_configured = isinstance(config.get("adapter_path"), str) and bool(str(config.get("adapter_path")).strip())
+    return {
+        "cli_run_prediction": not dry_run,
+        "fixture_mode": fixture_mode,
+        "config_allow_private_prediction": config_allows,
+        "adapter_configured": adapter_configured,
+        "will_run_private_prediction": (not dry_run) and (not fixture_mode) and config_allows and adapter_configured,
+    }
+
+
+def _prediction_metadata_common(
+    *,
+    config_path: Path,
+    manifest_path: Path,
+    output_path: Path,
+    dry_run: bool,
+    fixture_mode: bool,
+) -> dict[str, Any]:
+    config = _load_config(config_path)
+    load_summary = _manifest_load_summary(manifest_path, "sft")
+    return {
+        "stage": "sft_prediction",
+        "stack": "transformers+peft+trl",
+        "base_model": config.get("base_model_public_id", config.get("base_model")),
+        "model_source": config.get("model_source", "unknown"),
+        "dataset_manifest_id": load_summary["manifest_id"],
+        "dataset_manifest_path": _public_display_path(manifest_path, "data/public-samples/manifest_public_sample.json"),
+        "prediction_output_path": _public_display_path(output_path, "<a100_prediction_output>"),
+        "prediction_split": str(config.get("prediction_split", "all")),
+        "prediction_source_kind": "none",
+        "prediction_status": "pending",
+        "prediction_count": 0,
+        "release_status": "not_released",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "prediction_gate": _prediction_gate(config, dry_run, fixture_mode),
+        "command_summary": {
+            "entrypoint": "voice2task-train sft-predict",
+            "config": _public_display_path(config_path, "<private_prediction_config>"),
+            "manifest": _public_display_path(manifest_path, "data/public-samples/manifest_public_sample.json"),
+            "output": _public_display_path(output_path, "<a100_prediction_output>"),
+            "mode": "fixture_mode" if fixture_mode else ("dry_run" if dry_run else "run_prediction"),
+            "requires_cli_run_prediction": not dry_run,
+            "requires_config_allow_private_prediction": True,
+        },
+        "notes": "Prediction metadata only; no private adapter artifacts were loaded.",
+    }
+
+
+def _write_fixture_predictions(rows: list[SFTDatasetRow], output_path: Path) -> int:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    records = [
+        {
+            "id": row.id,
+            "prediction": as_contract(row.target_contract).to_dict(),
+            "prediction_source_kind": "public_sample_contract_fixture",
+            "provenance": {"public_safe": True, "source_id": row.provenance.get("source_id", row.id)},
+        }
+        for row in rows
+    ]
+    with output_path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return len(records)
+
+
+def _write_private_prediction_unavailable(metadata: dict[str, Any]) -> dict[str, Any]:
+    metadata["prediction_status"] = "prediction_unavailable_private_runtime"
+    metadata["prediction_source_kind"] = "private_adapter_not_run_locally"
+    metadata["prediction_gate"]["will_run_private_prediction"] = False
+    metadata["notes"] = (
+        "Private trained-adapter prediction requires the A100 runtime, train dependencies, and a private adapter "
+        "path. No public predictions were written by this local command."
+    )
+    return metadata
+
+
+def _prediction_dependencies_available() -> bool:
+    return all(importlib.util.find_spec(module) is not None for module in ("peft", "torch", "transformers"))
+
+
+def _extract_json_object(text: str) -> dict[str, Any] | str:
+    stripped = text.strip()
+    for candidate in (stripped, stripped[stripped.find("{") : stripped.rfind("}") + 1]):
+        if not candidate:
+            continue
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return "{}"
+
+
+def _run_real_sft_prediction(config: dict[str, Any], rows: list[SFTDatasetRow], output_path: Path) -> int:
+    import torch
+    from peft import PeftModel  # type: ignore[import-not-found, unused-ignore]
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    base_model = str(config["base_model"])
+    adapter_path = str(config["adapter_path"])
+    tokenizer: Any = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
+    model: Any = AutoModelForCausalLM.from_pretrained(
+        base_model,
+        device_map="auto",
+        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+        trust_remote_code=True,
+    )
+    model = PeftModel.from_pretrained(model, adapter_path)
+    model.eval()
+    max_new_tokens = int(config.get("max_new_tokens", 256))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            messages = format_sft_prompt_messages(row)
+            prompt = "\n".join(f"{message['role']}: {message['content']}" for message in messages) + "\nassistant: "
+            inputs: Any = tokenizer(prompt, return_tensors="pt").to(model.device)
+            with torch.no_grad():
+                generated: Any = model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False,
+                    pad_token_id=tokenizer.eos_token_id,
+                )
+            new_tokens = generated[0][inputs["input_ids"].shape[-1] :]
+            decoded_value = tokenizer.decode(new_tokens, skip_special_tokens=True)
+            decoded = decoded_value if isinstance(decoded_value, str) else str(decoded_value)
+            record = {
+                "id": row.id,
+                "prediction": _extract_json_object(decoded),
+                "prediction_source_kind": "private_a100_adapter",
+                "provenance": {"public_safe": True, "source_id": row.provenance.get("source_id", row.id)},
+            }
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return len(rows)
+
+
+def run_sft_prediction_export(
+    config_path: Path,
+    manifest_path: Path,
+    output_path: Path,
+    *,
+    dry_run: bool = True,
+    fixture_mode: bool = False,
+) -> dict[str, Any]:
+    config = _load_config(config_path)
+    metadata = _prediction_metadata_common(
+        config_path=config_path,
+        manifest_path=manifest_path,
+        output_path=output_path,
+        dry_run=dry_run,
+        fixture_mode=fixture_mode,
+    )
+    if dry_run and not fixture_mode:
+        metadata["prediction_status"] = "prediction_skipped_no_opt_in"
+        return metadata
+    if fixture_mode:
+        rows = _load_sft_prediction_rows(manifest_path, split=str(config.get("prediction_split", "all")))
+        metadata["prediction_count"] = _write_fixture_predictions(rows, output_path)
+        metadata["prediction_status"] = "fixture_predictions_written"
+        metadata["prediction_source_kind"] = "public_sample_contract_fixture"
+        metadata["notes"] = (
+            "Fixture-mode predictions mirror public-sample target contracts to validate the evidence pipeline. "
+            "No private adapter artifacts were loaded."
+        )
+        return metadata
+    adapter_path = config.get("adapter_path")
+    if not isinstance(adapter_path, str) or not adapter_path.strip():
+        metadata["prediction_status"] = "prediction_blocked_missing_adapter"
+        metadata["prediction_source_kind"] = "none"
+        metadata["prediction_gate"]["will_run_private_prediction"] = False
+        metadata["notes"] = "Private prediction was blocked because no adapter_path was configured."
+        return metadata
+    if not bool(config.get("allow_private_prediction")):
+        metadata["prediction_status"] = "prediction_blocked_by_config"
+        metadata["prediction_source_kind"] = "none"
+        metadata["prediction_gate"]["will_run_private_prediction"] = False
+        metadata["notes"] = "Private prediction was blocked because allow_private_prediction is not true."
+        return metadata
+    if "<" in adapter_path or ">" in adapter_path:
+        metadata["prediction_status"] = "prediction_blocked_by_adapter_template"
+        metadata["prediction_source_kind"] = "none"
+        metadata["prediction_gate"]["will_run_private_prediction"] = False
+        metadata["notes"] = "Private prediction was blocked because adapter_path is an unresolved template."
+        return metadata
+    if not _prediction_dependencies_available():
+        return _write_private_prediction_unavailable(metadata)
+    rows = _load_sft_prediction_rows(manifest_path, split=str(config.get("prediction_split", "all")))
+    metadata["prediction_count"] = _run_real_sft_prediction(config, rows, output_path)
+    metadata["prediction_status"] = "private_adapter_predictions_written"
+    metadata["prediction_source_kind"] = "private_a100_adapter"
+    metadata["notes"] = (
+        "Private A100 adapter predictions were written as sanitized public-sample contract prediction rows. "
+        "No checkpoints, adapters, raw logs, or private paths were copied into the prediction artifact."
+    )
+    return metadata
 
 
 def _load_dpo_training_pairs(manifest_path: Path, split: str) -> list[DPOPair]:

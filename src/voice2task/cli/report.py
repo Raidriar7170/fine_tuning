@@ -44,6 +44,11 @@ def main(argv: list[str] | None = None) -> int:
         result = scan_paths(paths, max_public_jsonl_rows=args.max_public_jsonl_rows)
         payload = result.to_dict()
         payload["scanned_paths"] = [_display_scan_path(path) for path in paths]
+        findings = payload.get("findings")
+        if isinstance(findings, list):
+            for finding in findings:
+                if isinstance(finding, dict):
+                    finding["path"] = _display_scan_path(Path(str(finding.get("path", ""))))
         payload["max_public_jsonl_rows"] = args.max_public_jsonl_rows
         payload["generated_at"] = datetime.now(timezone.utc).isoformat()
         output = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)

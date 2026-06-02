@@ -25,6 +25,13 @@ def format_sft_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
     ]
 
 
+def format_sft_prompt_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
+    return [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": row.input_text},
+    ]
+
+
 def format_dpo_pair(pair: DPOPair) -> dict[str, Any]:
     return {
         "id": pair.id,

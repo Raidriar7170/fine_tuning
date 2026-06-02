@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from voice2task.cli import report as report_cli
+from voice2task.leak_scan import Finding, ScanResult
 
 
 def test_leak_scan_cli_keeps_positional_paths_compatible(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
@@ -65,6 +66,40 @@ def test_leak_scan_cli_sanitizes_private_scanned_paths(tmp_path: Path, capsys) -
     assert capsys.readouterr().out == ""
     output = json.loads(output_path.read_text(encoding="utf-8"))
     assert output["scanned_paths"] == ["<private_path>"]
+    assert private_path.as_posix() not in output_path.read_text(encoding="utf-8")
+
+
+def test_leak_scan_cli_sanitizes_private_finding_paths(tmp_path: Path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
+    private_path = Path(
+        "/mnt/data/" + "minghongsun/voice2task-post-training/runs/run/adapter/adapter_model.safetensors"
+    )
+    output_path = tmp_path / "leak_scan_result.json"
+
+    monkeypatch.setattr(
+        report_cli,
+        "scan_paths",
+        lambda paths, max_public_jsonl_rows: ScanResult(
+            ok=False,
+            findings=[Finding(private_path.as_posix(), "model_artifact", 0, "model/checkpoint artifact")],
+        ),
+    )
+
+    assert (
+        report_cli.main(
+            [
+                "leak-scan",
+                "--paths",
+                private_path.as_posix(),
+                "--output",
+                output_path.as_posix(),
+            ]
+        )
+        == 1
+    )
+
+    assert capsys.readouterr().out == ""
+    output = json.loads(output_path.read_text(encoding="utf-8"))
+    assert output["findings"][0]["path"] == "<private_path>"
     assert private_path.as_posix() not in output_path.read_text(encoding="utf-8")
 
 

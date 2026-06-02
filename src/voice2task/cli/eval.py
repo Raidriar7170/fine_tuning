@@ -39,6 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--gold", type=Path, required=True)
     smoke.add_argument("--predictions", type=Path, required=True)
     smoke.add_argument("--target", type=Path, required=True)
+    smoke.add_argument("--output", type=Path)
     return parser
 
 
@@ -67,7 +68,12 @@ def main(argv: list[str] | None = None) -> int:
         rows = load_sft_rows(args.gold)
         predictions = load_predictions(args.predictions)
         smoke_result = run_execution_smoke(rows, predictions, enabled=True, target_path=args.target)
-        print(json.dumps(smoke_result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
+        output = json.dumps(smoke_result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(output + "\n", encoding="utf-8")
+        else:
+            print(output)
         return 0 if smoke_result.failed == 0 else 1
     raise AssertionError(f"unhandled command: {args.command}")
 

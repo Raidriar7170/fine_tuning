@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from voice2task.training import run_dpo, run_sft
+from voice2task.training import run_dpo, run_sft, run_sft_prediction_export
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,6 +18,14 @@ def build_parser() -> argparse.ArgumentParser:
         mode = subparser.add_mutually_exclusive_group()
         mode.add_argument("--dry-run", dest="dry_run", action="store_true", default=True)
         mode.add_argument("--run-training", dest="dry_run", action="store_false")
+    prediction = subcommands.add_parser("sft-predict")
+    prediction.add_argument("--config", type=Path, required=True)
+    prediction.add_argument("--manifest", type=Path, required=True)
+    prediction.add_argument("--output", type=Path, required=True)
+    prediction_mode = prediction.add_mutually_exclusive_group()
+    prediction_mode.add_argument("--dry-run", dest="dry_run", action="store_true", default=True)
+    prediction_mode.add_argument("--run-prediction", dest="dry_run", action="store_false")
+    prediction.add_argument("--fixture-mode", action="store_true")
     return parser
 
 
@@ -27,6 +35,14 @@ def main(argv: list[str] | None = None) -> int:
         metadata = run_sft(args.config, args.manifest, args.output_dir, dry_run=args.dry_run)
     elif args.command == "dpo":
         metadata = run_dpo(args.config, args.manifest, args.output_dir, dry_run=args.dry_run)
+    elif args.command == "sft-predict":
+        metadata = run_sft_prediction_export(
+            args.config,
+            args.manifest,
+            args.output,
+            dry_run=args.dry_run,
+            fixture_mode=args.fixture_mode,
+        )
     else:
         raise AssertionError(f"unhandled command: {args.command}")
     print(json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True))

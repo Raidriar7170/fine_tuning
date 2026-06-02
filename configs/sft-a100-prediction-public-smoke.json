@@ -1,0 +1,14 @@
+{
+  "adapter_path": "<a100_project_root>/runs/a100-sft-public-smoke/adapter",
+  "allow_private_prediction": true,
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "dataset_manifest_id": "public-sample-20260601T162313Z",
+  "evidence_output_dir": "<a100_project_root>/evidence/a100-sft-prediction-eval-smoke",
+  "model_cache_policy": "private_remote_model_cache_not_copied_to_git",
+  "model_source": "modelscope",
+  "output_policy": "public_sample_prediction_only_requires_explicit_run_prediction_outputs_remain_private_by_default",
+  "output_root": "<a100_project_root>",
+  "prediction_artifact_policy": "commit_only_sanitized_public_sample_predictions_metrics_smoke_manifest_and_report",
+  "prediction_split": "all",
+  "reference_runtime": "a100-public-sample-sft-prediction-smoke"
+}

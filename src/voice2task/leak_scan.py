@@ -16,6 +16,8 @@ SSH_DETAIL_RE = re.compile(
     r"^\s*Identity" + r"File\s+\S+"
     r")"
 )
+MODEL_ARTIFACT_SUFFIXES = {".safetensors", ".ckpt", ".pt", ".bin"}
+PRIVATE_ARTIFACT_PARTS = {"adapter", "adapters", "cache", "checkpoints", "runs", "logs"}
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,12 @@ def scan_paths(
 ) -> ScanResult:
     findings: list[Finding] = []
     for path in _iter_files(paths):
+        if path.suffix in MODEL_ARTIFACT_SUFFIXES:
+            findings.append(Finding(path.as_posix(), "model_artifact", 0, "model/checkpoint artifact"))
+        if path.suffix == ".log":
+            findings.append(Finding(path.as_posix(), "raw_log", 0, "raw log artifact"))
+        if any(part in PRIVATE_ARTIFACT_PARTS or part.startswith("checkpoint-") for part in path.parts):
+            findings.append(Finding(path.as_posix(), "private_artifact_dir", 0, "private training artifact directory"))
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:

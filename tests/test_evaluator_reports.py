@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from voice2task.cli import eval as eval_cli
 from voice2task.evaluation import (
     evaluate_predictions,
     prompt_fixture_predictions,
@@ -102,6 +103,39 @@ def test_execution_smoke_calls_controlled_validation_command(tmp_path: Path) -> 
     assert smoke.enabled is True
     assert smoke.passed == 1
     assert smoke.failed == 0
+
+
+def test_smoke_cli_can_write_json_result(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    rows = [_row("gold-1", "search_web", "天气")]
+    gold = tmp_path / "gold.jsonl"
+    predictions = tmp_path / "predictions.jsonl"
+    write_jsonl(gold, [rows[0].to_dict()])
+    write_jsonl(predictions, [{"id": "gold-1", "prediction": rows[0].target_contract.to_dict()}])
+    target = tmp_path / "validation-target.json"
+    target.write_text(json.dumps({"accepts_contracts": True}), encoding="utf-8")
+    output = tmp_path / "smoke_result.json"
+
+    assert (
+        eval_cli.main(
+            [
+                "smoke",
+                "--gold",
+                gold.as_posix(),
+                "--predictions",
+                predictions.as_posix(),
+                "--target",
+                target.as_posix(),
+                "--output",
+                output.as_posix(),
+            ]
+        )
+        == 0
+    )
+
+    assert capsys.readouterr().out == ""
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert result["passed"] == 1
+    assert result["failed"] == 0
 
 
 def test_write_metrics_report_outputs_json_and_markdown(tmp_path: Path) -> None:

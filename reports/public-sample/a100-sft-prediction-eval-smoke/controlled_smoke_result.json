@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "failed": 12,
+  "notes": "controlled_validation_command",
+  "passed": 0,
+  "target": "data/public-samples/execution_smoke_target.json"
+}
