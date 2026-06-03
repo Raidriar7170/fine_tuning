@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop Closeout: A100 Train-Split Diagnostic</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #16202a; background: #f5f7fa; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .status { display: inline-block; padding: 4px 10px; border-radius: 6px; background: #fff1cc; color: #684400; font-weight: 600; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 16px 0; }
+    .card { background: #fff; border: 1px solid #d9dee7; border-radius: 8px; padding: 14px 16px; }
+    .num { font-size: 24px; font-weight: 700; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1358a8; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: A100 train-split diagnostic</h1>
+  <p><span class="status">completed: phase archived</span></p>
+  <p>结论：用户确认后，本轮已创建、执行并归档 <code>run-a100-train-split-overfit-diagnostic</code>；真实 private A100 adapter 产出 3 条 train prediction，但 train-internal schema recovery 未发生，失败样本已作为 sanitized evidence 保留。</p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="card"><div class="num">1</div><div>archived OpenSpec change</div></div>
+    <div class="card"><div class="num">3</div><div>real train predictions</div></div>
+    <div class="card"><div class="num">0.0000</div><div>json valid rate</div></div>
+    <div class="card"><div class="num">0</div><div>leak-scan findings</div></div>
+  </div>
+
+  <h2>本轮完成</h2>
+  <ul>
+    <li>创建并归档 OpenSpec change：<code>openspec/changes/archive/2026-06-03-run-a100-train-split-overfit-diagnostic</code>。</li>
+    <li>在远程 A100 上使用 repo-external private override 和真实 private adapter 运行 <code>prediction_split=train</code> diagnostic。</li>
+    <li>只回传 sanitized evidence 到 <a href="../../reports/public-sample/a100-train-split-overfit-diagnostic/report.md">diagnostic report</a> 所在目录。</li>
+    <li>生成阶段 Human Brief：<a href="./2026-06-03-run-a100-train-split-overfit-diagnostic.html">2026-06-03-run-a100-train-split-overfit-diagnostic.html</a>。</li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code> -> 76 passed。</li>
+    <li><code>ruff check .</code> -> passed。</li>
+    <li><code>mypy src</code> -> passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code> -> 5 passed, 0 failed。</li>
+    <li><code>git diff --check</code> -> clean。</li>
+    <li><code>voice2task-report leak-scan</code> -> ok true, 0 findings；扫描范围覆盖 evidence 目录、阶段 Human Brief、loop Human Brief 和 archived OpenSpec change。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 dev/test generalization、checkpoint release、adapter release、production readiness 或 live-browser benchmark improvement。</li>
+    <li>真实输出没有恢复 Browser Task Contract schema，失败样本被保留，没有用 fixture、rule baseline 或 gold contract 替换。</li>
+    <li>Objective inspection 仍是 unavailable 边界，不证明 assistant-only loss 已经生效。</li>
+  </ul>
+
+  <h2>停止原因</h2>
+  <p>本轮停止于 phase complete：OpenSpec change 已归档，长期 specs 已同步，未自动开启下一阶段以避免把训练目标、label mask、chat template 或 adapter/base 对齐诊断混入当前 A100 evidence phase。</p>
+
+  <h2>建议下一步</h2>
+  <p>下一阶段可提出一个新的 bounded OpenSpec change，聚焦真实失败样本的训练/解码对齐诊断；先证明 assistant target mask 与训练 prompt/预测 prompt 完全一致，再考虑重训。</p>
+</main>
+</body>
+</html>

@@ -847,13 +847,48 @@ def test_train_split_overfit_metrics_are_standalone_bounded() -> None:
     metrics_md = Path("reports/public-sample/a100-train-split-overfit-diagnostic/metrics.md").read_text(
         encoding="utf-8"
     )
+    manifest = json.loads(
+        Path("reports/public-sample/a100-train-split-overfit-diagnostic/manifest.json").read_text(encoding="utf-8")
+    )
+    leak_scan_result = json.loads(
+        Path("reports/public-sample/a100-train-split-overfit-diagnostic/leak_scan_result.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    report = Path("reports/public-sample/a100-train-split-overfit-diagnostic/report.md").read_text(encoding="utf-8")
+    prediction_count = sum(
+        1
+        for line in Path("reports/public-sample/a100-train-split-overfit-diagnostic/predictions.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    )
+    human_brief = Path("docs/human-briefs/2026-06-03-run-a100-train-split-overfit-diagnostic.html").read_text(
+        encoding="utf-8"
+    )
 
-    assert metrics_json["evidence_context"]["prediction_source_kind"] == "public_sample_contract_fixture"
+    assert metrics_json["evidence_context"]["prediction_source_kind"] == "private_a100_adapter"
     assert metrics_json["evidence_context"]["prediction_split"] == "train"
     assert metrics_json["evidence_context"]["overfit_diagnostic"] is True
     assert metrics_json["evidence_context"]["model_quality_evidence"] is False
-    assert "prediction_source_kind: `public_sample_contract_fixture`" in metrics_md
+    assert metrics_json["evidence_context"].get("generalization_claim") is False
+    assert metrics_json["evidence_context"].get("train_internal_recovery_observed") is False
+    assert "prediction_source_kind: `private_a100_adapter`" in metrics_md
+    assert "generalization_claim: `False`" in metrics_md
     assert "model_quality_evidence: `False`" in metrics_md
+    assert "train_internal_recovery_observed: `False`" in metrics_md
+    assert "No held-out generalization, release, production-readiness, or live-browser improvement claim" in metrics_md
+    assert manifest["prediction_count"] == prediction_count == 3
+    assert manifest["leak_scan_result"] == leak_scan_result
+    assert metrics_json["failure_slices"]["schema"]["count"] == prediction_count
+    assert "Schema validity: failed" in report
+    assert "Route correctness: failed" in report
+    assert "Slot shape: failed" in report
+    assert "Safety decision: partial" in report
+    assert "Confirmation behavior: failed" in report
+    assert "not recovered" in report
+    assert "must not be described as schema recovery" in report
+    assert "3 条 train prediction" in human_brief
 
 
 def test_contract_output_recovery_template_is_public_safe_and_bounded() -> None:

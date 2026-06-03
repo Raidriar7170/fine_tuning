@@ -5,7 +5,7 @@
     "raw_logs_copied_to_git": false,
     "remote_caches_copied_to_git": false
   },
-  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "base_model": "<private_base_model>",
   "claims": {
     "adapter_release": false,
     "checkpoint_release": false,
@@ -18,8 +18,7 @@
     "enabled": false,
     "failed": 0,
     "notes": "not_run_for_train_split_diagnostic",
-    "passed": 0,
-    "target": null
+    "passed": 0
   },
   "dataset_manifest_id": "public-sample-20260601T162313Z",
   "diagnostic_artifacts": {
@@ -27,16 +26,19 @@
     "objective_inspection": "reports/public-sample/a100-train-split-overfit-diagnostic/objective_inspection.json"
   },
   "evidence_kind": "a100_train_split_overfit_diagnostic",
-  "evidence_status": "fixture_predictions_written",
+  "evidence_status": "private_adapter_predictions_written",
   "generalization_claim": false,
-  "generated_at": "2026-06-03T04:55:20.168336+00:00",
+  "generated_at": "2026-06-03T07:13:22.333233+00:00",
   "leak_scan_result": {
     "findings": [],
-    "generated_at": "2026-06-03T04:38:03.750740+00:00",
+    "generated_at": "2026-06-03T08:05:47.435359+00:00",
     "max_public_jsonl_rows": 5000,
     "ok": true,
     "scanned_paths": [
-      "reports/public-sample/a100-train-split-overfit-diagnostic"
+      "reports/public-sample/a100-train-split-overfit-diagnostic",
+      "docs/human-briefs/2026-06-03-run-a100-train-split-overfit-diagnostic.html",
+      "docs/human-briefs/2026-06-03-autonomous-loop-run-a100-train-split-overfit-diagnostic.html",
+      "openspec/changes/archive/2026-06-03-run-a100-train-split-overfit-diagnostic"
     ]
   },
   "metrics_path": "reports/public-sample/a100-train-split-overfit-diagnostic/metrics.json",
@@ -44,7 +46,7 @@
   "overfit_diagnostic": true,
   "prediction_artifact_path": "reports/public-sample/a100-train-split-overfit-diagnostic/predictions.jsonl",
   "prediction_count": 3,
-  "prediction_source_kind": "public_sample_contract_fixture",
+  "prediction_source_kind": "private_a100_adapter",
   "prediction_split": "train",
   "release_status": "not_released",
   "sidecars": {

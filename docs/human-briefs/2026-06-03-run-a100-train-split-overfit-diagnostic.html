@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A100 train-split overfit diagnostic human brief</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2933; background: #f6f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.62; }
+    .summary { border-left: 5px solid #b42318; background: #fff7f5; padding: 14px 16px; border-radius: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .tile { background: white; border: 1px solid #d9e2ec; border-radius: 6px; padding: 14px; }
+    .label { color: #52616b; font-size: 12px; text-transform: uppercase; letter-spacing: 0; }
+    .value { font-size: 20px; font-weight: 700; margin-top: 6px; }
+    code { background: #edf2f7; padding: 2px 5px; border-radius: 4px; }
+    a { color: #155e75; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>A100 train-split overfit diagnostic</h1>
+  <p class="summary">结论：真实 private A100 adapter 已运行，但 train split 上没有恢复 Browser Task Contract schema；3 条 train prediction 均作为真实失败保留，没有用 fixture、rule baseline 或 gold contract 替换。</p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="tile"><div class="label">status</div><div class="value">archived</div></div>
+    <div class="tile"><div class="label">prediction source</div><div class="value">private_a100_adapter</div></div>
+    <div class="tile"><div class="label">json valid rate</div><div class="value">0.0000</div></div>
+    <div class="tile"><div class="label">exact match</div><div class="value">0.0000</div></div>
+  </div>
+
+  <h2>本阶段变化</h2>
+  <ul>
+    <li>使用远程 A100、私有 override 和真实 adapter 运行 <code>prediction_split=train</code> diagnostic。</li>
+    <li>只回传 sanitized evidence：predictions、metadata、prompt snapshot、raw decoded summary、generation trace、objective inspection、metrics、manifest、report 和 leak scan。</li>
+    <li>公开证据保持 <code>overfit_diagnostic=true</code>、<code>generalization_claim=false</code>、<code>release_status=not_released</code>。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-train-split-overfit-diagnostic/predictions.jsonl">predictions.jsonl</a></li>
+    <li><a href="../../reports/public-sample/a100-train-split-overfit-diagnostic/metrics.json">metrics.json</a> / <a href="../../reports/public-sample/a100-train-split-overfit-diagnostic/metrics.md">metrics.md</a></li>
+    <li><a href="../../reports/public-sample/a100-train-split-overfit-diagnostic/report.md">report.md</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-03-run-a100-train-split-overfit-diagnostic/tasks.md">archived OpenSpec tasks.md</a></li>
+  </ul>
+
+  <h2>验证摘要</h2>
+  <ul>
+    <li>Leak scan 当前结果：<code>ok=true</code>，findings: <code>0</code>；扫描范围覆盖 evidence 目录、阶段 Human Brief、loop Human Brief 和 archived OpenSpec change。</li>
+    <li>Objective inspection：<code>tokenizer_unavailable</code>；mask/loss 字段保持 <code>null</code>，不声称 assistant-only loss 已被证明。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：76 passed；<code>ruff check .</code>、<code>mypy src</code>、<code>git diff --check</code> 和 <code>openspec validate --all --strict</code> 均已通过。</li>
+  </ul>
+
+  <h2>剩余风险与不可夸大结论</h2>
+  <ul>
+    <li>本次是 train-internal diagnostic，不证明 dev/test generalization、生产可用、checkpoint/adapter 发布或 live-browser benchmark 提升。</li>
+    <li>真实输出虽然是 JSON，但 contract schema 不合格；下一阶段应定位训练目标、label mask、chat template 或 adapter/base 对齐问题。</li>
+    <li>远程 Hugging Face 网络不可用，最终依赖 adapter 配置中的本地 base model 路径完成运行；该路径未写入 repo。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>进入面向失败样本的训练/解码对齐诊断：先证明 assistant target mask 与训练 prompt/预测 prompt 完全一致，再考虑重训。</p>
+</main>
+</body>
+</html>
