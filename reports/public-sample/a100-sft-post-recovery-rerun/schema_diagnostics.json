@@ -1,0 +1,406 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "full_private_corpus_claim": false,
+    "invalid_predictions_remain_invalid": true,
+    "live_browser_benchmark_claim": false,
+    "production_readiness_claim": false
+  },
+  "diagnostic_kind": "browser_task_contract_schema_mismatch",
+  "rows": [
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(5): query",
+          "row_id": "seed-search-weather"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(14): /weather/query",
+          "row_id": "seed-search-weather"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "safety.reason",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-search-weather"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 0 item(s)",
+          "row_id": "seed-search-weather"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "normalized_command",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-search-weather"
+        }
+      ],
+      "row_id": "seed-search-weather"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "Browser Task Contract requires this top-level field",
+          "field_path": "normalized_command",
+          "issue_category": "missing_required_field",
+          "observed_value_summary": "null",
+          "row_id": "seed-search-weather-aug-1"
+        },
+        {
+          "expected_constraint": "Browser Task Contract requires this top-level field",
+          "field_path": "safety",
+          "issue_category": "missing_required_field",
+          "observed_value_summary": "null",
+          "row_id": "seed-search-weather-aug-1"
+        },
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): query_weather",
+          "row_id": "seed-search-weather-aug-1"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(8): /weather",
+          "row_id": "seed-search-weather-aug-1"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 1 item(s)",
+          "row_id": "seed-search-weather-aug-1"
+        }
+      ],
+      "row_id": "seed-search-weather-aug-1"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-search-weather-aug-2"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(8): /weather",
+          "row_id": "seed-search-weather-aug-2"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "safety.reason",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-search-weather-aug-2"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 0 item(s)",
+          "row_id": "seed-search-weather-aug-2"
+        }
+      ],
+      "row_id": "seed-search-weather-aug-2"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-open-example"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(12): /example.com",
+          "row_id": "seed-open-example"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 0 item(s)",
+          "row_id": "seed-open-example"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "normalized_command",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-open-example"
+        }
+      ],
+      "row_id": "seed-open-example"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-open-example-aug-1"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(12): /example.com",
+          "row_id": "seed-open-example-aug-1"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 0 item(s)",
+          "row_id": "seed-open-example-aug-1"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "normalized_command",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-open-example-aug-1"
+        }
+      ],
+      "row_id": "seed-open-example-aug-1"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(7): Browser",
+          "row_id": "seed-open-example-aug-2"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(12): /example.com",
+          "row_id": "seed-open-example-aug-2"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "safety.reason",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-open-example-aug-2"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 0 item(s)",
+          "row_id": "seed-open-example-aug-2"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "normalized_command",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-open-example-aug-2"
+        }
+      ],
+      "row_id": "seed-open-example-aug-2"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-form-email"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): /email_submit",
+          "row_id": "seed-form-email"
+        }
+      ],
+      "row_id": "seed-form-email"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-form-email-aug-1"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): /email_submit",
+          "row_id": "seed-form-email-aug-1"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "safety.reason",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-form-email-aug-1"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 1 item(s)",
+          "row_id": "seed-form-email-aug-1"
+        }
+      ],
+      "row_id": "seed-form-email-aug-1"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-form-email-aug-2"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(6): /email",
+          "row_id": "seed-form-email-aug-2"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 0 item(s)",
+          "row_id": "seed-form-email-aug-2"
+        },
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "normalized_command",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "null",
+          "row_id": "seed-form-email-aug-2"
+        }
+      ],
+      "row_id": "seed-form-email-aug-2"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-block-purchase"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(17): /voice2task/order",
+          "row_id": "seed-block-purchase"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 1 item(s)",
+          "row_id": "seed-block-purchase"
+        }
+      ],
+      "row_id": "seed-block-purchase"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-block-purchase-aug-1"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(17): /voice2task/order",
+          "row_id": "seed-block-purchase-aug-1"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 1 item(s)",
+          "row_id": "seed-block-purchase-aug-1"
+        }
+      ],
+      "row_id": "seed-block-purchase-aug-1"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be one of ['blocked', 'clarify', 'extract', 'form_fill', 'navigate', 'search']",
+          "field_path": "task_type",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(13): normalization",
+          "row_id": "seed-block-purchase-aug-2"
+        },
+        {
+          "expected_constraint": "must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+          "field_path": "route",
+          "issue_category": "invalid_enum",
+          "observed_value_summary": "string(19): /voice2task/payment",
+          "row_id": "seed-block-purchase-aug-2"
+        },
+        {
+          "expected_constraint": "must be an object",
+          "field_path": "slots",
+          "issue_category": "invalid_type",
+          "observed_value_summary": "array with 1 item(s)",
+          "row_id": "seed-block-purchase-aug-2"
+        }
+      ],
+      "row_id": "seed-block-purchase-aug-2"
+    }
+  ],
+  "summary": {
+    "gold_row_count": 12,
+    "invalid_prediction_count": 12,
+    "issue_counts": {
+      "empty_required_string": 8,
+      "invalid_enum": 24,
+      "invalid_type": 12,
+      "missing_required_field": 2
+    },
+    "prediction_count": 12
+  }
+}

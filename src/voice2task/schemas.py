@@ -27,8 +27,10 @@ REJECTION_CATEGORIES = {
 _USERS_PREFIX = "/" + "Users"
 _ROOT_PREFIX = "/" + "root"
 _TMP_PREFIX = "/" + "tmp"
+_MNT_DATA_PREFIX = "/" + "mnt/data"
 PRIVATE_PATH_RE = re.compile(
-    rf"({_USERS_PREFIX}/[^\s\"')]+|{_ROOT_PREFIX}/[^\s\"')]+|{_TMP_PREFIX}/[^\s\"')]+)"
+    rf"({_USERS_PREFIX}/[^\s\"')]+|{_ROOT_PREFIX}/[^\s\"')]+|{_TMP_PREFIX}/[^\s\"')]+|"
+    rf"{_MNT_DATA_PREFIX}/[^\s\"')]+)"
 )
 SECRET_RE = re.compile(
     r"(sk-[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|"

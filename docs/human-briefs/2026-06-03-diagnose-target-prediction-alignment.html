@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Target-Prediction Alignment 诊断简报</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --line: #d9dee8;
+      --panel: #ffffff;
+      --accent: #1f6f5f;
+      --warn: #8a5a12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    main { max-width: 980px; margin: 0 auto; padding: 36px 22px 52px; }
+    header { border-bottom: 1px solid var(--line); margin-bottom: 24px; padding-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: 0; }
+    h2 { margin: 26px 0 10px; font-size: 18px; }
+    p { margin: 8px 0; }
+    a { color: var(--accent); }
+    code {
+      background: #eef2f6;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    ul { margin: 8px 0; padding-left: 20px; }
+    .summary { font-size: 18px; max-width: 880px; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .status {
+      display: inline-block;
+      border: 1px solid #d8bd8d;
+      color: var(--warn);
+      background: #fff8e8;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 14px 0 4px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+    .value { font-weight: 700; overflow-wrap: anywhere; }
+    .risk { border-left: 4px solid var(--warn); color: #47351c; padding-left: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Target-Prediction Alignment 诊断简报</h1>
+      <p class="meta">OpenSpec change: <code>diagnose-target-prediction-alignment</code> · 2026-06-03</p>
+      <p><span class="status">archiving after validation</span></p>
+    </header>
+
+    <section>
+      <p class="summary">结论：gold public sample 的 canonical contracts 是合法目标；post-recovery predictions 虽然 contract-like，但 12/12 行都偏离 gold target，最集中在 <code>task_type</code>、<code>route</code>、<code>slots</code>、<code>normalized_command</code> 和 <code>safety.reason</code>。</p>
+      <div class="grid">
+        <div class="card">
+          <div class="label">rows with mismatches</div>
+          <div class="value">12 / 12</div>
+        </div>
+        <div class="card">
+          <div class="label">schema-invalid predictions</div>
+          <div class="value">12 / 12</div>
+        </div>
+        <div class="card">
+          <div class="label">dominant mismatch fields</div>
+          <div class="value">task_type · route · slots · normalized_command</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>本阶段改了什么</h2>
+      <ul>
+        <li>新增 <code>voice2task-eval diagnose-alignment</code>，比较 gold target 和 raw prediction 字段。</li>
+        <li>新增 alignment diagnostics：每条 mismatch 记录 row id、field path、mismatch category、gold value summary、prediction value summary。</li>
+        <li>报告 schema-invalid prediction 时不修复、不 coerce、不 normalize，也不把它算作 valid contract。</li>
+        <li>补强公共安全脱敏：diagnostic row id 和字段摘要都会过滤私有路径、私有 IP 与 secret-like 字符串。</li>
+        <li>同步 <code>contract-evaluation</code> spec，加入 target-prediction alignment mismatch requirement。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>关键文件</h2>
+      <ul>
+        <li><a href="../../src/voice2task/evaluation.py"><code>src/voice2task/evaluation.py</code></a>：alignment diagnostics 与 public-safe summary。</li>
+        <li><a href="../../src/voice2task/cli/eval.py"><code>src/voice2task/cli/eval.py</code></a>：<code>diagnose-alignment</code> CLI。</li>
+        <li><a href="../../src/voice2task/reports.py"><code>src/voice2task/reports.py</code></a>：alignment Markdown/JSON 报告。</li>
+        <li><a href="../../tests/test_evaluator_reports.py"><code>tests/test_evaluator_reports.py</code></a>：TDD 覆盖 raw invalid comparison、CLI 输出和脱敏。</li>
+        <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/alignment_diagnostics.md"><code>alignment_diagnostics.md</code></a> 与 <a href="../../reports/public-sample/a100-sft-post-recovery-rerun/alignment_diagnostics.json"><code>alignment_diagnostics.json</code></a>：本阶段证据。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>证据摘要</h2>
+      <ul>
+        <li><code>field_mismatch_counts</code>：<code>task_type=12</code>、<code>route=12</code>、<code>slots=12</code>、<code>normalized_command=12</code>、<code>safety.reason=12</code>、<code>confirmation_required=6</code>、<code>safety.allow=4</code>。</li>
+        <li><code>mismatch_category_counts</code>：<code>value_mismatch=55</code>、<code>type_mismatch=12</code>、<code>missing_prediction_field=3</code>。</li>
+        <li>controlled smoke 仍是 <code>0 passed / 12 failed</code>，作为负证据保留。</li>
+        <li>metrics 仍是 <code>json_valid_rate=0.0</code>，schema failures 12；alignment diagnostics 没有改变评价结果。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>验证结果</h2>
+      <ul>
+        <li><code>uv run pytest tests/test_evaluator_reports.py tests/test_a100_sft_prediction_smoke.py -q</code>：22 passed。</li>
+        <li><code>uv run pytest</code>：60 passed。</li>
+        <li><code>uv run ruff check .</code>：passed。</li>
+        <li><code>uv run mypy src</code>：no issues in 16 source files。</li>
+        <li><code>voice2task-data validate --public</code>：ok true，12 SFT rows，26 DPO pairs。</li>
+        <li><code>voice2task-data dpo-check</code>：26 pairs，expected slices present。</li>
+        <li><code>voice2task-eval diagnose-alignment</code>：wrote JSON/Markdown diagnostics。</li>
+        <li><code>voice2task-report leak-scan</code> on alignment diagnostics：ok true，0 findings。</li>
+        <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：5 passed，0 failed before archive。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Reviewer 结果</h2>
+      <p>内部 Reviewer 返回 <code>Must Fix: None</code>、<code>Re-plan Needed: No</code>。Should Fix 中的 closeout validation 和 row id 脱敏已在本阶段处理；工作区含前序未提交改动的风险保留为 merge/stage 前注意事项。</p>
+    </section>
+
+    <section>
+      <h2>不要夸大的结论</h2>
+      <p class="risk">这不是 checkpoint release、adapter release、模型质量提升、production readiness、full-private-corpus release，也不是 live-browser benchmark improvement。它只说明当前 public-sample private-adapter predictions 在字段层面没有对齐 canonical Browser Task Contract target。</p>
+    </section>
+
+    <section>
+      <h2>建议下一步</h2>
+      <p>下一阶段建议转向训练输入/输出链路：检查 SFT assistant target serialization、prompt 模板和 decoding 策略，确认模型为什么学到 path-like route 与 list slots，而不是 contract enum 与 slots object。</p>
+    </section>
+  </main>
+</body>
+</html>

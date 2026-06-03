@@ -8,7 +8,17 @@ from pathlib import Path
 from typing import Any
 
 from voice2task.io import read_json, read_jsonl, write_jsonl
-from voice2task.schemas import BrowserTaskContract, SFTDatasetRow, ValidationError, as_contract
+from voice2task.schemas import (
+    PRIVATE_IP_RE,
+    PRIVATE_PATH_RE,
+    ROUTES,
+    SECRET_RE,
+    TASK_TYPES,
+    BrowserTaskContract,
+    SFTDatasetRow,
+    ValidationError,
+    as_contract,
+)
 
 
 @dataclass(frozen=True)
@@ -39,7 +49,8 @@ class ExecutionSmokeResult:
 
 
 def _sanitize_id(value: str) -> str:
-    sanitized = re.sub(r"[^A-Za-z0-9_.-]", "_", value)
+    sanitized = _sanitize_public_summary(value)
+    sanitized = re.sub(r"[^A-Za-z0-9_.-]", "_", sanitized)
     return sanitized[:80]
 
 
@@ -146,6 +157,411 @@ def evaluate_predictions(rows: list[SFTDatasetRow], predictions: dict[str, Any])
         "contract_exact_match": exact_matches / total,
     }
     return EvaluationResult(metrics=metrics, failure_slices=failure_slices)
+
+
+_REQUIRED_CONTRACT_FIELDS = {
+    "task_type",
+    "route",
+    "safety",
+    "confirmation_required",
+    "slots",
+    "normalized_command",
+    "language",
+    "contract_version",
+}
+
+
+def _sanitize_public_summary(text: str) -> str:
+    sanitized = PRIVATE_PATH_RE.sub("<private_path>", text)
+    sanitized = PRIVATE_IP_RE.sub("<private_ip>", sanitized)
+    return SECRET_RE.sub("<secret>", sanitized)
+
+
+def _observed_value_summary(value: Any) -> str:
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return "empty string"
+        return _sanitize_public_summary(f"string({len(value)}): {text[:80]}")
+    if isinstance(value, dict):
+        if not value:
+            return "empty object"
+        keys = ", ".join(sorted(str(key) for key in value.keys())[:8])
+        return _sanitize_public_summary(f"object with keys: {keys}")
+    if isinstance(value, list):
+        return _sanitize_public_summary(f"array with {len(value)} item(s)")
+    if value is None:
+        return "null"
+    return _sanitize_public_summary(f"{type(value).__name__}: {str(value)[:80]}")
+
+
+def _alignment_value_summary(value: Any, *, missing: bool = False) -> str:
+    if missing:
+        return "missing"
+    return _observed_value_summary(value)
+
+
+def _issue(
+    *,
+    row_id: str,
+    field_path: str,
+    issue_category: str,
+    observed_value: Any,
+    expected_constraint: str,
+) -> dict[str, str]:
+    return {
+        "row_id": _sanitize_id(row_id),
+        "field_path": field_path,
+        "issue_category": issue_category,
+        "observed_value_summary": _observed_value_summary(observed_value),
+        "expected_constraint": expected_constraint,
+    }
+
+
+_ALIGNMENT_FIELD_PATHS = (
+    "task_type",
+    "route",
+    "safety.allow",
+    "safety.reason",
+    "confirmation_required",
+    "slots",
+    "normalized_command",
+    "language",
+    "contract_version",
+)
+
+
+_MISSING = object()
+
+
+def _field_value(value: dict[str, Any], field_path: str) -> Any:
+    current: Any = value
+    for part in field_path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return _MISSING
+        current = current[part]
+    return current
+
+
+def _alignment_mismatch(
+    *,
+    row_id: str,
+    field_path: str,
+    gold_value: Any,
+    prediction_value: Any,
+) -> dict[str, str]:
+    gold_missing = gold_value is _MISSING
+    prediction_missing = prediction_value is _MISSING
+    if prediction_missing:
+        mismatch_category = "missing_prediction_field"
+    elif gold_missing:
+        mismatch_category = "missing_gold_field"
+    elif type(gold_value) is not type(prediction_value):
+        mismatch_category = "type_mismatch"
+    else:
+        mismatch_category = "value_mismatch"
+    return {
+        "row_id": _sanitize_id(row_id),
+        "field_path": field_path,
+        "mismatch_category": mismatch_category,
+        "gold_value_summary": _alignment_value_summary(gold_value, missing=gold_missing),
+        "prediction_value_summary": _alignment_value_summary(prediction_value, missing=prediction_missing),
+    }
+
+
+def diagnose_alignment_mismatches(rows: list[SFTDatasetRow], predictions: dict[str, Any]) -> dict[str, Any]:
+    diagnostics_rows: list[dict[str, Any]] = []
+    field_mismatch_counts: dict[str, int] = {}
+    category_counts: dict[str, int] = {}
+    schema_invalid_prediction_count = 0
+
+    for row in rows:
+        gold = as_contract(row.target_contract).to_dict()
+        raw_prediction = predictions.get(row.id)
+        parsed_prediction = raw_prediction
+        if isinstance(raw_prediction, str):
+            try:
+                parsed_prediction = json.loads(raw_prediction)
+            except json.JSONDecodeError:
+                parsed_prediction = None
+        if _prediction_to_contract(raw_prediction) is None:
+            schema_invalid_prediction_count += 1
+
+        prediction_object = parsed_prediction if isinstance(parsed_prediction, dict) else {}
+        mismatches: list[dict[str, str]] = []
+        for field_path in _ALIGNMENT_FIELD_PATHS:
+            gold_value = _field_value(gold, field_path)
+            prediction_value = _field_value(prediction_object, field_path)
+            if gold_value == prediction_value:
+                continue
+            mismatch = _alignment_mismatch(
+                row_id=row.id,
+                field_path=field_path,
+                gold_value=gold_value,
+                prediction_value=prediction_value,
+            )
+            mismatches.append(mismatch)
+            field_mismatch_counts[field_path] = field_mismatch_counts.get(field_path, 0) + 1
+            category = mismatch["mismatch_category"]
+            category_counts[category] = category_counts.get(category, 0) + 1
+        if mismatches:
+            diagnostics_rows.append({"row_id": _sanitize_id(row.id), "mismatches": mismatches})
+
+    return {
+        "diagnostic_kind": "browser_task_contract_alignment_mismatch",
+        "summary": {
+            "gold_row_count": len(rows),
+            "prediction_count": len(predictions),
+            "row_mismatch_count": len(diagnostics_rows),
+            "schema_invalid_prediction_count": schema_invalid_prediction_count,
+            "field_mismatch_counts": dict(sorted(field_mismatch_counts.items())),
+            "mismatch_category_counts": dict(sorted(category_counts.items())),
+        },
+        "rows": diagnostics_rows,
+        "claims": {
+            "invalid_predictions_remain_invalid": True,
+            "field_level_public_sample_evidence_only": True,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "full_private_corpus_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+    }
+
+
+def _diagnose_contract_object(row_id: str, prediction: dict[str, Any]) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    missing = sorted(_REQUIRED_CONTRACT_FIELDS - set(prediction))
+    for field_name in missing:
+        issues.append(
+            _issue(
+                row_id=row_id,
+                field_path=field_name,
+                issue_category="missing_required_field",
+                observed_value=None,
+                expected_constraint="Browser Task Contract requires this top-level field",
+            )
+        )
+
+    if "task_type" in prediction and prediction["task_type"] not in TASK_TYPES:
+        issues.append(
+            _issue(
+                row_id=row_id,
+                field_path="task_type",
+                issue_category="invalid_enum",
+                observed_value=prediction["task_type"],
+                expected_constraint=f"must be one of {sorted(TASK_TYPES)}",
+            )
+        )
+    if "route" in prediction and prediction["route"] not in ROUTES:
+        issues.append(
+            _issue(
+                row_id=row_id,
+                field_path="route",
+                issue_category="invalid_enum",
+                observed_value=prediction["route"],
+                expected_constraint=f"must be one of {sorted(ROUTES)}",
+            )
+        )
+    if "safety" in prediction:
+        safety = prediction["safety"]
+        if not isinstance(safety, dict):
+            issues.append(
+                _issue(
+                    row_id=row_id,
+                    field_path="safety",
+                    issue_category="invalid_type",
+                    observed_value=safety,
+                    expected_constraint="must be an object with boolean allow and non-empty string reason",
+                )
+            )
+        else:
+            if "allow" not in safety:
+                issues.append(
+                    _issue(
+                        row_id=row_id,
+                        field_path="safety.allow",
+                        issue_category="missing_required_field",
+                        observed_value=None,
+                        expected_constraint="must be a boolean",
+                    )
+                )
+            elif not isinstance(safety["allow"], bool):
+                issues.append(
+                    _issue(
+                        row_id=row_id,
+                        field_path="safety.allow",
+                        issue_category="invalid_type",
+                        observed_value=safety["allow"],
+                        expected_constraint="must be a boolean",
+                    )
+                )
+            if "reason" not in safety:
+                issues.append(
+                    _issue(
+                        row_id=row_id,
+                        field_path="safety.reason",
+                        issue_category="missing_required_field",
+                        observed_value=None,
+                        expected_constraint="must be a non-empty string",
+                    )
+                )
+            elif not isinstance(safety["reason"], str):
+                issues.append(
+                    _issue(
+                        row_id=row_id,
+                        field_path="safety.reason",
+                        issue_category="invalid_type",
+                        observed_value=safety["reason"],
+                        expected_constraint="must be a non-empty string",
+                    )
+                )
+            elif not safety["reason"].strip():
+                issues.append(
+                    _issue(
+                        row_id=row_id,
+                        field_path="safety.reason",
+                        issue_category="empty_required_string",
+                        observed_value=safety["reason"],
+                        expected_constraint="must be a non-empty string",
+                )
+            )
+    if "confirmation_required" in prediction and not isinstance(prediction["confirmation_required"], bool):
+        issues.append(
+            _issue(
+                row_id=row_id,
+                field_path="confirmation_required",
+                issue_category="invalid_type",
+                observed_value=prediction["confirmation_required"],
+                expected_constraint="must be a boolean",
+            )
+        )
+    if "slots" in prediction and not isinstance(prediction["slots"], dict):
+        issues.append(
+            _issue(
+                row_id=row_id,
+                field_path="slots",
+                issue_category="invalid_type",
+                observed_value=prediction["slots"],
+                expected_constraint="must be an object",
+            )
+        )
+    if "normalized_command" in prediction:
+        normalized_command = prediction["normalized_command"]
+        if not isinstance(normalized_command, str):
+            issues.append(
+                _issue(
+                    row_id=row_id,
+                    field_path="normalized_command",
+                    issue_category="invalid_type",
+                    observed_value=normalized_command,
+                    expected_constraint="must be a non-empty string",
+                )
+            )
+        elif not normalized_command.strip():
+            issues.append(
+                _issue(
+                    row_id=row_id,
+                    field_path="normalized_command",
+                    issue_category="empty_required_string",
+                    observed_value=normalized_command,
+                    expected_constraint="must be a non-empty string",
+                )
+            )
+    if "language" in prediction and prediction["language"] != "zh-CN":
+        issues.append(
+            _issue(
+                row_id=row_id,
+                field_path="language",
+                issue_category="invalid_literal",
+                observed_value=prediction["language"],
+                expected_constraint="must be zh-CN",
+            )
+        )
+    if "contract_version" in prediction and prediction["contract_version"] != "v1":
+        issues.append(
+            _issue(
+                row_id=row_id,
+                field_path="contract_version",
+                issue_category="invalid_literal",
+                observed_value=prediction["contract_version"],
+                expected_constraint="must be v1",
+            )
+        )
+    return issues
+
+
+def diagnose_schema_mismatches(rows: list[SFTDatasetRow], predictions: dict[str, Any]) -> dict[str, Any]:
+    diagnostics_rows: list[dict[str, Any]] = []
+    issue_counts: dict[str, int] = {}
+    invalid_prediction_count = 0
+
+    for row in rows:
+        row_id = _sanitize_id(row.id)
+        raw_prediction = predictions.get(row.id)
+        parsed_prediction = raw_prediction
+        issues: list[dict[str, str]] = []
+        if isinstance(raw_prediction, str):
+            try:
+                parsed_prediction = json.loads(raw_prediction)
+            except json.JSONDecodeError:
+                issues.append(
+                    _issue(
+                        row_id=row.id,
+                        field_path="$",
+                        issue_category="invalid_json",
+                        observed_value=raw_prediction,
+                        expected_constraint="prediction must be a JSON object matching Browser Task Contract",
+                    )
+                )
+        if not issues:
+            if not isinstance(parsed_prediction, dict):
+                issues.append(
+                    _issue(
+                        row_id=row.id,
+                        field_path="$",
+                        issue_category="invalid_type",
+                        observed_value=parsed_prediction,
+                        expected_constraint="prediction must be an object matching Browser Task Contract",
+                    )
+                )
+            elif _prediction_to_contract(parsed_prediction) is None:
+                issues.extend(_diagnose_contract_object(row.id, parsed_prediction))
+                if not issues:
+                    issues.append(
+                        _issue(
+                            row_id=row.id,
+                            field_path="$",
+                            issue_category="schema_validation_error",
+                            observed_value=parsed_prediction,
+                            expected_constraint="must satisfy Browser Task Contract validator",
+                        )
+                    )
+        if issues:
+            invalid_prediction_count += 1
+            for issue in issues:
+                issue_counts[issue["issue_category"]] = issue_counts.get(issue["issue_category"], 0) + 1
+            diagnostics_rows.append({"row_id": row_id, "issues": issues})
+
+    return {
+        "diagnostic_kind": "browser_task_contract_schema_mismatch",
+        "summary": {
+            "gold_row_count": len(rows),
+            "prediction_count": len(predictions),
+            "invalid_prediction_count": invalid_prediction_count,
+            "issue_counts": dict(sorted(issue_counts.items())),
+        },
+        "rows": diagnostics_rows,
+        "claims": {
+            "invalid_predictions_remain_invalid": True,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "full_private_corpus_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+    }
 
 
 def rule_baseline_predictions(rows: list[SFTDatasetRow]) -> dict[str, dict[str, Any]]:

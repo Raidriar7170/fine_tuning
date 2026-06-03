@@ -1,0 +1,12 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-03T03:14:14.039398+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-sft-post-recovery-rerun/alignment_diagnostics.json",
+    "reports/public-sample/a100-sft-post-recovery-rerun/alignment_diagnostics.md",
+    "docs/human-briefs/2026-06-03-diagnose-target-prediction-alignment.html",
+    "docs/human-briefs/2026-06-03-autonomous-loop-diagnose-target-prediction-alignment.html"
+  ]
+}

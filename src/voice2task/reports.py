@@ -38,6 +38,133 @@ def write_metrics_report(
     return {"json": json_path, "markdown": markdown_path}
 
 
+def write_schema_diagnostics_report(
+    diagnostics: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task schema diagnostics",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "schema_diagnostics.json"
+    markdown_path = output_dir / "schema_diagnostics.md"
+    write_json(json_path, diagnostics)
+
+    summary = diagnostics["summary"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This diagnostic is evidence-only: invalid predictions remain invalid. "
+            "It does not repair, normalize, or convert private-adapter predictions into valid contracts."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- This is not a checkpoint release.",
+        "- This is not an adapter release.",
+        "- This makes no production-readiness claim.",
+        "- This makes no full-private-corpus claim.",
+        "- This is not a live-browser benchmark or benchmark-improvement claim.",
+        "",
+        "## Summary",
+        "",
+        f"- Gold rows: `{summary['gold_row_count']}`",
+        f"- Predictions: `{summary['prediction_count']}`",
+        f"- Invalid predictions: `{summary['invalid_prediction_count']}`",
+        "",
+        "## Issue Counts",
+        "",
+    ]
+    issue_counts = summary.get("issue_counts", {})
+    if issue_counts:
+        for category, count in sorted(issue_counts.items()):
+            lines.append(f"- `{category}`: `{count}`")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Row Issues", ""])
+    for row in diagnostics.get("rows", []):
+        lines.append(f"### `{row['row_id']}`")
+        lines.append("")
+        for issue in row["issues"]:
+            lines.append(
+                "- "
+                f"`{issue['field_path']}` "
+                f"({issue['issue_category']}): observed {issue['observed_value_summary']}; "
+                f"expected {issue['expected_constraint']}"
+            )
+        lines.append("")
+
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path}
+
+
+def write_alignment_diagnostics_report(
+    diagnostics: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task alignment diagnostics",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "alignment_diagnostics.json"
+    markdown_path = output_dir / "alignment_diagnostics.md"
+    write_json(json_path, diagnostics)
+
+    summary = diagnostics["summary"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This diagnostic is evidence-only: invalid predictions remain invalid. "
+            "It reports field-level public-sample evidence only and does not repair, normalize, "
+            "coerce, or replace prediction fields."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- This is not a checkpoint release.",
+        "- This is not an adapter release.",
+        "- This makes no production-readiness claim.",
+        "- This makes no full-private-corpus claim.",
+        "- This is not a live-browser benchmark or benchmark-improvement claim.",
+        "",
+        "## Summary",
+        "",
+        f"- Gold rows: `{summary['gold_row_count']}`",
+        f"- Predictions: `{summary['prediction_count']}`",
+        f"- Rows with mismatches: `{summary['row_mismatch_count']}`",
+        f"- Schema-invalid predictions: `{summary['schema_invalid_prediction_count']}`",
+        "",
+        "## Field Mismatch Counts",
+        "",
+    ]
+    field_counts = summary.get("field_mismatch_counts", {})
+    if field_counts:
+        for field_path, count in sorted(field_counts.items()):
+            lines.append(f"- `{field_path}`: `{count}`")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Mismatch Category Counts", ""])
+    category_counts = summary.get("mismatch_category_counts", {})
+    if category_counts:
+        for category, count in sorted(category_counts.items()):
+            lines.append(f"- `{category}`: `{count}`")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Row Mismatches", ""])
+    for row in diagnostics.get("rows", []):
+        lines.append(f"### `{row['row_id']}`")
+        lines.append("")
+        for mismatch in row["mismatches"]:
+            lines.append(
+                "- "
+                f"`{mismatch['field_path']}` "
+                f"({mismatch['mismatch_category']}): gold {mismatch['gold_value_summary']}; "
+                f"prediction {mismatch['prediction_value_summary']}"
+            )
+        lines.append("")
+
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path}
+
+
 def write_prediction_evidence_pack(
     *,
     output_dir: Path,

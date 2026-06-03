@@ -1,0 +1,69 @@
+{
+  "adapter_release_status": "not_released",
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_configs_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false
+  },
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "full_private_corpus_release": false,
+    "live_browser_benchmark_claim": false,
+    "production_readiness_claim": false
+  },
+  "controlled_smoke_status": {
+    "enabled": true,
+    "failed": 12,
+    "notes": "controlled_validation_command",
+    "passed": 0,
+    "target": "data/public-samples/execution_smoke_target.json"
+  },
+  "dataset_manifest_id": "public-sample-20260601T162313Z",
+  "evidence_kind": "a100_sft_post_recovery_rerun",
+  "evidence_status": "post_recovery_private_adapter_predictions_written",
+  "formatting_policy": {
+    "fallback": "deterministic_role_plain_text",
+    "policy": "shared_contract_chat_template",
+    "prediction_prompt": "shared_contract_chat_template",
+    "prediction_target_policy": "generation_prompt_without_gold_contract",
+    "sft_training_text": "shared_contract_chat_template",
+    "tokenizer_chat_template": "used_when_available_with_tokenize_false"
+  },
+  "generated_at": "2026-06-02T11:48:55.933290+00:00",
+  "leak_scan_status": {
+    "finding_count": 0,
+    "ok": true,
+    "result_path": "reports/public-sample/a100-sft-post-recovery-rerun/leak_scan_result.json",
+    "status": "passed"
+  },
+  "metrics_path": "reports/public-sample/a100-sft-post-recovery-rerun/metrics.json",
+  "model_source": "modelscope",
+  "post_recovery_result": {
+    "controlled_smoke": {
+      "failed": 12,
+      "passed": 0
+    },
+    "interpretation": "schema_validity_still_zero_public_sample_failure_evidence",
+    "json_valid_rate": 0.0,
+    "schema_failures": 12
+  },
+  "pre_recovery_baseline": {
+    "controlled_smoke": {
+      "failed": 12,
+      "passed": 0
+    },
+    "evidence_path": "reports/public-sample/a100-sft-prediction-eval-smoke/",
+    "json_valid_rate": 0.0,
+    "prediction_source_kind": "private_a100_adapter",
+    "schema_failures": 12
+  },
+  "prediction_artifact_path": "reports/public-sample/a100-sft-post-recovery-rerun/predictions.jsonl",
+  "prediction_count": 12,
+  "prediction_metadata_path": "reports/public-sample/a100-sft-post-recovery-rerun/prediction_metadata.json",
+  "prediction_source_kind": "private_a100_adapter",
+  "release_status": "not_released"
+}

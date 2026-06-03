@@ -2,15 +2,28 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
-from voice2task.formatting import format_dpo_pair, format_sft_messages, format_sft_prompt_messages
+from voice2task.formatting import (
+    FORMATTING_POLICY,
+    format_dpo_pair,
+    format_sft_prediction_prompt,
+    format_sft_training_text,
+)
 from voice2task.io import read_json, read_jsonl, write_json
-from voice2task.schemas import DPOPair, SFTDatasetRow, as_contract
+from voice2task.schemas import (
+    PRIVATE_IP_RE,
+    PRIVATE_PATH_RE,
+    SECRET_RE,
+    DPOPair,
+    SFTDatasetRow,
+    as_contract,
+)
 
 
 def _load_config(config_path: Path) -> dict[str, Any]:
@@ -76,6 +89,7 @@ def _gpu_selection_policy(config: dict[str, Any]) -> dict[str, str]:
 
 
 PRIVATE_PATH_PREFIXES = ("/mnt/data/", "/Users/", "/root/", "/tmp/", "/private/")
+PRIVATE_DECODED_PATH_RE = re.compile(r"(/mnt/data/[^\s\"')]+)")
 
 
 def _public_display_path(value: Path | str, placeholder: str) -> str:
@@ -83,6 +97,12 @@ def _public_display_path(value: Path | str, placeholder: str) -> str:
     if any(raw.startswith(prefix) for prefix in PRIVATE_PATH_PREFIXES):
         return placeholder
     return raw
+
+
+def _public_display_model(value: Any) -> str:
+    if isinstance(value, str) and value:
+        return _public_display_path(value, "<private_base_model>")
+    return "unknown"
 
 
 def _heavy_training_gate(config: dict[str, Any], dry_run: bool) -> dict[str, bool]:
@@ -180,7 +200,9 @@ def _metadata_common(
         "hyperparameters": config,
         "dry_run": dry_run,
         "release_status": "not_released",
+        "adapter_release_status": "not_released",
         "training_status": "dry_run" if dry_run else "pending_heavy_training",
+        "formatting_policy": dict(FORMATTING_POLICY),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "package_versions": _sanitized_package_versions(),
         "gpu_selection_policy": _gpu_selection_policy(config),
@@ -356,7 +378,7 @@ def _prediction_metadata_common(
     return {
         "stage": "sft_prediction",
         "stack": "transformers+peft+trl",
-        "base_model": config.get("base_model_public_id", config.get("base_model")),
+        "base_model": _public_display_model(config.get("base_model_public_id") or config.get("base_model")),
         "model_source": config.get("model_source", "unknown"),
         "dataset_manifest_id": load_summary["manifest_id"],
         "dataset_manifest_path": _public_display_path(manifest_path, "data/public-samples/manifest_public_sample.json"),
@@ -366,6 +388,8 @@ def _prediction_metadata_common(
         "prediction_status": "pending",
         "prediction_count": 0,
         "release_status": "not_released",
+        "adapter_release_status": "not_released",
+        "formatting_policy": dict(FORMATTING_POLICY),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "prediction_gate": _prediction_gate(config, dry_run, fixture_mode),
         "command_summary": {
@@ -413,18 +437,48 @@ def _prediction_dependencies_available() -> bool:
     return all(importlib.util.find_spec(module) is not None for module in ("peft", "torch", "transformers"))
 
 
-def _extract_json_object(text: str) -> dict[str, Any] | str:
+def _extract_json_object(text: str) -> Any:
     stripped = text.strip()
-    for candidate in (stripped, stripped[stripped.find("{") : stripped.rfind("}") + 1]):
-        if not candidate:
-            continue
+    if stripped:
         try:
-            parsed = json.loads(candidate)
+            return _sanitize_prediction_value(json.loads(stripped))
         except json.JSONDecodeError:
-            continue
-        if isinstance(parsed, dict):
-            return parsed
-    return "{}"
+            pass
+    object_start = stripped.find("{")
+    object_end = stripped.rfind("}")
+    if object_start >= 0 and object_end > object_start:
+        try:
+            parsed = json.loads(stripped[object_start : object_end + 1])
+        except json.JSONDecodeError:
+            pass
+        else:
+            return _sanitize_prediction_value(parsed)
+    return _sanitize_decoded_prediction_text(stripped)
+
+
+def _sanitize_prediction_object(value: dict[str, Any]) -> dict[str, Any]:
+    return {
+        _sanitize_decoded_prediction_text(key): _sanitize_prediction_value(item)
+        for key, item in value.items()
+    }
+
+
+def _sanitize_prediction_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return _sanitize_decoded_prediction_text(value)
+    if isinstance(value, dict):
+        return _sanitize_prediction_object(value)
+    if isinstance(value, list):
+        return [_sanitize_prediction_value(item) for item in value]
+    return value
+
+
+def _sanitize_decoded_prediction_text(text: str) -> str:
+    sanitized = PRIVATE_DECODED_PATH_RE.sub("<private_path>", text)
+    sanitized = PRIVATE_PATH_RE.sub("<private_path>", sanitized)
+    sanitized = PRIVATE_IP_RE.sub("<private_ip>", sanitized)
+    sanitized = SECRET_RE.sub("<secret>", sanitized)
+    return sanitized
 
 
 def _run_real_sft_prediction(config: dict[str, Any], rows: list[SFTDatasetRow], output_path: Path) -> int:
@@ -447,8 +501,7 @@ def _run_real_sft_prediction(config: dict[str, Any], rows: list[SFTDatasetRow], 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
         for row in rows:
-            messages = format_sft_prompt_messages(row)
-            prompt = "\n".join(f"{message['role']}: {message['content']}" for message in messages) + "\nassistant: "
+            prompt = format_sft_prediction_prompt(row, tokenizer=tokenizer)
             inputs: Any = tokenizer(prompt, return_tensors="pt").to(model.device)
             with torch.no_grad():
                 generated: Any = model.generate(
@@ -545,12 +598,9 @@ def _run_real_sft(metadata: dict[str, Any], config: dict[str, Any], manifest_pat
     from trl import SFTTrainer  # type: ignore[import-not-found, unused-ignore]
 
     rows = _load_sft_training_rows(manifest_path, split=str(config.get("dataset_split", "train")))
-    texts = [
-        "\n".join(f"{message['role']}: {message['content']}" for message in format_sft_messages(row))
-        for row in rows
-    ]
-    dataset = Dataset.from_list([{"text": text} for text in texts])
     tokenizer = AutoTokenizer.from_pretrained(config["base_model"])
+    texts = [format_sft_training_text(row, tokenizer=tokenizer) for row in rows]
+    dataset = Dataset.from_list([{"text": text} for text in texts])
     model = AutoModelForCausalLM.from_pretrained(config["base_model"])
     trainer = SFTTrainer(
         model=model,

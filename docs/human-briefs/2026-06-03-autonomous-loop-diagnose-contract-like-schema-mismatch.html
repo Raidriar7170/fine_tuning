@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop 简报：Schema Mismatch 诊断</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --line: #d9dee8;
+      --panel: #ffffff;
+      --accent: #1f6f5f;
+      --warn: #8a5a12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    main { max-width: 980px; margin: 0 auto; padding: 36px 22px 52px; }
+    header { border-bottom: 1px solid var(--line); margin-bottom: 24px; padding-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: 0; }
+    h2 { margin: 26px 0 10px; font-size: 18px; }
+    p { margin: 8px 0; }
+    a { color: var(--accent); }
+    code {
+      background: #eef2f6;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    ul { margin: 8px 0; padding-left: 20px; }
+    .summary { font-size: 18px; max-width: 880px; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .status {
+      display: inline-block;
+      border: 1px solid #bfd6cb;
+      color: #1f6f5f;
+      background: #effaf5;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 14px 0 4px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+    .value { font-weight: 700; overflow-wrap: anywhere; }
+    .risk { border-left: 4px solid var(--warn); color: #47351c; padding-left: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Autonomous Loop 简报：Schema Mismatch 诊断</h1>
+      <p class="meta">Loop report · 2026-06-03 · primary change: <code>diagnose-contract-like-schema-mismatch</code></p>
+      <p><span class="status">completed and archived</span></p>
+    </header>
+
+    <section>
+      <p class="summary">结论：本轮 autonomous loop 完成并归档了一个小诊断阶段，确认 contract-like 输出失败的具体 schema 原因，而不是继续 rerun 或包装成质量提升。</p>
+      <div class="grid">
+        <div class="card">
+          <div class="label">completed phases</div>
+          <div class="value">1</div>
+        </div>
+        <div class="card">
+          <div class="label">archive</div>
+          <div class="value">2026-06-03-diagnose-contract-like-schema-mismatch</div>
+        </div>
+        <div class="card">
+          <div class="label">loop stop reason</div>
+          <div class="value">requested tiny diagnostic phase completed</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>完成的阶段</h2>
+      <ul>
+        <li>新建并完成 OpenSpec change：<code>diagnose-contract-like-schema-mismatch</code>。</li>
+        <li>实现 <code>voice2task-eval diagnose-schema</code> 与字段级 schema diagnostics。</li>
+        <li>生成 public-safe post-recovery diagnostic evidence。</li>
+        <li>同步 <code>contract-evaluation</code> 主 spec，并归档 change。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>关键产物</h2>
+      <ul>
+        <li><a href="../../openspec/changes/archive/2026-06-03-diagnose-contract-like-schema-mismatch/"><code>openspec/changes/archive/2026-06-03-diagnose-contract-like-schema-mismatch/</code></a></li>
+        <li><a href="../../docs/human-briefs/2026-06-03-diagnose-contract-like-schema-mismatch.html"><code>docs/human-briefs/2026-06-03-diagnose-contract-like-schema-mismatch.html</code></a></li>
+        <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/schema_diagnostics.md"><code>reports/public-sample/a100-sft-post-recovery-rerun/schema_diagnostics.md</code></a></li>
+        <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/schema_diagnostics_leak_scan_result.json"><code>schema_diagnostics_leak_scan_result.json</code></a></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>验证摘要</h2>
+      <ul>
+        <li><code>uv run pytest</code>：58 passed。</li>
+        <li><code>uv run ruff check .</code>：passed。</li>
+        <li><code>uv run mypy src</code>：no issues in 16 source files。</li>
+        <li><code>voice2task-data validate --public</code>：ok true。</li>
+        <li><code>voice2task-data dpo-check</code>：26 pairs。</li>
+        <li><code>voice2task-eval metrics</code>：<code>json_valid_rate=0.0</code>，schema failures 12。</li>
+        <li><code>voice2task-eval diagnose-schema</code>：12 invalid predictions，issue counts include <code>invalid_enum=24</code>、<code>invalid_type=12</code>、<code>empty_required_string=8</code>、<code>missing_required_field=2</code>。</li>
+        <li><code>voice2task-eval smoke</code>：<code>0 passed / 12 failed</code>，作为负证据保留。</li>
+        <li><code>voice2task-report leak-scan</code> on diagnostics：ok true，0 findings。</li>
+        <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：passed。</li>
+        <li><code>git diff --check</code>：passed。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Reviewer 结果</h2>
+      <p>内部 Reviewer 返回 <code>Must Fix: 无</code>、<code>Re-plan Needed: No</code>。其 Should Fix 指出诊断应覆盖完整 validator 约束；本轮已补齐 <code>safety.allow</code>、<code>confirmation_required</code>、<code>language</code>、<code>contract_version</code> 的测试与诊断。</p>
+    </section>
+
+    <section>
+      <h2>停止原因</h2>
+      <p>本轮停止于一个阶段，因为用户请求的是“很小的新阶段，专门诊断 schema mismatch”。继续自动提出并实施 target/prediction 对齐、schema-constrained decoding 或 repair layer 会改变当前授权范围，需要单独确认。</p>
+    </section>
+
+    <section>
+      <h2>不要夸大的结论</h2>
+      <p class="risk">这轮没有发布 checkpoint 或 adapter，没有证明模型质量提升，也没有生产可用或 live-browser benchmark 改善。它提供的是字段级失败证据：当前输出有 contract-like 外壳，但仍不满足 Browser Task Contract schema。</p>
+    </section>
+
+    <section>
+      <h2>推荐下一步</h2>
+      <p>手动确认后，下一阶段建议做 target/prediction 对齐诊断，检查训练 target、prompt serialization、decoding 输出和 public-sample field diff，再决定是否进入数据目标强化或 constrained decoding。</p>
+    </section>
+  </main>
+</body>
+</html>

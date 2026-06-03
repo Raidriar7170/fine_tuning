@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop: A100 SFT Post-Recovery Rerun</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fa;
+      --ink: #172033;
+      --muted: #5b6678;
+      --line: #d9dee8;
+      --panel: #ffffff;
+      --accent: #1f6f5f;
+      --warn: #8a5a12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 38px 22px 54px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: 0; }
+    h2 { margin: 26px 0 10px; font-size: 18px; }
+    p { margin: 8px 0; }
+    a { color: var(--accent); }
+    code {
+      background: #eef2f6;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    ul { margin: 8px 0; padding-left: 20px; }
+    .summary { font-size: 18px; max-width: 880px; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .status {
+      display: inline-block;
+      border: 1px solid #d8bd8d;
+      color: var(--warn);
+      background: #fff8e8;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 14px 0 4px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+    .value { font-weight: 700; overflow-wrap: anywhere; }
+    .risk {
+      border-left: 4px solid var(--warn);
+      color: #47351c;
+      padding-left: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="meta">2026-06-02 · Opsx Autonomous Phase Loop · Loop-level closeout</p>
+      <h1>A100 SFT Post-Recovery Rerun 自动阶段循环</h1>
+      <p class="summary">结论：本次续跑已完成并归档 <code>a100-sft-post-recovery-rerun</code>；真实 A100 rerun 生成了 sanitized private-adapter evidence，但 schema recovery 仍失败，post-rerun 结果为 <code>json_valid_rate=0.0000</code>、12 schema failures、controlled smoke 0/12。</p>
+      <p><span class="status">completed · stopped before new model-quality scope</span></p>
+    </header>
+
+    <section>
+      <h2>循环状态</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="label">Budget used</div>
+          <div class="value">1 / 3 phases in this continuation</div>
+        </div>
+        <div class="card">
+          <div class="label">Completed phase</div>
+          <div class="value">a100-sft-post-recovery-rerun</div>
+        </div>
+        <div class="card">
+          <div class="label">Archive</div>
+          <div class="value">2026-06-02-a100-sft-post-recovery-rerun</div>
+        </div>
+        <div class="card">
+          <div class="label">Active changes</div>
+          <div class="value">none</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>完成内容</h2>
+      <ul>
+        <li>创建并完成 OpenSpec proposal、design、spec deltas、tasks；归档后同步到主 specs。</li>
+        <li>在 A100 上选择空闲 GPU，所有远端项目文件保持在批准的私有项目根目录下。</li>
+        <li>完成 public-sample SFT rerun 和 private-adapter prediction，使用 recovered <code>shared_contract_chat_template</code> formatting policy。</li>
+        <li>只复制回 sanitized public-sample predictions、prediction metadata、metrics、controlled smoke、leak-scan、manifest 和 report。</li>
+        <li>强化 leak-scan 和 prediction sanitizer：拒绝 <code>/mnt/data/...</code> 远端私有路径，并递归清洗 parsed JSON dict/list/string 内的 private path、private IP 和 secret。</li>
+        <li>更新 recovery evidence template、阶段 Human Brief，并把旧 recovery briefs 标记为 historical/superseded。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>关键文件</h2>
+      <ul>
+        <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/report.md">post-recovery report</a> 与 <a href="../../reports/public-sample/a100-sft-post-recovery-rerun/manifest.json">manifest</a>：真实 rerun 结果和边界。</li>
+        <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/predictions.jsonl">predictions.jsonl</a>、<a href="../../reports/public-sample/a100-sft-post-recovery-rerun/metrics.json">metrics.json</a>、<a href="../../reports/public-sample/a100-sft-post-recovery-rerun/controlled_smoke_result.json">controlled_smoke_result.json</a>：public-sample evidence。</li>
+        <li><a href="../../reports/templates/a100-sft-contract-output-recovery.md">recovery evidence template</a>：pre/post comparison。</li>
+        <li><a href="../../src/voice2task/schemas.py">src/voice2task/schemas.py</a>、<a href="../../src/voice2task/leak_scan.py">src/voice2task/leak_scan.py</a>、<a href="../../src/voice2task/training.py">src/voice2task/training.py</a>：privacy hardening。</li>
+        <li><a href="../../openspec/changes/archive/2026-06-02-a100-sft-post-recovery-rerun/tasks.md">archived tasks</a> 与 <a href="../../openspec/specs/contract-evaluation/spec.md">contract-evaluation spec</a>：OpenSpec source of truth。</li>
+        <li><a href="../../docs/human-briefs/2026-06-02-a100-sft-post-recovery-rerun.html">phase Human Brief</a>：人类阅读版阶段摘要。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>验证结果</h2>
+      <ul>
+        <li><code>voice2task-train sft --run-training</code>：remote A100 SFT completed；adapter/checkpoint 未复制回 git。</li>
+        <li><code>voice2task-train sft-predict --run-prediction</code>：remote private-adapter prediction completed；12 sanitized rows copied back。</li>
+        <li><code>uv run pytest tests/test_formatting_training.py tests/test_a100_sft_prediction_smoke.py tests/test_leak_scan.py</code>：26 passed。</li>
+        <li><code>uv run ruff check .</code>：All checks passed。</li>
+        <li><code>uv run mypy src</code>：Success，16 source files。</li>
+        <li><code>uv run pytest</code>：56 passed。</li>
+        <li><code>uv run python -m voice2task.cli.data validate ... --public</code>：ok true，12 SFT rows，26 DPO pairs。</li>
+        <li><code>uv run python -m voice2task.cli.data dpo-check ...</code>：26 total pairs。</li>
+        <li><code>uv run python -m voice2task.cli.eval metrics ... a100-sft-post-recovery-rerun</code>：post-rerun <code>json_valid_rate=0.0000</code>，12 schema failures。</li>
+        <li><code>uv run python -m voice2task.cli.eval smoke ... a100-sft-post-recovery-rerun</code>：controlled smoke 0 passed / 12 failed。</li>
+        <li><code>uv run python -m voice2task.cli.report leak-scan ...</code>：ok true，0 findings。</li>
+        <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：archive 后 4 specs passed，0 failed。</li>
+        <li><code>git diff --check</code>：clean；<code>uv.lock</code> 副产物已移除。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>停止原因</h2>
+      <p class="risk">本轮停止是因为同一 rerun scope 已完成并归档，且真实 evidence 显示 schema recovery 仍失败。继续推进将改变范围为模型质量恢复、schema-valid decoding/training objective 或数据 target 诊断，需要新的 OpenSpec change 和用户确认。</p>
+    </section>
+
+    <section>
+      <h2>不要夸大的结论</h2>
+      <ul>
+        <li>不能声称 checkpoint 或 adapter 已发布。</li>
+        <li>不能声称 schema validity 已恢复、模型质量提升、生产可用或 live-browser benchmark 提升。</li>
+        <li>不能公开完整私有语料、远端路径、host/SSH 细节、raw logs、cache、checkpoint 或 adapter。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>推荐下一步</h2>
+      <p>如果继续，建议另开很小的 OpenSpec change：诊断为什么 contract-like JSON 仍不符合 Browser Task Contract schema，优先检查 target schema、generation decoding、字段名/类型约束和训练样本目标，而不是重复同一 rerun。</p>
+    </section>
+  </main>
+</body>
+</html>

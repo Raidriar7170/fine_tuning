@@ -1,0 +1,41 @@
+{
+  "adapter_release_status": "not_released",
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "command_summary": {
+    "config": "<private_prediction_config>",
+    "entrypoint": "voice2task-train sft-predict",
+    "manifest": "data/public-samples/manifest_public_sample.json",
+    "mode": "run_prediction",
+    "output": "<a100_prediction_output>",
+    "requires_cli_run_prediction": true,
+    "requires_config_allow_private_prediction": true
+  },
+  "created_at": "2026-06-02T11:46:08.006362+00:00",
+  "dataset_manifest_id": "public-sample-20260601T162313Z",
+  "dataset_manifest_path": "data/public-samples/manifest_public_sample.json",
+  "formatting_policy": {
+    "fallback": "deterministic_role_plain_text",
+    "policy": "shared_contract_chat_template",
+    "prediction_prompt": "shared_contract_chat_template",
+    "prediction_target_policy": "generation_prompt_without_gold_contract",
+    "sft_training_text": "shared_contract_chat_template",
+    "tokenizer_chat_template": "used_when_available_with_tokenize_false"
+  },
+  "model_source": "modelscope",
+  "notes": "Private A100 adapter predictions were written as sanitized public-sample contract prediction rows. No checkpoints, adapters, raw logs, or private paths were copied into the prediction artifact.",
+  "prediction_count": 12,
+  "prediction_gate": {
+    "adapter_configured": true,
+    "cli_run_prediction": true,
+    "config_allow_private_prediction": true,
+    "fixture_mode": false,
+    "will_run_private_prediction": true
+  },
+  "prediction_output_path": "<a100_prediction_output>",
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_split": "all",
+  "prediction_status": "private_adapter_predictions_written",
+  "release_status": "not_released",
+  "stack": "transformers+peft+trl",
+  "stage": "sft_prediction"
+}

@@ -91,6 +91,16 @@ PYTHONPATH=src python -m voice2task.cli.train sft-predict \
   --run-prediction
 ```
 
+For contract-output recovery, use the same shared contract-only chat formatting policy for the SFT
+training text and the trained-adapter prediction prompt. The previous trained-path public-sample smoke
+is a pre-recovery baseline with `json_valid_rate=0.0000` and 12 schema failures; keep those failed
+private-adapter outputs visible as failures unless a real rerun emits schema-valid contract JSON.
+Record rerun evidence with the template in `reports/templates/a100-sft-contract-output-recovery.md`,
+then copy only sanitized public-sample predictions, metrics, controlled-smoke status, and leak-scan
+summaries into the repo. Do not publish checkpoints, adapters, raw logs, remote cache details,
+host/SSH details, private paths, full private-corpus rows, production-readiness claims, or
+live-browser improvement claims.
+
 Local validation may use `--fixture-mode` to verify the evidence pipeline without loading private
 model artifacts. Fixture-mode predictions are deterministic public-sample contract fixtures; they are
 not private adapter model outputs and must not be presented as model-quality evidence. The committed

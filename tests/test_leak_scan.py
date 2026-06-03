@@ -19,6 +19,17 @@ def test_leak_scan_flags_private_paths_tokens_and_private_ips(tmp_path: Path) ->
     assert {"private_path", "secret", "private_ip"}.issubset({finding.category for finding in result.findings})
 
 
+def test_leak_scan_flags_a100_remote_private_paths(tmp_path: Path) -> None:
+    bad = tmp_path / "remote.md"
+    remote_path = "/" + "mnt/data/minghongsun/project/runs/adapter"
+    bad.write_text(f"remote_output={remote_path}\n", encoding="utf-8")
+
+    result = scan_paths([bad])
+
+    assert result.ok is False
+    assert "private_path" in {finding.category for finding in result.findings}
+
+
 def test_leak_scan_allows_clean_public_artifacts(tmp_path: Path) -> None:
     clean = tmp_path / "clean.md"
     clean.write_text("Public sample report with aggregate metrics only.", encoding="utf-8")

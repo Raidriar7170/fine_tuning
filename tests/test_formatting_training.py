@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 
-from voice2task.formatting import format_dpo_pair, format_sft_messages
+from voice2task import formatting
+from voice2task.formatting import SYSTEM_PROMPT, format_dpo_pair, format_sft_messages
 from voice2task.schemas import BrowserTaskContract, DPOPair, SFTDatasetRow
 from voice2task.training import run_dpo, run_sft
 
@@ -15,6 +16,48 @@ def _contract() -> BrowserTaskContract:
         slots={"query": "高铁票"},
         normalized_command="搜索高铁票",
     )
+
+
+class _ChatTemplateTokenizer:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def apply_chat_template(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tokenize: bool,
+        add_generation_prompt: bool,
+    ) -> str:
+        self.calls.append(
+            {
+                "messages": messages,
+                "tokenize": tokenize,
+                "add_generation_prompt": add_generation_prompt,
+            }
+        )
+        rendered = "".join(f"<{message['role']}>{message['content']}</{message['role']}>" for message in messages)
+        if add_generation_prompt:
+            rendered += "<assistant>"
+        return rendered
+
+
+class _TemplateRenderError(Exception):
+    pass
+
+
+_TemplateRenderError.__module__ = "jinja2.exceptions"
+
+
+class _FailingChatTemplateTokenizer:
+    def apply_chat_template(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tokenize: bool,
+        add_generation_prompt: bool,
+    ) -> str:
+        raise _TemplateRenderError("template render failed")
 
 
 def test_sft_formatter_uses_contract_json_only() -> None:
@@ -33,6 +76,116 @@ def test_sft_formatter_uses_contract_json_only() -> None:
     assert assistant.startswith("{")
     assert "我可以" not in assistant
     assert json.loads(assistant)["route"] == "search_web"
+
+
+def test_sft_training_text_uses_tokenizer_chat_template_when_available() -> None:
+    row = SFTDatasetRow(
+        id="sft-1",
+        split="train",
+        input_text="帮我搜高铁票",
+        target_contract=_contract(),
+        provenance={"source_id": "seed-1", "public_safe": True},
+    )
+    tokenizer = _ChatTemplateTokenizer()
+
+    text = formatting.format_sft_training_text(row, tokenizer=tokenizer)
+
+    assert text.startswith("<system>")
+    assert "<assistant>" in text
+    assert json.loads(text.split("<assistant>", 1)[1].split("</assistant>", 1)[0])["route"] == "search_web"
+    assert tokenizer.calls == [
+        {
+            "messages": format_sft_messages(row),
+            "tokenize": False,
+            "add_generation_prompt": False,
+        }
+    ]
+
+
+def test_sft_prediction_prompt_uses_generation_prompt_without_gold_contract() -> None:
+    row = SFTDatasetRow(
+        id="sft-1",
+        split="train",
+        input_text="帮我处理这个公开页面",
+        target_contract=BrowserTaskContract(
+            task_type="search",
+            route="search_web",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"query": "gold-only-token"},
+            normalized_command="搜索 gold-only-token",
+        ),
+        provenance={"source_id": "seed-1", "public_safe": True},
+    )
+    tokenizer = _ChatTemplateTokenizer()
+
+    prompt = formatting.format_sft_prediction_prompt(row, tokenizer=tokenizer)
+
+    assert prompt.endswith("<assistant>")
+    assert "gold-only-token" not in prompt
+    assert tokenizer.calls[0]["add_generation_prompt"] is True
+    assert [message["role"] for message in tokenizer.calls[0]["messages"]] == ["system", "user"]
+
+
+def test_sft_training_text_fallback_is_deterministic_contract_only_text() -> None:
+    row = SFTDatasetRow(
+        id="sft-1",
+        split="train",
+        input_text="帮我搜高铁票",
+        target_contract=_contract(),
+        provenance={"source_id": "seed-1", "public_safe": True},
+    )
+
+    text = formatting.format_sft_training_text(row, tokenizer=None)
+
+    assistant_line = (
+        "assistant: "
+        f"{json.dumps(_contract().to_dict(), ensure_ascii=False, sort_keys=True, separators=(',', ':'))}"
+    )
+    assert text == "\n".join(
+        [
+            f"system: {SYSTEM_PROMPT}",
+            "user: 帮我搜高铁票",
+            assistant_line,
+        ]
+    )
+
+
+def test_chat_template_render_error_falls_back_to_deterministic_text() -> None:
+    row = SFTDatasetRow(
+        id="sft-1",
+        split="train",
+        input_text="帮我搜高铁票",
+        target_contract=_contract(),
+        provenance={"source_id": "seed-1", "public_safe": True},
+    )
+
+    text = formatting.format_sft_prediction_prompt(row, tokenizer=_FailingChatTemplateTokenizer())
+
+    assert text == "\n".join(
+        [
+            f"system: {SYSTEM_PROMPT}",
+            "user: 帮我搜高铁票",
+            "assistant:",
+        ]
+    )
+
+
+def test_system_prompt_enumerates_contract_fields_and_non_goals() -> None:
+    for field in (
+        "task_type",
+        "route",
+        "safety.allow",
+        "safety.reason",
+        "confirmation_required",
+        "slots",
+        "normalized_command",
+        "language",
+        "contract_version",
+    ):
+        assert field in SYSTEM_PROMPT
+    for forbidden in ("不要解释", "Markdown", "GUI 动作"):
+        assert forbidden in SYSTEM_PROMPT
 
 
 def test_dpo_formatter_keeps_same_prompt_with_chosen_and_rejected_contracts() -> None:
@@ -80,6 +233,8 @@ def test_sft_and_dpo_dry_runs_write_honest_adapter_metadata(tmp_path: Path) -> N
     assert sft_meta["dry_run"] is True
     assert sft_meta["release_status"] == "not_released"
     assert sft_meta["dataset_manifest_id"] == "public-sample-1"
+    assert sft_meta["formatting_policy"]["sft_training_text"] == "shared_contract_chat_template"
+    assert sft_meta["formatting_policy"]["prediction_prompt"] == "shared_contract_chat_template"
     assert Path(sft_meta["metadata_path"]).exists()
     assert dpo_meta["sft_model_ref"] == "adapters/sft-dev"
     assert dpo_meta["release_status"] == "not_released"

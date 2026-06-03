@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-02T12:07:08.223234+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "data/public-samples",
+    "reports/public-sample/a100-sft-post-recovery-rerun",
+    "reports/templates/a100-sft-contract-output-recovery.md",
+    "README.md",
+    "CONTEXT.md",
+    "docs",
+    "openspec"
+  ]
+}

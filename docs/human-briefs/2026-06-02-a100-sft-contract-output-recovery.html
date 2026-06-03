@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A100 SFT Contract-Output Recovery 简报</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fa;
+      --ink: #172033;
+      --muted: #5b6678;
+      --line: #d9dee8;
+      --panel: #ffffff;
+      --accent: #1f6f5f;
+      --ok: #1f6f5f;
+      --warn: #8a5a12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 38px 22px 54px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: 0; }
+    h2 { margin: 26px 0 10px; font-size: 18px; }
+    p { margin: 8px 0; }
+    a { color: var(--accent); }
+    code {
+      background: #eef2f6;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    ul { margin: 8px 0; padding-left: 20px; }
+    .summary { font-size: 18px; max-width: 860px; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .status {
+      display: inline-block;
+      border: 1px solid #9cc8bc;
+      color: var(--ok);
+      background: #eef9f5;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 14px 0 4px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+    .value { font-weight: 700; overflow-wrap: anywhere; }
+    .risk {
+      border-left: 4px solid var(--warn);
+      color: #47351c;
+      padding-left: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="meta">2026-06-02 · OpenSpec apply phase · Historical human review companion</p>
+      <h1>A100 SFT Contract-Output Recovery 简报</h1>
+      <p class="summary">结论：这份历史简报记录本地 contract-output recovery 修复；后续 <code>a100-sft-post-recovery-rerun</code> 已完成真实远程 rerun，并确认 public-sample schema recovery 仍失败。</p>
+      <p><span class="status">historical · superseded by post-recovery rerun</span></p>
+    </header>
+
+    <section>
+      <h2>当前状态</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="label">OpenSpec change</div>
+          <div class="value">a100-sft-contract-output-recovery</div>
+        </div>
+        <div class="card">
+          <div class="label">Pre-recovery baseline</div>
+          <div class="value">json_valid_rate=0.0000 · 12 schema failures</div>
+        </div>
+        <div class="card">
+          <div class="label">Release status</div>
+          <div class="value">not_released</div>
+        </div>
+        <div class="card">
+          <div class="label">Recovery claim</div>
+          <div class="value">schema/contract public-sample only</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>本阶段改动</h2>
+      <ul>
+        <li>新增 shared formatting helpers：tokenizer 有 chat template 时使用 <code>apply_chat_template</code>，否则使用 deterministic role text fallback。</li>
+        <li>增强 <code>SYSTEM_PROMPT</code>：列出 Browser Task Contract 必需字段，并禁止解释、Markdown、自然语言前后缀和 GUI 动作。</li>
+        <li>真实 SFT training text 和 private-adapter prediction prompt 都走同一 formatting policy；prediction prompt 不带 gold contract。</li>
+        <li>metadata 增加 <code>formatting_policy</code> 和 unreleased adapter status，便于 rerun provenance 审核。</li>
+        <li>新增 recovery evidence template，明确 pre-recovery 12/12 schema failure；该 template 后续已由 post-recovery rerun 填入真实失败结果。</li>
+        <li>README 增加 contract-output recovery runbook，强调 invalid outputs 不被 fixture/rule/gold 替换。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>关键文件</h2>
+      <ul>
+        <li><a href="../../src/voice2task/formatting.py">src/voice2task/formatting.py</a>：system prompt、messages、training text、prediction prompt helper。</li>
+        <li><a href="../../src/voice2task/training.py">src/voice2task/training.py</a>：real SFT 和 private prediction path 接入 shared helpers。</li>
+        <li><a href="../../tests/test_formatting_training.py">tests/test_formatting_training.py</a> 与 <a href="../../tests/test_a100_sft_prediction_smoke.py">tests/test_a100_sft_prediction_smoke.py</a>：TDD coverage。</li>
+        <li><a href="../../reports/templates/a100-sft-contract-output-recovery.md">reports/templates/a100-sft-contract-output-recovery.md</a>：public-safe recovery evidence template。</li>
+        <li><a href="../../openspec/changes/a100-sft-contract-output-recovery/tasks.md">tasks.md</a>：OpenSpec task tracking。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>验证结果</h2>
+      <ul>
+        <li><code>uv run pytest tests/test_formatting_training.py tests/test_a100_sft_prediction_smoke.py</code>：本轮 focused tests 在修复前暴露目标失败，修复后通过；以终端输出为准。</li>
+        <li><code>uv run ruff check .</code>：All checks passed。</li>
+        <li><code>uv run mypy src</code>：Success，16 source files。</li>
+        <li><code>uv run pytest</code>：50 passed。</li>
+        <li><code>uv run python -m voice2task.cli.data validate ... --public</code>：ok true，SFT 12 rows，DPO 26 pairs。</li>
+        <li><code>uv run python -m voice2task.cli.data dpo-check ...</code>：26 total pairs，schema/route/safety/slot 等 slices 可审计。</li>
+        <li><code>uv run python -m voice2task.cli.eval metrics ...</code>：写入 pre-recovery metrics；<code>json_valid_rate=0.0000</code>，schema failures 12。</li>
+        <li><code>uv run python -m voice2task.cli.eval smoke ...</code>：按预期返回 pre-recovery failure；记录 0 passed / 12 failed。</li>
+        <li><code>uv run python -m voice2task.cli.report leak-scan ...</code>：ok true，0 findings。</li>
+        <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：5 passed，0 failed。</li>
+        <li><code>git diff --check</code>：无 whitespace/error 输出。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>剩余风险</h2>
+      <p class="risk">本地实现不能证明 A100 rerun 一定恢复 schema validity；它只修复 training/prediction formatting contract，并准备 public-safe recovery evidence。任何 post-rerun 改善都必须来自真实 rerun 的 sanitized predictions 与 metrics。</p>
+    </section>
+
+    <section>
+      <h2>推荐下一步</h2>
+      <p>主线程复核本轮 diff 和 validation evidence；若后续 A100 rerun 仍失败，应继续公开记录 schema failure，而不是用 fixture、rule baseline 或 gold contract 掩盖。</p>
+    </section>
+  </main>
+</body>
+</html>

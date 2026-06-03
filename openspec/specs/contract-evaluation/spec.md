@@ -17,6 +17,32 @@ The system SHALL produce failure slices that identify common contract errors.
 - **WHEN** predictions fail one or more metric checks
 - **THEN** the evaluator groups failures by schema, task type, route, safety, confirmation, slot, and unknown categories with example identifiers
 
+### Requirement: Diagnose contract-like schema mismatches
+The system SHALL provide public-safe diagnostics for generated predictions that are JSON or JSON-like but fail the Browser Task Contract schema.
+
+#### Scenario: Contract-like prediction fails required fields and field constraints
+- **WHEN** a prediction artifact contains objects with Browser Task Contract-like fields that fail required fields, enum values, field types, or non-empty string constraints
+- **THEN** the diagnostic output MUST report the affected row id, field path, issue category, observed value summary, and expected contract constraint without converting the prediction into a valid contract
+
+#### Scenario: Diagnostics preserve bounded evidence claims
+- **WHEN** diagnostics are generated for private-adapter public-sample predictions
+- **THEN** the report MUST state that invalid predictions remain invalid and MUST NOT claim checkpoint release, adapter release, production readiness, full-private-corpus release, or live-browser benchmark improvement
+
+### Requirement: Diagnose target-prediction alignment mismatches
+The system SHALL provide public-safe diagnostics that compare generated prediction fields with their gold Browser Task Contract targets, including when predictions are schema-invalid but contract-like.
+
+#### Scenario: Compare raw prediction fields with gold targets
+- **WHEN** the evaluator receives gold public-sample rows and prediction artifacts with matching row ids
+- **THEN** the alignment diagnostic output MUST report aggregate mismatch counts by contract field path and row-level mismatches with row id, field path, gold value summary, prediction value summary, and mismatch category without converting invalid predictions into valid contracts
+
+#### Scenario: Preserve invalid prediction status
+- **WHEN** a prediction fails Browser Task Contract schema validation but contains comparable contract-like fields
+- **THEN** alignment diagnostics MUST NOT repair, normalize, coerce, or count the prediction as schema-valid
+
+#### Scenario: Bound alignment evidence claims
+- **WHEN** alignment diagnostics are generated for private-adapter public-sample predictions
+- **THEN** the report MUST state that the evidence is field-level public-sample analysis only and MUST NOT claim checkpoint release, adapter release, production readiness, full-private-corpus release, or live-browser benchmark improvement
+
 ### Requirement: Run controlled execution smoke
 The system SHALL support an optional execution smoke check that verifies generated contracts can be consumed by controlled Voice-to-Browser Agent validation paths.
 
@@ -60,3 +86,41 @@ The system SHALL produce a public-safe A100 trained-prediction evidence pack tha
 #### Scenario: Separate trained-prediction smoke from benchmark claims
 - **WHEN** the public report describes trained-path prediction results
 - **THEN** it labels the result as a public-sample prediction/evaluation smoke and separates contract metrics and controlled smoke from live-browser benchmark, production-readiness, or released-checkpoint claims
+
+### Requirement: Publish public-safe contract-output recovery evidence
+The system SHALL publish a public-safe recovery evidence pack for A100 SFT contract-output recovery that records schema-failure diagnosis, rerun metrics when available, controlled smoke status, leak-scan status, and claim boundaries without exposing private infrastructure or unreleased model artifacts.
+
+#### Scenario: Record pre-recovery failure evidence
+- **WHEN** the recovery evidence pack is generated from the previous trained-path prediction/evaluation smoke
+- **THEN** it records the prior schema failure count, JSON validity rate, prediction source kind, dataset manifest ID, and report links without copying raw private logs, checkpoints, adapters, caches, host details, or private paths
+
+#### Scenario: Compare post-rerun metrics
+- **WHEN** sanitized post-recovery public-sample predictions and metrics are available
+- **THEN** the evidence pack reports post-rerun contract metrics and controlled smoke status alongside the pre-recovery baseline while labeling the result as a public-sample recovery smoke
+
+#### Scenario: Keep recovery claims bounded
+- **WHEN** the public recovery report describes the phase
+- **THEN** it states that results are schema/contract-level public-sample evidence only and makes no checkpoint release, production-readiness, full-private-corpus, or live-browser benchmark improvement claim
+
+#### Scenario: Validate recovery evidence boundaries
+- **WHEN** the recovery evidence pack is prepared for commit
+- **THEN** leak-scan validation rejects raw private rows, local absolute paths, secrets, tokens, private IP addresses, SSH details, raw logs, checkpoints, adapters, caches, and oversized generated corpora
+
+### Requirement: Publish post-recovery A100 rerun evidence
+The system SHALL publish a public-safe post-recovery A100 rerun evidence pack that compares the rerun result with the pre-recovery trained-path schema-failure baseline without exposing private infrastructure or unreleased model artifacts.
+
+#### Scenario: Record post-recovery prediction metrics
+- **WHEN** sanitized post-recovery public-sample predictions are available
+- **THEN** the evidence pack records prediction count, prediction source kind, dataset manifest ID, formatting policy, metrics path, JSON validity rate, schema failure count, and failure slices alongside links to the pre-recovery baseline
+
+#### Scenario: Record post-recovery controlled smoke
+- **WHEN** controlled execution smoke is run against the sanitized post-recovery predictions
+- **THEN** the evidence pack records passed and failed counts, target fixture path, and notes that the result is a controlled public-sample smoke rather than a live-browser benchmark
+
+#### Scenario: Validate post-recovery evidence boundaries
+- **WHEN** the post-recovery evidence pack is prepared for commit
+- **THEN** leak-scan validation rejects raw private rows, absolute local paths, secrets, tokens, private IP addresses, SSH details, raw logs, checkpoints, adapters, caches, oversized generated corpora, and private remote paths
+
+#### Scenario: Bound post-recovery interpretation
+- **WHEN** the public report describes the post-recovery rerun
+- **THEN** it states whether schema validity improved, remained partial, or still failed using the observed metrics, and makes no checkpoint release, adapter release, full-private-corpus, production-readiness, or live-browser benchmark improvement claim

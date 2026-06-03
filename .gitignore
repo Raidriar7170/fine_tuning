@@ -27,3 +27,4 @@ reports/private/
 *.log
 .env
 .env.*
+uv.lock

@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 
 from voice2task.evaluation import (
+    diagnose_alignment_mismatches,
+    diagnose_schema_mismatches,
     evaluate_predictions,
     load_predictions,
     load_sft_rows,
@@ -13,7 +15,11 @@ from voice2task.evaluation import (
     run_execution_smoke,
     write_predictions,
 )
-from voice2task.reports import write_metrics_report
+from voice2task.reports import (
+    write_alignment_diagnostics_report,
+    write_metrics_report,
+    write_schema_diagnostics_report,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,6 +40,18 @@ def build_parser() -> argparse.ArgumentParser:
     metrics.add_argument("--predictions", type=Path, required=True)
     metrics.add_argument("--output", type=Path, required=True)
     metrics.add_argument("--title", default="Voice2Task public sample metrics")
+
+    diagnose_schema = subcommands.add_parser("diagnose-schema")
+    diagnose_schema.add_argument("--gold", type=Path, required=True)
+    diagnose_schema.add_argument("--predictions", type=Path, required=True)
+    diagnose_schema.add_argument("--output", type=Path, required=True)
+    diagnose_schema.add_argument("--title", default="Voice2Task schema diagnostics")
+
+    diagnose_alignment = subcommands.add_parser("diagnose-alignment")
+    diagnose_alignment.add_argument("--gold", type=Path, required=True)
+    diagnose_alignment.add_argument("--predictions", type=Path, required=True)
+    diagnose_alignment.add_argument("--output", type=Path, required=True)
+    diagnose_alignment.add_argument("--title", default="Voice2Task alignment diagnostics")
 
     smoke = subcommands.add_parser("smoke")
     smoke.add_argument("--gold", type=Path, required=True)
@@ -62,6 +80,20 @@ def main(argv: list[str] | None = None) -> int:
         predictions = load_predictions(args.predictions)
         eval_result = evaluate_predictions(rows, predictions)
         paths = write_metrics_report(eval_result, output_dir=args.output, title=args.title)
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "diagnose-schema":
+        rows = load_sft_rows(args.gold)
+        predictions = load_predictions(args.predictions)
+        diagnostics = diagnose_schema_mismatches(rows, predictions)
+        paths = write_schema_diagnostics_report(diagnostics, output_dir=args.output, title=args.title)
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "diagnose-alignment":
+        rows = load_sft_rows(args.gold)
+        predictions = load_predictions(args.predictions)
+        diagnostics = diagnose_alignment_mismatches(rows, predictions)
+        paths = write_alignment_diagnostics_report(diagnostics, output_dir=args.output, title=args.title)
         print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
         return 0
     if args.command == "smoke":
