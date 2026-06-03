@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>训练/提示/解码对齐诊断 Brief</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172026; background: #f6f7f9; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .status { display: inline-block; padding: 4px 10px; border-radius: 6px; background: #dff3e4; color: #14552b; font-weight: 600; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 16px 0; }
+    .card { background: #fff; border: 1px solid #d9dee7; border-radius: 8px; padding: 14px 16px; }
+    .num { font-size: 26px; font-weight: 700; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1358a8; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>训练/提示/解码对齐诊断</h1>
+  <p><span class="status">archived</span></p>
+  <p>结论：public gold target 没有 path-like route 或 list slots 污染；当前坏形态来自 private-adapter prediction，证据更指向 prompt 约束弱、训练 split 覆盖窄，以及旧 rerun 缺少 prompt/decoding sidecar。</p>
+
+  <h2>本阶段改了什么</h2>
+  <ul>
+    <li>新增 <code>diagnose-source</code> 诊断，连接 target shape、prediction symptoms、split coverage、prompt evidence、decoding evidence gaps。</li>
+    <li>强化 SFT shared system prompt，显式列出 <code>task_type</code> 与 <code>route</code> enum，声明 <code>route</code> 不是 URL/path，<code>slots</code> 必须是 JSON object。</li>
+    <li>未来 prediction metadata 增加 <code>decoding_policy</code> 和 <code>prompt_constraints</code>，但不 repair/coerce/替换模型输出。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <div class="grid">
+    <div class="card"><div class="num">0</div><div>gold path-like route targets</div></div>
+    <div class="card"><div class="num">0</div><div>gold list-shaped slots targets</div></div>
+    <div class="card"><div class="num">12</div><div>prediction path-like routes</div></div>
+    <div class="card"><div class="num">11</div><div>prediction list-shaped slots</div></div>
+    <div class="card"><div class="num">3</div><div>train split rows, all <code>search_web</code></div></div>
+    <div class="card"><div class="num">4</div><div>old-run evidence gaps: prompt snapshot, decoding policy, token count, EOS/finish state</div></div>
+  </div>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/source_diagnostics.md">source_diagnostics.md</a></li>
+    <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/source_diagnostics.json">source_diagnostics.json</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-03-diagnose-training-prompt-decoding-alignment/proposal.md">archived proposal</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-03-diagnose-training-prompt-decoding-alignment/tasks.md">archived tasks</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>uv run pytest</code> -> 66 passed</li>
+    <li><code>uv run ruff check .</code> -> passed</li>
+    <li><code>uv run mypy src</code> -> passed</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code> -> 5 passed before archive</li>
+    <li><code>voice2task-report leak-scan</code> on source diagnostics -> ok true, 0 findings</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 checkpoint 或 adapter release。</li>
+    <li>这不证明模型质量提升，也不是 live-browser benchmark。</li>
+    <li>当前 prompt constraints 是未来 rerun 准备，不是旧 A100 prediction run 的历史 prompt 证据。</li>
+    <li>缺少 raw decoded/token/EOS sidecar 只能说明 evidence gap，不能直接断言截断是原因。</li>
+  </ul>
+
+  <h2>建议下一步</h2>
+  <p>下一步建议在用户确认后做 A100 train-split/overfit rerun：保存 prompt snapshot、decoding sidecar、generated token count、EOS/finish state，并先验证 train split 内样本是否能恢复 <code>search_web</code> 与 object <code>slots</code>。</p>
+</main>
+</body>
+</html>

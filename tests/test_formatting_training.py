@@ -3,7 +3,7 @@ from pathlib import Path
 
 from voice2task import formatting
 from voice2task.formatting import SYSTEM_PROMPT, format_dpo_pair, format_sft_messages
-from voice2task.schemas import BrowserTaskContract, DPOPair, SFTDatasetRow
+from voice2task.schemas import ROUTES, TASK_TYPES, BrowserTaskContract, DPOPair, SFTDatasetRow
 from voice2task.training import run_dpo, run_sft
 
 
@@ -123,6 +123,13 @@ def test_sft_prediction_prompt_uses_generation_prompt_without_gold_contract() ->
 
     assert prompt.endswith("<assistant>")
     assert "gold-only-token" not in prompt
+    assert "task_type" in prompt
+    assert all(task_type in prompt for task_type in TASK_TYPES)
+    assert "route" in prompt
+    assert all(route in prompt for route in ROUTES)
+    assert "route 不是 URL/path" in prompt
+    assert "slots 必须是 JSON object" in prompt
+    assert "不是 array/list" in prompt
     assert tokenizer.calls[0]["add_generation_prompt"] is True
     assert [message["role"] for message in tokenizer.calls[0]["messages"]] == ["system", "user"]
 
@@ -186,6 +193,15 @@ def test_system_prompt_enumerates_contract_fields_and_non_goals() -> None:
         assert field in SYSTEM_PROMPT
     for forbidden in ("不要解释", "Markdown", "GUI 动作"):
         assert forbidden in SYSTEM_PROMPT
+
+
+def test_system_prompt_exposes_contract_value_constraints() -> None:
+    assert all(task_type in SYSTEM_PROMPT for task_type in TASK_TYPES)
+    assert all(route in SYSTEM_PROMPT for route in ROUTES)
+    assert "route 不是 URL/path" in SYSTEM_PROMPT
+    assert "route 必须使用上面的 enum 值" in SYSTEM_PROMPT
+    assert "slots 必须是 JSON object" in SYSTEM_PROMPT
+    assert "不是 array/list" in SYSTEM_PROMPT
 
 
 def test_dpo_formatter_keeps_same_prompt_with_chosen_and_rejected_contracts() -> None:

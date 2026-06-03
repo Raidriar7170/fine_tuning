@@ -1,0 +1,12 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-03T04:15:18.778477+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-sft-post-recovery-rerun/source_diagnostics.json",
+    "reports/public-sample/a100-sft-post-recovery-rerun/source_diagnostics.md",
+    "docs/human-briefs/2026-06-03-diagnose-training-prompt-decoding-alignment.html",
+    "docs/human-briefs/2026-06-03-autonomous-loop-diagnose-training-prompt-decoding-alignment.html"
+  ]
+}

@@ -96,6 +96,17 @@ def test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config(tmp_p
     assert dry_run["prediction_status"] == "prediction_skipped_no_opt_in"
     assert dry_run["release_status"] == "not_released"
     assert dry_run["formatting_policy"]["prediction_prompt"] == "shared_contract_chat_template"
+    assert dry_run["prompt_constraints"]["task_type_enum_visible"] is True
+    assert dry_run["prompt_constraints"]["route_enum_visible"] is True
+    assert dry_run["prompt_constraints"]["route_not_url_or_path_visible"] is True
+    assert dry_run["prompt_constraints"]["slots_object_not_array_visible"] is True
+    assert dry_run["decoding_policy"] == {
+        "strategy": "greedy",
+        "do_sample": False,
+        "max_new_tokens": 256,
+        "raw_decoded_sidecar_written": False,
+        "schema_repair_applied": False,
+    }
 
     missing_adapter_config = _write_prediction_config(tmp_path, adapter_path=None)
     blocked = run_sft_prediction_export(missing_adapter_config, manifest, output, dry_run=False, fixture_mode=False)
@@ -103,6 +114,29 @@ def test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config(tmp_p
     assert output.exists() is False
     assert blocked["prediction_status"] == "prediction_blocked_missing_adapter"
     assert blocked["prediction_gate"]["will_run_private_prediction"] is False
+    assert blocked["decoding_policy"]["schema_repair_applied"] is False
+
+
+def test_sft_prediction_metadata_uses_configured_max_new_tokens(tmp_path: Path) -> None:
+    manifest = _write_manifest(tmp_path)
+    config = _write_prediction_config(tmp_path)
+    config_payload = json.loads(config.read_text(encoding="utf-8"))
+    config_payload["max_new_tokens"] = 96
+    config.write_text(json.dumps(config_payload), encoding="utf-8")
+
+    metadata = run_sft_prediction_export(
+        config,
+        manifest,
+        tmp_path / "predictions.jsonl",
+        dry_run=True,
+        fixture_mode=False,
+    )
+
+    assert metadata["decoding_policy"]["strategy"] == "greedy"
+    assert metadata["decoding_policy"]["do_sample"] is False
+    assert metadata["decoding_policy"]["max_new_tokens"] == 96
+    assert metadata["decoding_policy"]["raw_decoded_sidecar_written"] is False
+    assert metadata["decoding_policy"]["schema_repair_applied"] is False
 
 
 def test_sft_prediction_fixture_mode_writes_public_safe_predictions(tmp_path: Path) -> None:

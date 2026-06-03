@@ -7,6 +7,7 @@ from pathlib import Path
 from voice2task.evaluation import (
     diagnose_alignment_mismatches,
     diagnose_schema_mismatches,
+    diagnose_source_alignment,
     evaluate_predictions,
     load_predictions,
     load_sft_rows,
@@ -15,10 +16,12 @@ from voice2task.evaluation import (
     run_execution_smoke,
     write_predictions,
 )
+from voice2task.io import read_json
 from voice2task.reports import (
     write_alignment_diagnostics_report,
     write_metrics_report,
     write_schema_diagnostics_report,
+    write_source_diagnostics_report,
 )
 
 
@@ -52,6 +55,14 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose_alignment.add_argument("--predictions", type=Path, required=True)
     diagnose_alignment.add_argument("--output", type=Path, required=True)
     diagnose_alignment.add_argument("--title", default="Voice2Task alignment diagnostics")
+
+    diagnose_source = subcommands.add_parser("diagnose-source")
+    diagnose_source.add_argument("--gold", type=Path, required=True)
+    diagnose_source.add_argument("--predictions", type=Path, required=True)
+    diagnose_source.add_argument("--training-config", type=Path, required=True)
+    diagnose_source.add_argument("--prediction-metadata", type=Path, required=True)
+    diagnose_source.add_argument("--output", type=Path, required=True)
+    diagnose_source.add_argument("--title", default="Voice2Task source diagnostics")
 
     smoke = subcommands.add_parser("smoke")
     smoke.add_argument("--gold", type=Path, required=True)
@@ -94,6 +105,18 @@ def main(argv: list[str] | None = None) -> int:
         predictions = load_predictions(args.predictions)
         diagnostics = diagnose_alignment_mismatches(rows, predictions)
         paths = write_alignment_diagnostics_report(diagnostics, output_dir=args.output, title=args.title)
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "diagnose-source":
+        rows = load_sft_rows(args.gold)
+        predictions = load_predictions(args.predictions)
+        diagnostics = diagnose_source_alignment(
+            rows,
+            predictions,
+            training_config=read_json(args.training_config),
+            prediction_metadata=read_json(args.prediction_metadata),
+        )
+        paths = write_source_diagnostics_report(diagnostics, output_dir=args.output, title=args.title)
         print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
         return 0
     if args.command == "smoke":

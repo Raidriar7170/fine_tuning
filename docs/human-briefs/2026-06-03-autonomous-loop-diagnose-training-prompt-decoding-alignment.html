@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop 诊断阶段 Closeout</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #18222b; background: #f7f8fa; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 52px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .status { display: inline-block; padding: 4px 10px; border-radius: 6px; background: #e8eefc; color: #1b3f8b; font-weight: 600; }
+    .card { background: #fff; border: 1px solid #dce1e8; border-radius: 8px; padding: 14px 16px; margin: 12px 0; }
+    code { background: #edf0f4; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1358a8; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop 诊断阶段 Closeout</h1>
+  <p><span class="status">completed, stopped for confirmation</span></p>
+  <p>结论：本 loop 完成并归档了一个小诊断阶段，把 path-like route 与 list slots 的证据链从“schema mismatch”推进到 training target、prompt serialization、decoding evidence 三层。</p>
+
+  <h2>完成的阶段</h2>
+  <div class="card">
+    <strong>diagnose-training-prompt-decoding-alignment</strong>
+    <p>已归档到 <a href="../../openspec/changes/archive/2026-06-03-diagnose-training-prompt-decoding-alignment/">OpenSpec archive</a>。阶段产物包括 source diagnostics、prompt hardening、decoding policy metadata、主 spec 同步和 public-safe leak scan。</p>
+  </div>
+
+  <h2>为什么停止</h2>
+  <p>停止条件：下一步高价值阶段需要用户确认，因为它会进入 A100 私有 rerun 或改变训练 split/loss masking 等训练行为。当前 loop 不应自动使用私有基础设施、远程 adapter 路径、或扩大训练策略范围。</p>
+
+  <h2>关键产物</h2>
+  <ul>
+    <li><a href="./2026-06-03-diagnose-training-prompt-decoding-alignment.html">本阶段 Human Brief</a></li>
+    <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/source_diagnostics.md">source_diagnostics.md</a></li>
+    <li><a href="../../reports/public-sample/a100-sft-post-recovery-rerun/source_diagnostics_leak_scan_result.json">source diagnostics leak scan</a></li>
+    <li><a href="../../openspec/specs/supervised-contract-tuning/spec.md">supervised-contract-tuning spec</a></li>
+    <li><a href="../../openspec/specs/contract-evaluation/spec.md">contract-evaluation spec</a></li>
+  </ul>
+
+  <h2>验证摘要</h2>
+  <ul>
+    <li><code>uv run pytest</code> -> 66 passed</li>
+    <li><code>uv run ruff check .</code> -> passed</li>
+    <li><code>uv run mypy src</code> -> passed</li>
+    <li><code>openspec validate --all --strict</code> -> passed before archive</li>
+    <li><code>git diff --check</code> -> passed</li>
+  </ul>
+
+  <h2>剩余风险</h2>
+  <ul>
+    <li>旧 A100 prediction metadata 没有 prompt snapshot 和 decoding policy，因此只能记录 evidence gap。</li>
+    <li>当前 prompt hardening 尚未经过 fresh A100 rerun 验证。</li>
+    <li>public smoke 的 train split 只有 3 条 search/search_web，不能证明 navigate/form_fill/blocked 泛化。</li>
+  </ul>
+
+  <h2>建议下一步</h2>
+  <p>确认后建议开一个新的受控阶段：A100 train-split/overfit diagnostic rerun，最小目标是确认训练内样本能否恢复 enum route 与 object slots，并保存 prompt snapshot、raw decoded summary、token count、EOS/finish state。</p>
+</main>
+</body>
+</html>

@@ -31,6 +31,23 @@ def _row(row_id: str, route: str, query: str) -> SFTDatasetRow:
     )
 
 
+def _row_with_split(row_id: str, split: str, task_type: str, route: str, slots: dict[str, object]) -> SFTDatasetRow:
+    return SFTDatasetRow(
+        id=row_id,
+        split=split,
+        input_text=f"帮我处理{row_id}",
+        target_contract=BrowserTaskContract(
+            task_type=task_type,
+            route=route,
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots=slots,
+            normalized_command=f"处理{row_id}",
+        ),
+        provenance={"source_id": row_id, "public_safe": True},
+    )
+
+
 def test_evaluator_computes_contract_metrics_and_failure_slices() -> None:
     rows = [_row("gold-1", "search_web", "机票"), _row("gold-2", "search_web", "酒店")]
     predictions = {
@@ -281,6 +298,161 @@ def test_diagnose_alignment_cli_writes_public_safe_json_and_markdown(tmp_path: P
     assert diagnostics["rows"][0]["mismatches"][0]["field_path"] == "task_type"
     assert diagnostics["rows"][0]["mismatches"][0]["mismatch_category"] == "value_mismatch"
     assert "field-level public-sample evidence only" in markdown
+
+
+def test_source_diagnostics_report_targets_prompt_split_prediction_and_decoding_evidence(
+    tmp_path: Path,
+) -> None:
+    rows = [
+        _row_with_split("train-search", "train", "search", "search_web", {"query": "天气"}),
+        _row_with_split("dev-open", "dev", "navigate", "open_url", {"url": "https://example.com"}),
+    ]
+    predictions = {
+        "train-search": {
+            "task_type": "query_weather",
+            "route": "/weather/query",
+            "safety": {"allow": True, "reason": ""},
+            "confirmation_required": False,
+            "slots": ["city"],
+            "normalized_command": "",
+            "language": "zh-CN",
+            "contract_version": "v1",
+        },
+        "dev-open": rows[1].target_contract.to_dict(),
+    }
+
+    diagnostics = evaluation.diagnose_source_alignment(
+        rows,
+        predictions,
+        training_config={"dataset_split": "train"},
+        prediction_metadata={"prediction_split": "all"},
+    )
+
+    assert diagnostics["diagnostic_kind"] == "browser_task_contract_source_alignment"
+    assert diagnostics["target_shape"]["path_like_route_count"] == 0
+    assert diagnostics["target_shape"]["list_slots_count"] == 0
+    assert diagnostics["prediction_symptoms"]["path_like_route_count"] == 1
+    assert diagnostics["prediction_symptoms"]["list_slots_count"] == 1
+    assert diagnostics["prediction_symptoms"]["schema_invalid_prediction_count"] == 1
+    assert diagnostics["prediction_symptoms"]["invalid_predictions_remain_invalid"] is True
+    assert diagnostics["split_coverage"]["configured_training_split"] == "train"
+    assert diagnostics["split_coverage"]["configured_prediction_split"] == "all"
+    assert diagnostics["split_coverage"]["gold_split_counts"] == {"dev": 1, "train": 1}
+    assert diagnostics["split_coverage"]["training_row_count"] == 1
+    assert diagnostics["training_coverage"]["task_type_counts"] == {"search": 1}
+    assert diagnostics["training_coverage"]["route_counts"] == {"search_web": 1}
+    assert diagnostics["current_prompt_constraints"]["task_type_enum_visible"] is True
+    assert diagnostics["current_prompt_constraints"]["route_enum_visible"] is True
+    assert diagnostics["current_prompt_constraints"]["route_not_url_or_path_visible"] is True
+    assert diagnostics["current_prompt_constraints"]["slots_object_not_array_visible"] is True
+    assert diagnostics["prediction_run_prompt_evidence"]["prompt_constraints_present"] is False
+    assert "prompt_constraints_at_prediction_time" in diagnostics["prediction_run_prompt_evidence"]["evidence_gaps"]
+    assert (
+        diagnostics["prediction_run_prompt_evidence"][
+            "current_prompt_constraints_are_rerun_preparation_not_old_run_evidence"
+        ]
+        is True
+    )
+    assert diagnostics["decoding_evidence"]["decoding_policy_present"] is False
+    assert "raw_decoded_sidecar" in diagnostics["decoding_evidence"]["evidence_gaps"]
+    assert "generated_token_count" in diagnostics["decoding_evidence"]["evidence_gaps"]
+    assert "eos_or_finish_state" in diagnostics["decoding_evidence"]["evidence_gaps"]
+    assert diagnostics["claims"]["does_not_repair_normalize_coerce_or_replace_predictions"] is True
+
+    paths = reports.write_source_diagnostics_report(
+        diagnostics,
+        output_dir=tmp_path,
+        title="Source diagnostics",
+    )
+    markdown = paths["markdown"].read_text(encoding="utf-8")
+    assert "Source diagnostics" in markdown
+    assert "invalid predictions remain invalid" in markdown
+    assert "does not repair, normalize, coerce, or replace predictions" in markdown
+    assert "route is not a URL/path" in markdown
+    assert "Current Prompt Constraints" in markdown
+    assert "Prediction-Run Prompt Evidence" in markdown
+    assert "prompt_constraints_at_prediction_time" in markdown
+    assert "raw_decoded_sidecar" in markdown
+    assert "missing evidence, not inferred cause" in markdown
+    assert "not a checkpoint release" in markdown
+
+
+def test_diagnose_source_cli_writes_public_safe_json_and_markdown(tmp_path: Path) -> None:
+    rows = [
+        _row_with_split("train-search", "train", "search", "search_web", {"query": "天气"}),
+        _row_with_split("test-open", "test", "navigate", "open_url", {"url": "https://example.com"}),
+    ]
+    gold = tmp_path / "gold.jsonl"
+    predictions = tmp_path / "predictions.jsonl"
+    training_config = tmp_path / "training-config.json"
+    prediction_metadata = tmp_path / "prediction-metadata.json"
+    output = tmp_path / "source"
+    write_jsonl(gold, [row.to_dict() for row in rows])
+    write_jsonl(
+        predictions,
+        [
+            {
+                "id": "train-search",
+                "prediction": {
+                    "task_type": "normalization",
+                    "route": "/weather",
+                    "safety": {"allow": True, "reason": ""},
+                    "confirmation_required": False,
+                    "slots": [],
+                    "normalized_command": "",
+                    "language": "zh-CN",
+                    "contract_version": "v1",
+                },
+            },
+            {"id": "test-open", "prediction": rows[1].target_contract.to_dict()},
+        ],
+    )
+    training_config.write_text(json.dumps({"dataset_split": "train"}), encoding="utf-8")
+    prediction_metadata.write_text(
+        json.dumps(
+            {
+                "prediction_split": "all",
+                "decoding_policy": {
+                    "strategy": "greedy",
+                    "do_sample": False,
+                    "max_new_tokens": 128,
+                    "raw_decoded_sidecar_written": False,
+                    "schema_repair_applied": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        eval_cli.main(
+            [
+                "diagnose-source",
+                "--gold",
+                gold.as_posix(),
+                "--predictions",
+                predictions.as_posix(),
+                "--training-config",
+                training_config.as_posix(),
+                "--prediction-metadata",
+                prediction_metadata.as_posix(),
+                "--output",
+                output.as_posix(),
+                "--title",
+                "Source diagnostics",
+            ]
+        )
+        == 0
+    )
+
+    diagnostics = json.loads((output / "source_diagnostics.json").read_text(encoding="utf-8"))
+    markdown = (output / "source_diagnostics.md").read_text(encoding="utf-8")
+    assert diagnostics["decoding_evidence"]["policy"]["max_new_tokens"] == 128
+    assert diagnostics["decoding_evidence"]["policy"]["schema_repair_applied"] is False
+    assert diagnostics["prediction_run_prompt_evidence"]["prompt_constraints_present"] is False
+    assert diagnostics["prediction_symptoms"]["path_like_route_count"] == 1
+    assert "Source diagnostics" in markdown
+    assert "schema_repair_applied" in markdown
 
 
 def test_alignment_diagnostics_redact_private_row_ids_and_values(tmp_path: Path) -> None:

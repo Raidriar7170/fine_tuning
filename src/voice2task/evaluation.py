@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from voice2task.formatting import prompt_constraint_summary
 from voice2task.io import read_json, read_jsonl, write_jsonl
 from voice2task.schemas import (
     PRIVATE_IP_RE,
@@ -321,6 +322,225 @@ def diagnose_alignment_mismatches(rows: list[SFTDatasetRow], predictions: dict[s
         "claims": {
             "invalid_predictions_remain_invalid": True,
             "field_level_public_sample_evidence_only": True,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "full_private_corpus_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+    }
+
+
+def _count_values(values: list[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _is_path_like_route(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    return text.startswith(("/", "./", "../")) or "://" in text or text.startswith("www.")
+
+
+def _parse_prediction_object(value: Any) -> Any:
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value
+    return value
+
+
+def _limited_examples(examples: list[dict[str, str]], limit: int = 5) -> list[dict[str, str]]:
+    return examples[:limit]
+
+
+def _target_shape_summary(rows: list[SFTDatasetRow]) -> dict[str, Any]:
+    path_like_examples: list[dict[str, str]] = []
+    list_slots_examples: list[dict[str, str]] = []
+    for row in rows:
+        contract = as_contract(row.target_contract).to_dict()
+        if _is_path_like_route(contract.get("route")):
+            path_like_examples.append(
+                {
+                    "row_id": _sanitize_id(row.id),
+                    "route": _observed_value_summary(contract.get("route")),
+                }
+            )
+        if isinstance(contract.get("slots"), list):
+            list_slots_examples.append(
+                {
+                    "row_id": _sanitize_id(row.id),
+                    "slots": _observed_value_summary(contract.get("slots")),
+                }
+            )
+    return {
+        "path_like_route_count": len(path_like_examples),
+        "list_slots_count": len(list_slots_examples),
+        "path_like_route_examples": _limited_examples(path_like_examples),
+        "list_slots_examples": _limited_examples(list_slots_examples),
+    }
+
+
+def _prediction_symptom_summary(rows: list[SFTDatasetRow], predictions: dict[str, Any]) -> dict[str, Any]:
+    path_like_examples: list[dict[str, str]] = []
+    list_slots_examples: list[dict[str, str]] = []
+    schema_invalid_prediction_count = 0
+    for row in rows:
+        raw_prediction = predictions.get(row.id)
+        parsed_prediction = _parse_prediction_object(raw_prediction)
+        if _prediction_to_contract(raw_prediction) is None:
+            schema_invalid_prediction_count += 1
+        if not isinstance(parsed_prediction, dict):
+            continue
+        route = parsed_prediction.get("route")
+        if _is_path_like_route(route):
+            path_like_examples.append(
+                {
+                    "row_id": _sanitize_id(row.id),
+                    "route": _observed_value_summary(route),
+                }
+            )
+        slots = parsed_prediction.get("slots")
+        if isinstance(slots, list):
+            list_slots_examples.append(
+                {
+                    "row_id": _sanitize_id(row.id),
+                    "slots": _observed_value_summary(slots),
+                }
+            )
+    return {
+        "prediction_count": len(predictions),
+        "path_like_route_count": len(path_like_examples),
+        "list_slots_count": len(list_slots_examples),
+        "schema_invalid_prediction_count": schema_invalid_prediction_count,
+        "invalid_predictions_remain_invalid": True,
+        "path_like_route_examples": _limited_examples(path_like_examples),
+        "list_slots_examples": _limited_examples(list_slots_examples),
+    }
+
+
+def _split_coverage(
+    rows: list[SFTDatasetRow],
+    *,
+    training_config: dict[str, Any],
+    prediction_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    training_split = str(training_config.get("dataset_split", "train"))
+    prediction_split = str(prediction_metadata.get("prediction_split", training_config.get("prediction_split", "all")))
+    split_counts = _count_values([row.split for row in rows])
+    training_rows = [row for row in rows if row.split == training_split]
+    prediction_rows = rows if prediction_split == "all" else [row for row in rows if row.split == prediction_split]
+    return {
+        "configured_training_split": training_split,
+        "configured_prediction_split": prediction_split,
+        "gold_split_counts": split_counts,
+        "training_row_count": len(training_rows),
+        "prediction_gold_row_count": len(prediction_rows),
+    }
+
+
+def _training_coverage(rows: list[SFTDatasetRow], training_split: str) -> dict[str, Any]:
+    training_rows = [row for row in rows if row.split == training_split]
+    contracts = [as_contract(row.target_contract) for row in training_rows]
+    return {
+        "task_type_counts": _count_values([contract.task_type for contract in contracts]),
+        "route_counts": _count_values([contract.route for contract in contracts]),
+    }
+
+
+_PROMPT_CONSTRAINT_FIELDS = (
+    "task_type_enum_visible",
+    "route_enum_visible",
+    "route_not_url_or_path_visible",
+    "slots_object_not_array_visible",
+)
+
+
+def _prediction_run_prompt_evidence(prediction_metadata: dict[str, Any]) -> dict[str, Any]:
+    raw_constraints = prediction_metadata.get("prompt_constraints")
+    constraints = raw_constraints if isinstance(raw_constraints, dict) else {}
+    constraint_summary = {
+        field: bool(constraints[field]) for field in _PROMPT_CONSTRAINT_FIELDS if field in constraints
+    }
+    evidence_gaps: list[str] = []
+    if not isinstance(raw_constraints, dict):
+        evidence_gaps.append("prompt_constraints_at_prediction_time")
+    missing_fields = [field for field in _PROMPT_CONSTRAINT_FIELDS if field not in constraints]
+    if isinstance(raw_constraints, dict) and missing_fields:
+        evidence_gaps.append("prompt_constraint_fields")
+    return {
+        "prompt_constraints_present": isinstance(raw_constraints, dict),
+        "fields_present": sorted(constraint_summary),
+        "constraints": constraint_summary,
+        "evidence_gaps": evidence_gaps,
+        "current_prompt_constraints_are_rerun_preparation_not_old_run_evidence": not isinstance(
+            raw_constraints, dict
+        ),
+    }
+
+
+def _decoding_evidence(prediction_metadata: dict[str, Any]) -> dict[str, Any]:
+    raw_policy = prediction_metadata.get("decoding_policy")
+    policy = raw_policy if isinstance(raw_policy, dict) else {}
+    fields = (
+        "strategy",
+        "do_sample",
+        "max_new_tokens",
+        "raw_decoded_sidecar_written",
+        "schema_repair_applied",
+    )
+    policy_summary = {field: policy[field] for field in fields if field in policy}
+    evidence_gaps: list[str] = []
+    if not isinstance(raw_policy, dict):
+        evidence_gaps.append("decoding_policy")
+    if policy.get("raw_decoded_sidecar_written") is not True:
+        evidence_gaps.append("raw_decoded_sidecar")
+    if "generated_token_count" not in policy and "generated_token_count" not in prediction_metadata:
+        evidence_gaps.append("generated_token_count")
+    finish_keys = {"eos_reached", "eos_token_seen", "finish_reason", "finish_state"}
+    if not any(key in policy or key in prediction_metadata for key in finish_keys):
+        evidence_gaps.append("eos_or_finish_state")
+    return {
+        "decoding_policy_present": isinstance(raw_policy, dict),
+        "fields_present": sorted(policy_summary),
+        "policy": policy_summary,
+        "evidence_gaps": evidence_gaps,
+        "interprets_gaps_as_missing_evidence_not_cause": True,
+    }
+
+
+def diagnose_source_alignment(
+    rows: list[SFTDatasetRow],
+    predictions: dict[str, Any],
+    *,
+    training_config: dict[str, Any],
+    prediction_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    split_coverage = _split_coverage(
+        rows,
+        training_config=training_config,
+        prediction_metadata=prediction_metadata,
+    )
+    return {
+        "diagnostic_kind": "browser_task_contract_source_alignment",
+        "summary": {
+            "gold_row_count": len(rows),
+            "prediction_count": len(predictions),
+        },
+        "target_shape": _target_shape_summary(rows),
+        "prediction_symptoms": _prediction_symptom_summary(rows, predictions),
+        "split_coverage": split_coverage,
+        "training_coverage": _training_coverage(rows, split_coverage["configured_training_split"]),
+        "current_prompt_constraints": prompt_constraint_summary(),
+        "prediction_run_prompt_evidence": _prediction_run_prompt_evidence(prediction_metadata),
+        "decoding_evidence": _decoding_evidence(prediction_metadata),
+        "claims": {
+            "invalid_predictions_remain_invalid": True,
+            "does_not_repair_normalize_coerce_or_replace_predictions": True,
             "checkpoint_release": False,
             "adapter_release": False,
             "production_readiness_claim": False,

@@ -1,0 +1,119 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "does_not_repair_normalize_coerce_or_replace_predictions": true,
+    "full_private_corpus_claim": false,
+    "invalid_predictions_remain_invalid": true,
+    "live_browser_benchmark_claim": false,
+    "production_readiness_claim": false
+  },
+  "current_prompt_constraints": {
+    "route_enum_visible": true,
+    "route_not_url_or_path_visible": true,
+    "slots_object_not_array_visible": true,
+    "task_type_enum_visible": true
+  },
+  "decoding_evidence": {
+    "decoding_policy_present": false,
+    "evidence_gaps": [
+      "decoding_policy",
+      "raw_decoded_sidecar",
+      "generated_token_count",
+      "eos_or_finish_state"
+    ],
+    "fields_present": [],
+    "interprets_gaps_as_missing_evidence_not_cause": true,
+    "policy": {}
+  },
+  "diagnostic_kind": "browser_task_contract_source_alignment",
+  "prediction_run_prompt_evidence": {
+    "constraints": {},
+    "current_prompt_constraints_are_rerun_preparation_not_old_run_evidence": true,
+    "evidence_gaps": [
+      "prompt_constraints_at_prediction_time"
+    ],
+    "fields_present": [],
+    "prompt_constraints_present": false
+  },
+  "prediction_symptoms": {
+    "invalid_predictions_remain_invalid": true,
+    "list_slots_count": 11,
+    "list_slots_examples": [
+      {
+        "row_id": "seed-search-weather",
+        "slots": "array with 0 item(s)"
+      },
+      {
+        "row_id": "seed-search-weather-aug-1",
+        "slots": "array with 1 item(s)"
+      },
+      {
+        "row_id": "seed-search-weather-aug-2",
+        "slots": "array with 0 item(s)"
+      },
+      {
+        "row_id": "seed-open-example",
+        "slots": "array with 0 item(s)"
+      },
+      {
+        "row_id": "seed-open-example-aug-1",
+        "slots": "array with 0 item(s)"
+      }
+    ],
+    "path_like_route_count": 12,
+    "path_like_route_examples": [
+      {
+        "route": "string(14): /weather/query",
+        "row_id": "seed-search-weather"
+      },
+      {
+        "route": "string(8): /weather",
+        "row_id": "seed-search-weather-aug-1"
+      },
+      {
+        "route": "string(8): /weather",
+        "row_id": "seed-search-weather-aug-2"
+      },
+      {
+        "route": "string(12): /example.com",
+        "row_id": "seed-open-example"
+      },
+      {
+        "route": "string(12): /example.com",
+        "row_id": "seed-open-example-aug-1"
+      }
+    ],
+    "prediction_count": 12,
+    "schema_invalid_prediction_count": 12
+  },
+  "split_coverage": {
+    "configured_prediction_split": "all",
+    "configured_training_split": "train",
+    "gold_split_counts": {
+      "dev": 3,
+      "test": 6,
+      "train": 3
+    },
+    "prediction_gold_row_count": 12,
+    "training_row_count": 3
+  },
+  "summary": {
+    "gold_row_count": 12,
+    "prediction_count": 12
+  },
+  "target_shape": {
+    "list_slots_count": 0,
+    "list_slots_examples": [],
+    "path_like_route_count": 0,
+    "path_like_route_examples": []
+  },
+  "training_coverage": {
+    "route_counts": {
+      "search_web": 3
+    },
+    "task_type_counts": {
+      "search": 3
+    }
+  }
+}

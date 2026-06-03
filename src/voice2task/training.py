@@ -14,6 +14,7 @@ from voice2task.formatting import (
     format_dpo_pair,
     format_sft_prediction_prompt,
     format_sft_training_text,
+    prompt_constraint_summary,
 )
 from voice2task.io import read_json, read_jsonl, write_json
 from voice2task.schemas import (
@@ -365,6 +366,16 @@ def _prediction_gate(config: dict[str, Any], dry_run: bool, fixture_mode: bool) 
     }
 
 
+def _decoding_policy(config: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "strategy": "greedy",
+        "do_sample": False,
+        "max_new_tokens": int(config.get("max_new_tokens", 256)),
+        "raw_decoded_sidecar_written": False,
+        "schema_repair_applied": False,
+    }
+
+
 def _prediction_metadata_common(
     *,
     config_path: Path,
@@ -390,6 +401,8 @@ def _prediction_metadata_common(
         "release_status": "not_released",
         "adapter_release_status": "not_released",
         "formatting_policy": dict(FORMATTING_POLICY),
+        "prompt_constraints": prompt_constraint_summary(),
+        "decoding_policy": _decoding_policy(config),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "prediction_gate": _prediction_gate(config, dry_run, fixture_mode),
         "command_summary": {

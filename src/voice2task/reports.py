@@ -165,6 +165,113 @@ def write_alignment_diagnostics_report(
     return {"json": json_path, "markdown": markdown_path}
 
 
+def write_source_diagnostics_report(
+    diagnostics: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task source diagnostics",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "source_diagnostics.json"
+    markdown_path = output_dir / "source_diagnostics.md"
+    write_json(json_path, diagnostics)
+
+    summary = diagnostics["summary"]
+    target_shape = diagnostics["target_shape"]
+    prediction_symptoms = diagnostics["prediction_symptoms"]
+    split_coverage = diagnostics["split_coverage"]
+    training_coverage = diagnostics["training_coverage"]
+    current_prompt_constraints = diagnostics["current_prompt_constraints"]
+    prediction_run_prompt_evidence = diagnostics["prediction_run_prompt_evidence"]
+    decoding_evidence = diagnostics["decoding_evidence"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This source diagnostic is evidence-only: invalid predictions remain invalid. "
+            "It does not repair, normalize, coerce, or replace predictions."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- This is not a checkpoint release.",
+        "- This is not an adapter release.",
+        "- This makes no production-readiness claim.",
+        "- This makes no full-private-corpus claim.",
+        "- This is not a live-browser benchmark or benchmark-improvement claim.",
+        "",
+        "## Summary",
+        "",
+        f"- Gold rows: `{summary['gold_row_count']}`",
+        f"- Predictions: `{summary['prediction_count']}`",
+        f"- Gold path-like route targets: `{target_shape['path_like_route_count']}`",
+        f"- Gold list-shaped slots targets: `{target_shape['list_slots_count']}`",
+        f"- Prediction path-like routes: `{prediction_symptoms['path_like_route_count']}`",
+        f"- Prediction list-shaped slots: `{prediction_symptoms['list_slots_count']}`",
+        f"- Schema-invalid predictions: `{prediction_symptoms['schema_invalid_prediction_count']}`",
+        "",
+        "## Split And Training Coverage",
+        "",
+        f"- Configured training split: `{split_coverage['configured_training_split']}`",
+        f"- Configured prediction split: `{split_coverage['configured_prediction_split']}`",
+        f"- Training rows in gold sample: `{split_coverage['training_row_count']}`",
+        f"- Prediction-split gold rows: `{split_coverage['prediction_gold_row_count']}`",
+        f"- Gold split counts: `{split_coverage['gold_split_counts']}`",
+        f"- Training task_type coverage: `{training_coverage['task_type_counts']}`",
+        f"- Training route coverage: `{training_coverage['route_counts']}`",
+        "",
+        "## Current Prompt Constraints",
+        "",
+        (
+            "These describe the current formatter and future rerun preparation. "
+            "They are not proof that older prediction artifacts used this strengthened prompt."
+        ),
+        "",
+        f"- task_type enum visible: `{current_prompt_constraints['task_type_enum_visible']}`",
+        f"- route enum visible: `{current_prompt_constraints['route_enum_visible']}`",
+        f"- route is not a URL/path visible: `{current_prompt_constraints['route_not_url_or_path_visible']}`",
+        f"- slots object-not-array visible: `{current_prompt_constraints['slots_object_not_array_visible']}`",
+        "",
+        "## Prediction-Run Prompt Evidence",
+        "",
+        f"- prompt constraints present in metadata: `{prediction_run_prompt_evidence['prompt_constraints_present']}`",
+        f"- fields present: `{prediction_run_prompt_evidence['fields_present']}`",
+        f"- constraints: `{prediction_run_prompt_evidence['constraints']}`",
+        f"- evidence gaps: `{prediction_run_prompt_evidence['evidence_gaps']}`",
+        "- current prompt constraints are rerun preparation, not old-run evidence: "
+        f"`{prediction_run_prompt_evidence['current_prompt_constraints_are_rerun_preparation_not_old_run_evidence']}`",
+        "",
+        "## Decoding Evidence",
+        "",
+        "Evidence gaps are missing evidence, not inferred cause.",
+        "",
+        f"- decoding_policy present: `{decoding_evidence['decoding_policy_present']}`",
+        f"- fields present: `{decoding_evidence['fields_present']}`",
+        f"- policy: `{decoding_evidence['policy']}`",
+        f"- evidence gaps: `{decoding_evidence['evidence_gaps']}`",
+        "",
+        "## Symptom Examples",
+        "",
+    ]
+    if prediction_symptoms.get("path_like_route_examples"):
+        lines.append("### Path-like Routes")
+        lines.append("")
+        for example in prediction_symptoms["path_like_route_examples"]:
+            lines.append(f"- `{example['row_id']}`: {example['route']}")
+        lines.append("")
+    if prediction_symptoms.get("list_slots_examples"):
+        lines.append("### List-shaped Slots")
+        lines.append("")
+        for example in prediction_symptoms["list_slots_examples"]:
+            lines.append(f"- `{example['row_id']}`: {example['slots']}")
+        lines.append("")
+    if not prediction_symptoms.get("path_like_route_examples") and not prediction_symptoms.get("list_slots_examples"):
+        lines.append("- none")
+        lines.append("")
+
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path}
+
+
 def write_prediction_evidence_pack(
     *,
     output_dir: Path,
