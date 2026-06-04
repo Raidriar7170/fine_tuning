@@ -1149,7 +1149,7 @@ def _run_real_sft_prediction(
                 max_new_tokens=max_new_tokens,
                 torch_module=torch,
             )
-            raw_prediction = _extract_json_object(decoded)
+            raw_prediction = _extract_strict_json_object(decoded)
             raw_status = _schema_guard_status(raw_prediction)
             retry_status: dict[str, Any] | None = None
             retry_prediction: Any = None

@@ -173,6 +173,40 @@ def test_sft_prediction_prompt_includes_required_field_skeleton_without_gold_con
     assert summary["required_field_checklist_visible"] is True
 
 
+def test_sft_prediction_prompt_includes_canonical_one_shot_and_whole_object_boundaries_without_gold_contract() -> None:
+    row = SFTDatasetRow(
+        id="sft-1",
+        split="train",
+        input_text="帮我处理这个公开页面",
+        target_contract=BrowserTaskContract(
+            task_type="search",
+            route="search_web",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"query": "gold-only-token"},
+            normalized_command="搜索 gold-only-token",
+        ),
+        provenance={"source_id": "seed-1", "public_safe": True},
+    )
+
+    prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary()
+
+    assert "Canonical valid one-shot example" in prompt
+    assert '"task_type":"search"' in prompt
+    assert '"route":"search_web"' in prompt
+    assert '"safety":{"allow":true,"reason":"public_readonly"}' in prompt
+    assert '"confirmation_required":false' in prompt
+    assert '"slots":{"query":"公开信息"}' in prompt
+    assert '"normalized_command":"搜索公开信息"' in prompt
+    assert "第一个非空字符必须是 `{`" in prompt
+    assert "最后一个非空字符必须是 `}`" in prompt
+    assert "不要 Markdown/code fences/prose" in prompt
+    assert "gold-only-token" not in prompt
+    assert summary["canonical_json_one_shot_visible"] is True
+    assert summary["whole_object_boundary_visible"] is True
+
+
 def test_sft_training_text_fallback_is_deterministic_contract_only_text() -> None:
     row = SFTDatasetRow(
         id="sft-1",

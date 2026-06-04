@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Constrained output emission repair brief</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #2563eb;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Constrained output emission repair</h1>
+  <p class="summary">
+    结论：本阶段完成本地 first-pass prompt 输出约束修复；它加入合法 canonical JSON one-shot 和整体 JSON 边界，但没有运行 A100，也不宣称当前模型已经恢复 schema-valid 输出。
+  </p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">阶段</span><span class="value">archived</span></div>
+    <div class="tile"><span class="label">A100 execution</span><span class="value">not run</span></div>
+    <div class="tile"><span class="label">Focused tests</span><span class="value">4 passed</span></div>
+    <div class="tile"><span class="label">Full validation</span><span class="value">passed</span></div>
+  </div>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：first-phase speech-to-contract normalization。</li>
+    <li>上一阶段 A100 strict-retry rerun 的关键事实：validated outputs 仍为 <code>0/3</code>，但 strict retry 已拒绝 <code>3/3</code> wrapped JSON fragments。</li>
+    <li>本阶段推进：把“模型输出完整 Browser Task Contract JSON object”的约束前移到 first-pass prompt，而不是靠后处理修复指标。</li>
+    <li>剩余差距：还没有新的 A100 rerun 证明模型输出质量改善；dev/test 泛化、release、live-browser benchmark 都仍未成立。</li>
+  </ul>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li><code>SYSTEM_PROMPT</code> 新增合法 Browser Task Contract canonical one-shot 示例。</li>
+    <li><code>SYSTEM_PROMPT</code> 新增整体 JSON 边界：第一个非空字符必须是 <code>{</code>，最后一个非空字符必须是 <code>}</code>。</li>
+    <li>该 prompt 改动位于共享 chat template，因此会影响未来 training、prediction 和 DPO formatting，以减少 train/predict drift。</li>
+    <li><code>prompt_constraint_summary</code> 新增 <code>canonical_json_one_shot_visible</code> 和 <code>whole_object_boundary_visible</code>。</li>
+    <li>prediction prompt 仍不包含当前 row 的 gold contract。</li>
+    <li>first-pass raw parser 和 strict retry parser 都改为 whole-string JSON only；wrapped fragments 只能记录为失败证据，不能计为 schema-valid。</li>
+    <li><code>BrowserTaskContract.from_dict()</code> schema guard 保持 fail-closed。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/constrained-contract-output-emission-repair/repair_summary.json">repair_summary.json</a></li>
+    <li><a href="../../reports/public-sample/constrained-contract-output-emission-repair/repair_summary.md">repair_summary.md</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-04-repair-constrained-contract-output-emission/proposal.md">OpenSpec proposal</a></li>
+    <li><a href="../../reports/public-sample/a100-strict-retry-train-split-rerun/manifest.json">prior A100 strict-retry manifest</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code> focused prompt/guard set: 16 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code> reviewer Must Fix raw/retry guard set: 4 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>: 132 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check</code>: ok, 26 pairs。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok, 0 findings。</li>
+    <li><code>git diff --check</code>: passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: 4 passed, 0 failed after archive。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 A100 improvement evidence。</li>
+    <li>这不是 held-out generalization evidence。</li>
+    <li>这不是 checkpoint release、adapter release、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>canonical one-shot 是输出格式示例，不是当前样本的目标答案，也不是 gold leak。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    本阶段归档并合并后，推荐下一阶段才做一个很小的 A100 train-split rerun，验证新增 first-pass constrained-output prompt 是否让 schema-valid rate 从当前 <code>0/3</code> 开始恢复。
+  </p>
+</main>
+</body>
+</html>

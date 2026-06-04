@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous loop - constrained output emission repair</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 32px 20px 52px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #2563eb;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: constrained output emission repair</h1>
+  <p class="summary">
+    结论：本轮 opsx auto 完成并归档了本地 constrained-output repair；first-pass raw 和 retry 现在都只接受 whole-string JSON，wrapped fragments 会保留为失败证据，下一步才适合在用户显式授权后做小型 A100 train-split rerun。
+  </p>
+
+  <h2>Loop 状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">状态</span><span class="value">ready to integrate</span></div>
+    <div class="tile"><span class="label">已完成阶段</span><span class="value">1 archived</span></div>
+    <div class="tile"><span class="label">A100 execution</span><span class="value">not run</span></div>
+    <div class="tile"><span class="label">Full pytest</span><span class="value">132 passed</span></div>
+  </div>
+
+  <h2>为什么停止</h2>
+  <p>
+    停止条件：本地 bounded phase 已完成、Reviewer verdict 为 Pass、OpenSpec 已归档。推荐下一阶段是 A100 train-split rerun，需要用户再次明确授权远程 A100 执行。
+  </p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目目标：first-phase speech-to-contract normalization，来源为 <a href="../../CONTEXT.md">CONTEXT.md</a>。</li>
+    <li>上一阶段事实：A100 strict-retry rerun 仍是 <code>0/3</code> schema-valid validated outputs，但 strict retry 已拒绝 <code>3/3</code> wrapped JSON fragments。</li>
+    <li>本阶段推进：把合法 canonical JSON one-shot、整体 JSON 边界、whole-string raw parser 都锁到本地代码和测试里。</li>
+    <li>剩余差距：还没有新 A100 证据证明模型本体 schema-valid rate 改善；也没有 dev/test 泛化、release 或 live-browser benchmark 证据。</li>
+  </ul>
+
+  <h2>本轮完成项</h2>
+  <ul>
+    <li>创建并应用 OpenSpec change：<code>repair-constrained-contract-output-emission</code>。</li>
+    <li>更新 shared <code>SYSTEM_PROMPT</code>：加入合法 Browser Task Contract one-shot 和首尾 JSON object 边界。</li>
+    <li>更新 prediction raw parser：first-pass raw 输出也必须是 whole-string JSON，不能从 Markdown/prose wrapper 中抽 JSON fragment。</li>
+    <li>新增 regression tests：prediction prompt 不含 gold target、wrapped raw/retry fragments fail-closed、whole-object raw output 仍可 schema-valid。</li>
+    <li>生成 public-safe evidence pack：<a href="../../reports/public-sample/constrained-contract-output-emission-repair/repair_summary.json">repair_summary.json</a>、repair_summary.md、leak_scan_result.json。</li>
+    <li>生成阶段 Human Brief：<a href="2026-06-04-repair-constrained-contract-output-emission.html">2026-06-04-repair-constrained-contract-output-emission.html</a>。</li>
+    <li>Reviewer first pass found one Must Fix; fix pass completed and Reviewer second verdict: Pass。</li>
+    <li>OpenSpec archived to <code>openspec/changes/archive/2026-06-04-repair-constrained-contract-output-emission/</code>，并同步 main specs。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>: 132 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check</code>: ok, 26 pairs。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok, 0 findings for evidence, Human Brief, loop report, and archived OpenSpec。</li>
+    <li><code>git diff --check</code>: passed after removing OpenSpec archive EOF whitespace。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: 4 passed, 0 failed after archive。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec list --json</code>: no active changes。</li>
+  </ul>
+
+  <h2>External Review</h2>
+  <ul>
+    <li>ChatGPT Pro / web external review was not used in this phase。</li>
+    <li>Local Reviewer subagent completed two rounds; final verdict was Pass。</li>
+  </ul>
+
+  <h2>Auto integration</h2>
+  <ul>
+    <li>Status before final integration: validation passed and branch is ready for guarded stage/commit/merge。</li>
+    <li>Target branch: <code>main</code>, subject to clean target worktree and no merge conflicts。</li>
+    <li>Push: not planned unless the repository has an unambiguous remote push path。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 A100 improvement evidence。</li>
+    <li>这不是 held-out generalization evidence。</li>
+    <li>这不是 checkpoint release、adapter release、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>prompt hardening 和 parser fail-closed 只证明本地输出边界更严格，不等于模型已经学会 Browser Task Contract。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    下一步推荐用户授权一个小型 A100 train-split prediction rerun，只验证新增 constrained-output prompt 和 whole-string parser 是否让 schema-valid validated outputs 从当前 <code>0/3</code> 开始恢复。
+  </p>
+</main>
+</body>
+</html>

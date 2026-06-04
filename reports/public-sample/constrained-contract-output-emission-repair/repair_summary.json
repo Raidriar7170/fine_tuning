@@ -1,0 +1,109 @@
+{
+  "evidence_kind": "constrained_contract_output_emission_repair_local",
+  "generated_at": "2026-06-04T13:05:39Z",
+  "repair_scope": "local_shared_prompt_and_whole_string_prediction_parse_only",
+  "a100_execution": false,
+  "private_prediction_run": false,
+  "source_prior_phase": "reports/public-sample/a100-strict-retry-train-split-rerun",
+  "prior_phase_context": {
+    "validated_outputs": "0/3",
+    "strict_retry_rejected_wrapped_fragments": "3/3",
+    "interpretation": "Prompt/output-shape repair is local rerun preparation, not evidence that the prior A100 adapter improved."
+  },
+  "prompt_constraints": {
+    "task_type_enum_visible": true,
+    "route_enum_visible": true,
+    "route_not_url_or_path_visible": true,
+    "slots_object_not_array_visible": true,
+    "required_field_skeleton_visible": true,
+    "required_field_checklist_visible": true,
+    "canonical_json_one_shot_visible": true,
+    "whole_object_boundary_visible": true,
+    "gold_target_excluded_from_prediction_prompt": true
+  },
+  "canonical_one_shot": {
+    "status": "visible_in_first_pass_prompt",
+    "contract_json": "{\"confirmation_required\":false,\"contract_version\":\"v1\",\"language\":\"zh-CN\",\"normalized_command\":\"搜索公开信息\",\"route\":\"search_web\",\"safety\":{\"allow\":true,\"reason\":\"public_readonly\"},\"slots\":{\"query\":\"公开信息\"},\"task_type\":\"search\"}",
+    "is_current_target_answer": false
+  },
+  "schema_guard": {
+    "accepts_only_browser_task_contract_from_dict": true,
+    "raw_parser": "whole_string_json_only",
+    "schema_repair_applied": false,
+    "strict_retry_parser_preserved": true,
+    "wrapped_raw_fragment_rejected": true,
+    "wrapped_retry_fragment_rejected": true,
+    "schema_valid_whole_object_raw_output_accepted": true,
+    "validated_output_source_values": [
+      "raw_attempt",
+      "retry_attempt",
+      "none"
+    ]
+  },
+  "focused_validation": [
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_formatting_training.py::test_sft_prediction_prompt_includes_canonical_one_shot_and_whole_object_boundaries_without_gold_contract tests/test_a100_sft_prediction_smoke.py::test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config",
+      "result": "2 passed"
+    },
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_retries_schema_invalid_missing_required_fields tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_rejects_markdown_wrapped_retry_even_when_fragment_is_valid tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_skips_retry_when_raw_attempt_is_valid tests/test_a100_sft_prediction_smoke.py::test_schema_retry_prompt_declares_canonical_json_only_contract_shape",
+      "result": "16 passed"
+    },
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_rejects_markdown_wrapped_raw_attempt_even_when_fragment_is_valid tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_skips_retry_when_raw_attempt_is_valid tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_rejects_markdown_wrapped_retry_even_when_fragment_is_valid tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_retries_schema_invalid_missing_required_fields",
+      "result": "4 passed"
+    }
+  ],
+  "full_validation": {
+    "status": "passed",
+    "commands": [
+      {
+        "command": "PYTHONPATH=src pytest -q",
+        "result": "132 passed"
+      },
+      {
+        "command": "uv run ruff check .",
+        "result": "All checks passed"
+      },
+      {
+        "command": "uv run mypy src",
+        "result": "Success: no issues found in 16 source files"
+      },
+      {
+        "command": "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
+        "result": "ok true, 12 SFT rows, 26 DPO pairs"
+      },
+      {
+        "command": "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
+        "result": "26 DPO pairs checked"
+      },
+      {
+        "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
+        "result": "4 passed, 0 failed after archive"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed"
+      },
+      {
+        "command": "PYTHONPATH=src python -m voice2task.cli.report leak-scan reports/public-sample/constrained-contract-output-emission-repair docs/human-briefs/2026-06-04-repair-constrained-contract-output-emission.html docs/human-briefs/2026-06-04-autonomous-loop-repair-constrained-contract-output-emission.html openspec/changes/archive/2026-06-04-repair-constrained-contract-output-emission --output reports/public-sample/constrained-contract-output-emission-repair/leak_scan_result.json",
+        "result": "ok true, 0 findings"
+      }
+    ]
+  },
+  "source_files": [
+    "src/voice2task/formatting.py",
+    "src/voice2task/training.py",
+    "tests/test_formatting_training.py",
+    "tests/test_a100_sft_prediction_smoke.py"
+  ],
+  "claims": {
+    "a100_improvement_claim": false,
+    "held_out_generalization_claim": false,
+    "checkpoint_release": false,
+    "adapter_release": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "live_browser_benchmark_claim": false
+  }
+}

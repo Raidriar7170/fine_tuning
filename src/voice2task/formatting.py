@@ -17,6 +17,20 @@ CONTRACT_REQUIRED_FIELD_SKELETON = (
     "normalized_command, language, contract_version. 每次输出都必须包含全部 8 个顶层字段；"
     "即使字段值很简单，也不能省略 safety、normalized_command 或 contract_version。"
 )
+CONTRACT_CANONICAL_ONE_SHOT = canonical_contract_json(
+    BrowserTaskContract(
+        task_type="search",
+        route="search_web",
+        safety={"allow": True, "reason": "public_readonly"},
+        confirmation_required=False,
+        slots={"query": "公开信息"},
+        normalized_command="搜索公开信息",
+    )
+)
+CONTRACT_OUTPUT_BOUNDARY_RULES = (
+    "第一个非空字符必须是 `{`；最后一个非空字符必须是 `}`。"
+    "不要 Markdown/code fences/prose；不要解释、不要自然语言前后缀。"
+)
 
 SYSTEM_PROMPT = (
     "你是 Voice2Task contract normalizer。只输出一个 Browser Task Contract JSON object。"
@@ -27,7 +41,9 @@ SYSTEM_PROMPT = (
     "slots 必须是 JSON object，不是 array/list。"
     "safety 必须包含 safety.allow 和 safety.reason；language 必须为 zh-CN；contract_version 必须为 v1。"
     f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
-    "不要解释、不要添加 Markdown、不要输出自然语言前后缀、不要生成 GUI 动作或浏览器点击/输入步骤。"
+    f"Canonical valid one-shot example: {CONTRACT_CANONICAL_ONE_SHOT}。这是格式示例，不是当前用户的目标答案。"
+    f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
+    "不要生成 GUI 动作或浏览器点击/输入步骤。"
 )
 
 FORMATTING_POLICY: dict[str, Any] = {
@@ -54,6 +70,11 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         and all(f'"{field}"' in prompt for field in ("task_type", "route", "safety", "slots")),
         "required_field_checklist_visible": "Required-field checklist" in prompt
         and "每次输出都必须包含全部 8 个顶层字段" in prompt,
+        "canonical_json_one_shot_visible": "Canonical valid one-shot example" in prompt
+        and CONTRACT_CANONICAL_ONE_SHOT in prompt,
+        "whole_object_boundary_visible": "第一个非空字符必须是 `{`" in prompt
+        and "最后一个非空字符必须是 `}`" in prompt
+        and "不要 Markdown/code fences/prose" in prompt,
     }
 
 

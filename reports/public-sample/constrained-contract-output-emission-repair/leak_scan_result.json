@@ -1,0 +1,12 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-04T13:19:54.372040+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/constrained-contract-output-emission-repair",
+    "docs/human-briefs/2026-06-04-repair-constrained-contract-output-emission.html",
+    "docs/human-briefs/2026-06-04-autonomous-loop-repair-constrained-contract-output-emission.html",
+    "openspec/changes/archive/2026-06-04-repair-constrained-contract-output-emission"
+  ]
+}
