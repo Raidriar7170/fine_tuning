@@ -1,0 +1,14 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-04T03:21:17.287574+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/runtime-label-provenance-check",
+    "docs/human-briefs/2026-06-04-run-runtime-label-provenance-check.html",
+    "docs/human-briefs/2026-06-04-autonomous-loop-run-runtime-label-provenance-check.html",
+    "openspec/changes/archive/2026-06-04-run-runtime-label-provenance-check",
+    "openspec/specs/contract-evaluation/spec.md",
+    "openspec/specs/supervised-contract-tuning/spec.md"
+  ]
+}

@@ -40,6 +40,17 @@ def test_leak_scan_allows_clean_public_artifacts(tmp_path: Path) -> None:
     assert result.findings == []
 
 
+def test_leak_scan_flags_missing_scan_inputs(tmp_path: Path) -> None:
+    missing = tmp_path / "missing-evidence"
+
+    result = scan_paths([missing])
+
+    assert result.ok is False
+    assert [(finding.category, finding.path) for finding in result.findings] == [
+        ("missing_path", missing.as_posix())
+    ]
+
+
 def test_leak_scan_raises_for_oversized_public_jsonl(tmp_path: Path) -> None:
     big = tmp_path / "too-large.jsonl"
     big.write_text("{}\n" * 6, encoding="utf-8")

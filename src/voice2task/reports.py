@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -7,6 +8,8 @@ from typing import Any
 from voice2task.evaluation import EvaluationResult
 from voice2task.io import write_json
 from voice2task.schemas import PRIVATE_IP_RE, PRIVATE_PATH_RE, SECRET_RE
+
+PRIVATE_REPORT_PATH_RE = re.compile(r"(/(?:mnt/data|Users|root|tmp|private)/[^\s\"')]+)")
 
 
 def write_metrics_report(
@@ -274,7 +277,8 @@ def write_sft_target_template_alignment_report(
 
 def _sanitize_report_value(value: Any) -> Any:
     if isinstance(value, str):
-        sanitized = PRIVATE_PATH_RE.sub("<private_path>", value)
+        sanitized = PRIVATE_REPORT_PATH_RE.sub("<private_path>", value)
+        sanitized = PRIVATE_PATH_RE.sub("<private_path>", sanitized)
         sanitized = PRIVATE_IP_RE.sub("<private_ip>", sanitized)
         return SECRET_RE.sub("<secret>", sanitized)
     if isinstance(value, dict):
@@ -528,6 +532,201 @@ def write_runtime_label_provenance_prep_evidence_pack(
             "- Preparation metadata can make a later private runtime check auditable.",
             "- It cannot prove Browser Task Contract learning or real loss masking.",
             "- Later runtime execution must commit only sanitized public summaries.",
+            "",
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path}
+
+
+def _runtime_label_provenance_check_claims() -> dict[str, bool]:
+    return {
+        "checkpoint_release": False,
+        "adapter_release": False,
+        "held_out_generalization_claim": False,
+        "production_readiness_claim": False,
+        "live_browser_benchmark_claim": False,
+        "model_recovery_claim": False,
+    }
+
+
+def _runtime_label_provenance_check_artifact_policy() -> dict[str, bool]:
+    return {
+        "raw_rendered_prompts_written": False,
+        "raw_logs_copied_to_git": False,
+        "checkpoints_or_adapters_copied_to_git": False,
+        "private_paths_omitted": True,
+    }
+
+
+def _runtime_check_status_from_metadata(metadata: dict[str, Any]) -> str:
+    runtime_check_status = str(metadata.get("runtime_check_status", "unknown"))
+    if runtime_check_status != "executed_runtime_label_provenance_check":
+        if runtime_check_status and runtime_check_status != "unknown":
+            return runtime_check_status
+        evidence_status = str(metadata.get("evidence_status", "labels_unavailable"))
+        return "labels_unavailable" if evidence_status == "labels_inspected" else evidence_status
+    runtime_gate = metadata.get("runtime_gate")
+    will_run_runtime_check = (
+        isinstance(runtime_gate, dict) and runtime_gate.get("will_run_runtime_label_provenance_check") is True
+    )
+    source_kind = str(metadata.get("label_source_kind", ""))
+    provenance = metadata.get("label_provenance")
+    real_training_path = False
+    if isinstance(provenance, dict):
+        source_kind = str(provenance.get("source_kind", source_kind))
+        real_training_path = provenance.get("real_training_path") is True
+    if metadata.get("true_label_mask_status") == "fixture_only" or source_kind in {
+        "fixture",
+        "fixture_collator",
+        "simulated",
+        "simulated_collator",
+    }:
+        return "fixture_only"
+    if (
+        metadata.get("inspection_status") == "inspectable"
+        and metadata.get("label_tensor_available") is True
+        and metadata.get("true_label_mask_status") == "inspectable"
+        and real_training_path
+        and will_run_runtime_check
+    ):
+        return "labels_inspected"
+    if metadata.get("label_tensor_available") is True:
+        return "labels_available_but_not_real_training_proof"
+    evidence_status = str(metadata.get("evidence_status", "labels_unavailable"))
+    return "labels_unavailable" if evidence_status == "labels_inspected" else evidence_status
+
+
+def write_runtime_label_provenance_check_evidence_pack(
+    *,
+    runtime_metadata: dict[str, Any],
+    output_dir: Path,
+    prior_artifacts: dict[str, str] | None = None,
+    leak_scan_result: dict[str, Any] | None = None,
+    title: str = "Voice2Task observed runtime label provenance evidence",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "runtime_label_provenance_check.json"
+    markdown_path = output_dir / "runtime_label_provenance_check.md"
+    metadata = _sanitize_report_value(dict(runtime_metadata))
+    metadata_prior = metadata.get("prior_artifacts", {})
+    combined_prior = dict(metadata_prior if isinstance(metadata_prior, dict) else {})
+    combined_prior.update(prior_artifacts or {})
+    combined_prior = _sanitize_report_value(combined_prior)
+    provenance = metadata.get("label_provenance")
+    if not isinstance(provenance, dict):
+        provenance = {"source_kind": metadata.get("label_source_kind", "unavailable"), "real_training_path": False}
+    evidence_status = _runtime_check_status_from_metadata(metadata)
+    resolved_leak_scan_status = leak_scan_result or metadata.get(
+        "leak_scan_status",
+        {"ok": None, "status": "pending_until_leak_scan_runs"},
+    )
+    summary = {
+        "evidence_kind": "sft_runtime_label_provenance_observed",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "evidence_status": evidence_status,
+        "runtime_source_kind": "private_a100_runtime",
+        "runtime_check_status": metadata.get("runtime_check_status", "unknown"),
+        "runtime_gate": _sanitize_report_value(metadata.get("runtime_gate", {})),
+        "output_root_policy": _sanitize_report_value(metadata.get("output_root_policy", {})),
+        "dataset_manifest_id": metadata.get("dataset_manifest_id", "unknown"),
+        "inspection_status": metadata.get("inspection_status", "unknown"),
+        "tokenizer_status": metadata.get("tokenizer_status", "unknown"),
+        "tokenizer_template_status": metadata.get("tokenizer_template_status", "unknown"),
+        "collator_status": metadata.get("collator_status", "unknown"),
+        "package_versions": _sanitize_report_value(metadata.get("package_versions", {})),
+        "dependency_policy": _sanitize_report_value(metadata.get("dependency_policy", {})),
+        "leak_scan_status": _sanitize_report_value(resolved_leak_scan_status),
+        "label_source": metadata.get("label_source", "unavailable"),
+        "label_source_kind": provenance.get("source_kind", metadata.get("label_source_kind", "unavailable")),
+        "label_provenance": _sanitize_report_value(dict(provenance)),
+        "label_tensor_available": bool(metadata.get("label_tensor_available", False)),
+        "true_label_mask_status": metadata.get("true_label_mask_status", "unavailable"),
+        "prompt_token_count": metadata.get("prompt_token_count"),
+        "assistant_token_count": metadata.get("assistant_token_count"),
+        "prompt_tokens_masked": metadata.get("prompt_tokens_masked"),
+        "assistant_tokens_carry_loss": metadata.get("assistant_tokens_carry_loss"),
+        "assistant_only_loss_mask_claim": False,
+        "evidence_gaps": _sanitize_report_value(metadata.get("evidence_gaps", [])),
+        "loss_interpretation": _sanitize_report_value(metadata.get("loss_interpretation", {})),
+        "prior_artifacts": combined_prior,
+        "release_status": "not_released",
+        "claims": _runtime_label_provenance_check_claims(),
+        "artifact_policy": _runtime_label_provenance_check_artifact_policy(),
+    }
+    summary = _sanitize_report_value(summary)
+    write_json(json_path, summary)
+    leak_scan_status = summary["leak_scan_status"]
+    leak_scan_ok = leak_scan_status.get("ok") if isinstance(leak_scan_status, dict) else "unknown"
+
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "Runtime label provenance evidence is objective-path evidence only. "
+            "It reports whether tokenizer/collator labels were inspectable without publishing private runtime "
+            "paths, raw logs, checkpoints, adapters, or private corpus rows."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- This is not a checkpoint release.",
+        "- This is not an adapter release.",
+        "- This is not held-out generalization evidence.",
+        "- This makes no production-readiness claim.",
+        "- This is not a live-browser benchmark or benchmark-improvement claim.",
+        "- This is not model recovery evidence.",
+        "",
+        "## Summary",
+        "",
+        f"- Evidence status: `{summary['evidence_status']}`",
+        f"- Runtime source kind: `{summary['runtime_source_kind']}`",
+        f"- Runtime gate: `{summary['runtime_gate']}`",
+        f"- Output-root policy: `{summary['output_root_policy']}`",
+        f"- Dataset manifest: `{summary['dataset_manifest_id']}`",
+        f"- Label source: `{summary['label_source']}`",
+        f"- Label source kind: `{summary['label_source_kind']}`",
+        f"- Package versions: `{summary['package_versions']}`",
+        f"- Dependency policy: `{summary['dependency_policy']}`",
+        f"- Leak scan ok: `{leak_scan_ok}`",
+        f"- Label tensor available: `{summary['label_tensor_available']}`",
+        f"- True label-mask status: `{summary['true_label_mask_status']}`",
+        f"- Prompt tokens masked: `{summary['prompt_tokens_masked']}`",
+        f"- Assistant tokens carry loss: `{summary['assistant_tokens_carry_loss']}`",
+        f"- Assistant-only loss-mask claim: `{summary['assistant_only_loss_mask_claim']}`",
+        "",
+        "## Evidence Gaps",
+        "",
+    ]
+    gaps = summary["evidence_gaps"]
+    if isinstance(gaps, list) and gaps:
+        for gap in gaps:
+            lines.append(f"- `{gap}`")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Prior Artifacts", ""])
+    prior = summary["prior_artifacts"]
+    if isinstance(prior, dict) and prior:
+        for name, path in sorted(prior.items()):
+            lines.append(f"- `{name}`: `{path}`")
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "## Objective Limitations",
+            "",
+            "- `prompt_tokens_masked=false` means this evidence does not support an assistant-only loss-mask claim.",
+            (
+                "- `assistant_tokens_carry_loss=true` means assistant target tokens participate in loss, "
+                "not that the model has learned the contract task."
+            ),
+            "",
+            "## Interpretation",
+            "",
+            "- Inspectable real labels can support SFT objective-path interpretation only.",
+            "- Fixture or simulated labels remain fixture-only and keep evidence gaps.",
+            "- Runtime label evidence does not establish held-out quality, release readiness, or live-browser gains.",
             "",
         ]
     )

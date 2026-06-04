@@ -59,6 +59,9 @@ def scan_paths(
     raise_on_error: bool = False,
 ) -> ScanResult:
     findings: list[Finding] = []
+    for path in paths:
+        if not path.exists():
+            findings.append(Finding(path.as_posix(), "missing_path", 0, "scan input path does not exist"))
     for path in _iter_files(paths):
         if path.suffix in MODEL_ARTIFACT_SUFFIXES:
             findings.append(Finding(path.as_posix(), "model_artifact", 0, "model/checkpoint artifact"))

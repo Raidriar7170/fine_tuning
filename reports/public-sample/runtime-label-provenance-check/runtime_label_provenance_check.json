@@ -1,0 +1,92 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "raw_rendered_prompts_written": false
+  },
+  "assistant_only_loss_mask_claim": false,
+  "assistant_token_count": 62,
+  "assistant_tokens_carry_loss": true,
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false
+  },
+  "collator_status": "labels_inspected",
+  "dataset_manifest_id": "public-sample-20260601T162313Z",
+  "dependency_policy": {
+    "model_download_allowed": false,
+    "policy": "authorized_runtime_tokenizer_collator_check_no_adapter_load_no_training",
+    "private_adapter_load_allowed": false,
+    "raw_private_logs_copied_to_git": false
+  },
+  "evidence_gaps": [],
+  "evidence_kind": "sft_runtime_label_provenance_observed",
+  "evidence_status": "labels_inspected",
+  "generated_at": "2026-06-04T03:21:22.061339+00:00",
+  "inspection_status": "inspectable",
+  "label_provenance": {
+    "real_training_path": true,
+    "source_kind": "private_training_runtime"
+  },
+  "label_source": "actual_training_labels",
+  "label_source_kind": "private_training_runtime",
+  "label_tensor_available": true,
+  "leak_scan_status": {
+    "findings": [],
+    "generated_at": "2026-06-04T03:21:17.287574+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/runtime-label-provenance-check",
+      "docs/human-briefs/2026-06-04-run-runtime-label-provenance-check.html",
+      "docs/human-briefs/2026-06-04-autonomous-loop-run-runtime-label-provenance-check.html",
+      "openspec/changes/archive/2026-06-04-run-runtime-label-provenance-check",
+      "openspec/specs/contract-evaluation/spec.md",
+      "openspec/specs/supervised-contract-tuning/spec.md"
+    ]
+  },
+  "loss_interpretation": {
+    "loss_improvement_alone_proves_contract_learning": false,
+    "requires_assistant_loss_evidence": true
+  },
+  "output_root_policy": {
+    "approved_policy": "must_resolve_to_approved_private_a100_project_root",
+    "public_template_output_root": "<a100_project_root>",
+    "requested_output": "<private_path>",
+    "runtime_check_output_dir": "<private_path>",
+    "status": "approved_private_root"
+  },
+  "package_versions": {
+    "accelerate": "0.33.0",
+    "datasets": "2.21.0",
+    "peft": "0.12.0",
+    "python": "3.11.4",
+    "transformers": "4.44.2",
+    "trl": "0.9.6"
+  },
+  "prior_artifacts": {
+    "a100_train_split_overfit_diagnostic": "reports/public-sample/a100-train-split-overfit-diagnostic/",
+    "runtime_label_provenance_prep": "reports/public-sample/runtime-label-provenance-prep/",
+    "sft_label_provenance": "reports/public-sample/sft-label-provenance/",
+    "sft_target_template_alignment": "reports/public-sample/sft-target-template-alignment/"
+  },
+  "prompt_token_count": 187,
+  "prompt_tokens_masked": false,
+  "release_status": "not_released",
+  "runtime_check_status": "executed_runtime_label_provenance_check",
+  "runtime_gate": {
+    "cli_requested_runtime_check": true,
+    "config_allow_runtime_label_provenance_check": true,
+    "private_override_resolved": true,
+    "will_run_runtime_label_provenance_check": true
+  },
+  "runtime_source_kind": "private_a100_runtime",
+  "tokenizer_status": "available",
+  "tokenizer_template_status": "template_available",
+  "true_label_mask_status": "inspectable"
+}

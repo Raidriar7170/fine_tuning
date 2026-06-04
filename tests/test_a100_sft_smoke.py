@@ -7,6 +7,7 @@ import pytest
 from voice2task import training
 from voice2task.cli import train as train_cli
 from voice2task.leak_scan import scan_paths
+from voice2task.schemas import SFTDatasetRow
 from voice2task.training import run_sft
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -114,6 +115,30 @@ def _write_runtime_label_provenance_config(
         encoding="utf-8",
     )
     return config
+
+
+class _RuntimeInspectableTokenizer:
+    chat_template = "private-runtime-template"
+
+    def __call__(self, text: str, **kwargs: Any) -> dict[str, Any]:
+        tokens = [ord(char) for char in text]
+        offsets = [(index, index + 1) for index, _ in enumerate(text)]
+        return {
+            "input_ids": tokens,
+            "attention_mask": [1 for _ in tokens],
+            "offset_mapping": offsets,
+        }
+
+
+class _AssistantOnlyRuntimeLossCollator:
+    def __call__(self, features: list[dict[str, Any]]) -> dict[str, list[list[int]]]:
+        feature = features[0]
+        assistant_start = feature["label_provenance_assistant_start"]
+        labels = [
+            -100 if end <= assistant_start else token_id
+            for token_id, (_, end) in zip(feature["input_ids"], feature["offset_mapping"], strict=True)
+        ]
+        return {"labels": [labels]}
 
 
 def test_public_sample_a100_sft_smoke_config_is_bounded_and_opt_in() -> None:
@@ -272,7 +297,551 @@ def test_runtime_label_provenance_train_cli_writes_prep_metadata_without_stdout(
     assert capsys.readouterr().out == ""
     metadata = json.loads(output.read_text(encoding="utf-8"))
     assert metadata["runtime_check_status"] == "blocked_unresolved_private_override"
-    assert metadata["metadata_path"] == output.as_posix()
+    assert metadata["metadata_path"] in {output.as_posix(), "<private_path>"}
+
+
+def test_runtime_label_provenance_check_blocks_without_run_flag_unresolved_override_or_bad_output(
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=(resolved_root / "evidence" / "runtime-label-provenance-check").as_posix(),
+        evidence_output_dir=(resolved_root / "evidence" / "runtime-label-provenance-check").as_posix(),
+    )
+    calls: list[SFTDatasetRow] = []
+
+    def inspector(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
+        calls.append(row)
+        return {"inspection_status": "should_not_run"}
+
+    skipped = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=resolved_root / "evidence" / "runtime-label-provenance-check" / "skipped.json",
+        run_runtime_check=False,
+        objective_inspector=inspector,
+    )
+    assert skipped["evidence_kind"] == "sft_runtime_label_provenance_observed"
+    assert skipped["evidence_status"] == "skipped_no_runtime_opt_in"
+    assert skipped["runtime_gate"]["cli_requested_runtime_check"] is False
+    assert skipped["runtime_gate"]["will_run_runtime_label_provenance_check"] is False
+
+    unresolved_dir = tmp_path / "unresolved"
+    unresolved_dir.mkdir()
+    unresolved_config = _write_runtime_label_provenance_config(unresolved_dir, allow_runtime_check=True)
+    unresolved = training.run_sft_runtime_label_provenance_check(
+        unresolved_config,
+        manifest,
+        split="train",
+        output_path=resolved_root / "evidence" / "runtime-label-provenance-check" / "unresolved.json",
+        run_runtime_check=True,
+        objective_inspector=inspector,
+    )
+    assert unresolved["evidence_status"] == "blocked_unresolved_private_override"
+    assert unresolved["private_override"]["status"] == "unresolved"
+    assert set(unresolved["private_override"]["unresolved_fields"]) == {
+        "adapter_path",
+        "evidence_output_dir",
+        "output_root",
+        "runtime_check_output_dir",
+    }
+
+    outside = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=tmp_path / "outside-root" / "runtime.json",
+        run_runtime_check=True,
+        objective_inspector=inspector,
+    )
+    assert outside["evidence_status"] == "blocked_output_outside_approved_root"
+    assert outside["output_root_policy"]["status"] == "blocked_output_outside_approved_root"
+    assert "runtime_output_outside_approved_root" in outside["evidence_gaps"]
+    assert calls == []
+
+
+def test_runtime_label_provenance_check_blocks_traversal_outside_runtime_root(
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=(resolved_root / "evidence").as_posix(),
+        evidence_output_dir=(resolved_root / "evidence").as_posix(),
+    )
+    output = resolved_root / "evidence" / ".." / ".." / "escaped" / "runtime.json"
+
+    metadata = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=output,
+        run_runtime_check=True,
+        objective_inspector=lambda row, config: {"inspection_status": "should_not_run"},
+    )
+
+    assert metadata["evidence_status"] == "blocked_output_outside_approved_root"
+    assert metadata["output_root_policy"]["status"] == "blocked_output_outside_approved_root"
+    assert not output.exists()
+
+
+def test_runtime_label_provenance_check_blocks_symlink_escape_outside_runtime_root(
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    runtime_dir = resolved_root / "evidence"
+    runtime_dir.mkdir(parents=True)
+    outside_dir = tmp_path / "escaped"
+    outside_dir.mkdir()
+    symlink = runtime_dir / "escape-link"
+    symlink.symlink_to(outside_dir, target_is_directory=True)
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=runtime_dir.as_posix(),
+        evidence_output_dir=runtime_dir.as_posix(),
+    )
+    output = symlink / "runtime.json"
+
+    metadata = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=output,
+        run_runtime_check=True,
+        objective_inspector=lambda row, config: {"inspection_status": "should_not_run"},
+    )
+
+    assert metadata["evidence_status"] == "blocked_output_outside_approved_root"
+    assert metadata["output_root_policy"]["status"] == "blocked_output_outside_approved_root"
+    assert not output.exists()
+
+
+def test_runtime_label_provenance_check_records_real_collator_labels_with_explicit_provenance(
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    output = resolved_root / "evidence" / "runtime-label-provenance-check" / "runtime.json"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=output.parent.as_posix(),
+        evidence_output_dir=output.parent.as_posix(),
+    )
+
+    def inspector(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
+        return training.inspect_sft_objective(
+            row,
+            tokenizer=_RuntimeInspectableTokenizer(),
+            collator=_AssistantOnlyRuntimeLossCollator(),
+            label_source="trl_collator_labels",
+            label_provenance={"source_kind": "private_training_runtime", "real_training_path": True},
+        )
+
+    metadata = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=output,
+        run_runtime_check=True,
+        objective_inspector=inspector,
+    )
+    serialized = json.dumps(metadata, ensure_ascii=False, sort_keys=True)
+
+    assert output.exists()
+    assert json.loads(output.read_text(encoding="utf-8")) == metadata
+    assert metadata["evidence_kind"] == "sft_runtime_label_provenance_observed"
+    assert metadata["evidence_status"] == "labels_inspected"
+    assert metadata["runtime_source_kind"] == "private_a100_runtime"
+    assert metadata["dataset_manifest_id"] == "public-sample-test"
+    assert set(metadata["package_versions"]).issuperset({"python", "transformers"})
+    assert metadata["label_tensor_available"] is True
+    assert metadata["true_label_mask_status"] == "inspectable"
+    assert metadata["label_source"] == "trl_collator_labels"
+    assert metadata["label_source_kind"] == "private_training_runtime"
+    assert metadata["label_provenance"]["source_kind"] == "private_training_runtime"
+    assert metadata["label_provenance"]["real_training_path"] is True
+    assert metadata["prompt_tokens_masked"] is True
+    assert metadata["assistant_tokens_carry_loss"] is True
+    assert metadata["evidence_gaps"] == []
+    assert metadata["release_status"] == "not_released"
+    assert metadata["claims"]["held_out_generalization_claim"] is False
+    assert metadata["claims"]["production_readiness_claim"] is False
+    assert metadata["claims"]["live_browser_benchmark_claim"] is False
+    assert metadata["artifact_policy"]["private_paths_omitted"] is True
+    assert "fixture" not in metadata["label_source_kind"]
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+
+
+def test_runtime_label_provenance_check_downgrades_fixture_labels_to_fixture_only(
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    output = resolved_root / "evidence" / "runtime-label-provenance-check" / "runtime.json"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=output.parent.as_posix(),
+        evidence_output_dir=output.parent.as_posix(),
+    )
+
+    def inspector(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
+        return training.inspect_sft_objective(
+            row,
+            tokenizer=_RuntimeInspectableTokenizer(),
+            collator=_AssistantOnlyRuntimeLossCollator(),
+            label_source="trl_collator_labels",
+            label_provenance={"source_kind": "fixture", "real_training_path": False},
+        )
+
+    metadata = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=output,
+        run_runtime_check=True,
+        objective_inspector=inspector,
+    )
+
+    assert metadata["evidence_status"] == "fixture_only"
+    assert metadata["label_tensor_available"] is True
+    assert metadata["true_label_mask_status"] == "fixture_only"
+    assert metadata["label_source_kind"] == "fixture"
+    assert "fixture_labels_not_real_training_proof" in metadata["evidence_gaps"]
+    assert "real_training_label_provenance_missing" in metadata["evidence_gaps"]
+    assert metadata["claims"]["checkpoint_release"] is False
+    assert metadata["artifact_policy"]["raw_logs_copied_to_git"] is False
+
+
+def test_runtime_label_provenance_check_downgrades_non_real_provenance_to_available_but_not_proof(
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    output = resolved_root / "evidence" / "runtime-label-provenance-check" / "runtime.json"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=output.parent.as_posix(),
+        evidence_output_dir=output.parent.as_posix(),
+    )
+
+    def inspector(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
+        result = training.inspect_sft_objective(
+            row,
+            tokenizer=_RuntimeInspectableTokenizer(),
+            collator=_AssistantOnlyRuntimeLossCollator(),
+            label_source="trl_collator_labels",
+            label_provenance={"source_kind": "private_training_runtime", "real_training_path": True},
+        )
+        result["label_provenance"]["real_training_path"] = False
+        return result
+
+    metadata = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=output,
+        run_runtime_check=True,
+        objective_inspector=inspector,
+    )
+
+    assert metadata["label_tensor_available"] is True
+    assert metadata["true_label_mask_status"] == "inspectable"
+    assert metadata["evidence_status"] == "labels_available_but_not_real_training_proof"
+
+
+def test_runtime_label_provenance_default_inspector_uses_runtime_tokenizer_and_collator(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    rows = training._load_sft_training_rows(manifest, split="train")  # noqa: SLF001
+    calls: list[str] = []
+    local_model = (tmp_path / "runtime-model").as_posix()
+
+    class FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(base_model: str, **kwargs: Any) -> _RuntimeInspectableTokenizer:
+            calls.append(base_model)
+            assert kwargs["trust_remote_code"] is True
+            assert kwargs["local_files_only"] is True
+            return _RuntimeInspectableTokenizer()
+
+    monkeypatch.setattr(training, "_train_dependencies_available", lambda: True)
+    monkeypatch.setattr(training, "AutoTokenizer", FakeAutoTokenizer, raising=False)
+
+    result = training._inspect_runtime_sft_objective(  # noqa: SLF001
+        rows[0],
+        {"base_model": local_model},
+    )
+
+    assert calls == [local_model]
+    assert result["inspection_status"] == "inspectable"
+    assert result["label_source"] == "actual_training_labels"
+    assert result["label_provenance"] == {
+        "source_kind": "private_training_runtime",
+        "real_training_path": True,
+    }
+    assert result["label_tensor_available"] is True
+    assert result["true_label_mask_status"] == "inspectable"
+    assert result["prompt_tokens_masked"] is False
+    assert result["assistant_tokens_carry_loss"] is True
+
+
+def test_runtime_label_provenance_default_inspector_prefers_private_base_model_for_loading(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    rows = training._load_sft_training_rows(manifest, split="train")  # noqa: SLF001
+    calls: list[str] = []
+    private_base_model = (tmp_path / "models" / "qwen-local").as_posix()
+
+    class FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(base_model: str, **kwargs: Any) -> _RuntimeInspectableTokenizer:
+            calls.append(base_model)
+            return _RuntimeInspectableTokenizer()
+
+    monkeypatch.setattr(training, "_train_dependencies_available", lambda: True)
+    monkeypatch.setattr(training, "AutoTokenizer", FakeAutoTokenizer, raising=False)
+
+    result = training._inspect_runtime_sft_objective(  # noqa: SLF001
+        rows[0],
+        {
+            "base_model": private_base_model,
+            "base_model_public_id": "Qwen/Qwen2.5-0.5B-Instruct",
+        },
+    )
+
+    assert calls == [private_base_model]
+    assert result["inspection_status"] == "inspectable"
+
+
+def test_runtime_label_provenance_default_inspector_rejects_public_id_fallback(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    rows = training._load_sft_training_rows(manifest, split="train")  # noqa: SLF001
+    calls: list[str] = []
+
+    class FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(base_model: str, **kwargs: Any) -> _RuntimeInspectableTokenizer:
+            calls.append(base_model)
+            return _RuntimeInspectableTokenizer()
+
+    monkeypatch.setattr(training, "_train_dependencies_available", lambda: True)
+    monkeypatch.setattr(training, "AutoTokenizer", FakeAutoTokenizer, raising=False)
+
+    result = training._inspect_runtime_sft_objective(  # noqa: SLF001
+        rows[0],
+        {"base_model_public_id": "Qwen/Qwen2.5-0.5B-Instruct"},
+    )
+
+    assert calls == []
+    assert result["inspection_status"] == "tokenizer_unavailable"
+    assert "runtime_base_model_not_private_local_path" in result["evidence_gaps"]
+
+
+def test_runtime_label_provenance_train_cli_writes_observed_metadata_with_explicit_run_flag(
+    monkeypatch: Any,
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    output = resolved_root / "evidence" / "runtime-label-provenance-check" / "runtime.json"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=output.parent.as_posix(),
+        evidence_output_dir=output.parent.as_posix(),
+    )
+
+    def inspector(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
+        return training.inspect_sft_objective(
+            row,
+            tokenizer=_RuntimeInspectableTokenizer(),
+            collator=_AssistantOnlyRuntimeLossCollator(),
+            label_source="trl_collator_labels",
+            label_provenance={"source_kind": "private_training_runtime", "real_training_path": True},
+        )
+
+    monkeypatch.setattr(training, "_inspect_runtime_sft_objective", inspector)
+
+    assert (
+        train_cli.main(
+            [
+                "sft-runtime-label-provenance-check",
+                "--config",
+                config.as_posix(),
+                "--manifest",
+                manifest.as_posix(),
+                "--split",
+                "train",
+                "--output",
+                output.as_posix(),
+                "--run-runtime-check",
+            ]
+        )
+        == 0
+    )
+
+    assert capsys.readouterr().out == ""
+    metadata = json.loads(output.read_text(encoding="utf-8"))
+    assert metadata["evidence_kind"] == "sft_runtime_label_provenance_observed"
+    assert metadata["evidence_status"] == "labels_inspected"
+    assert metadata["runtime_gate"]["cli_requested_runtime_check"] is True
+    assert metadata["runtime_gate"]["config_allow_runtime_label_provenance_check"] is True
+    assert metadata["runtime_gate"]["will_run_runtime_label_provenance_check"] is True
+
+
+def test_runtime_label_provenance_train_cli_prints_blocked_status_for_outside_root_output(
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    output = tmp_path / "outside-root" / "runtime.json"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=(resolved_root / "evidence" / "runtime-label-provenance-check").as_posix(),
+        evidence_output_dir=(resolved_root / "evidence" / "runtime-label-provenance-check").as_posix(),
+    )
+
+    assert (
+        train_cli.main(
+            [
+                "sft-runtime-label-provenance-check",
+                "--config",
+                config.as_posix(),
+                "--manifest",
+                manifest.as_posix(),
+                "--split",
+                "train",
+                "--output",
+                output.as_posix(),
+                "--run-runtime-check",
+            ]
+        )
+        == 0
+    )
+
+    assert not output.exists()
+    stdout = capsys.readouterr().out
+    metadata = json.loads(stdout)
+    assert metadata["evidence_kind"] == "sft_runtime_label_provenance_observed"
+    assert metadata["evidence_status"] == "blocked_output_outside_approved_root"
+    assert metadata["runtime_check_status"] == "blocked_output_outside_approved_root"
+    assert metadata["runtime_gate"]["will_run_runtime_label_provenance_check"] is False
+    assert "runtime_output_outside_approved_root" in metadata["evidence_gaps"]
+    assert tmp_path.as_posix() not in stdout
+    assert output.as_posix() not in stdout
+
+
+def test_runtime_label_provenance_train_cli_does_not_write_skipped_status_outside_root(
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    output = tmp_path / "outside-root" / "skipped.json"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=(resolved_root / "evidence" / "runtime-label-provenance-check").as_posix(),
+        evidence_output_dir=(resolved_root / "evidence" / "runtime-label-provenance-check").as_posix(),
+    )
+
+    assert (
+        train_cli.main(
+            [
+                "sft-runtime-label-provenance-check",
+                "--config",
+                config.as_posix(),
+                "--manifest",
+                manifest.as_posix(),
+                "--output",
+                output.as_posix(),
+            ]
+        )
+        == 0
+    )
+
+    assert not output.exists()
+    stdout = capsys.readouterr().out
+    metadata = json.loads(stdout)
+    assert metadata["evidence_status"] == "skipped_no_runtime_opt_in"
+    assert metadata["output_root_policy"]["status"] == "blocked_output_outside_approved_root"
+    assert metadata["runtime_gate"]["will_run_runtime_label_provenance_check"] is False
+    assert tmp_path.as_posix() not in stdout
+    assert output.as_posix() not in stdout
+
+
+def test_runtime_label_provenance_train_cli_does_not_write_unresolved_status_outside_root(
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    output = tmp_path / "outside-root" / "unresolved.json"
+    config = _write_runtime_label_provenance_config(tmp_path, allow_runtime_check=True)
+
+    assert (
+        train_cli.main(
+            [
+                "sft-runtime-label-provenance-check",
+                "--config",
+                config.as_posix(),
+                "--manifest",
+                manifest.as_posix(),
+                "--output",
+                output.as_posix(),
+                "--run-runtime-check",
+            ]
+        )
+        == 0
+    )
+
+    assert not output.exists()
+    stdout = capsys.readouterr().out
+    metadata = json.loads(stdout)
+    assert metadata["evidence_status"] == "blocked_unresolved_private_override"
+    assert metadata["output_root_policy"]["status"] == "blocked_unresolved_template"
+    assert metadata["private_override"]["status"] == "unresolved"
+    assert tmp_path.as_posix() not in stdout
+    assert output.as_posix() not in stdout
 
 
 def test_sft_heavy_training_requires_cli_and_config_opt_ins(monkeypatch: Any, tmp_path: Path) -> None:

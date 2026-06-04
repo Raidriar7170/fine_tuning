@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>run-runtime-label-provenance-check Human Brief</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f6f7f9;
+        color: #17202a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.58;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+      h2 {
+        margin-top: 28px;
+        font-size: 18px;
+      }
+      .lead {
+        font-size: 18px;
+        font-weight: 650;
+      }
+      .status {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .box {
+        border: 1px solid #d9dde3;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 12px 14px;
+      }
+      .box strong {
+        display: block;
+        color: #42526e;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+      code {
+        background: #eef1f5;
+        border-radius: 4px;
+        padding: 1px 5px;
+      }
+      ul {
+        padding-left: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+        border: 1px solid #d9dde3;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #e6e9ee;
+        padding: 9px 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: #42526e;
+        font-size: 13px;
+      }
+      .ok {
+        color: #166534;
+        font-weight: 700;
+      }
+      .warn {
+        color: #9a3412;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Runtime label provenance check</h1>
+      <p class="lead">
+        结论：本阶段已在 A100 runtime 中完成 tokenizer/collator label provenance 检查；证据显示 labels 可检查且
+        assistant tokens carry loss，但 prompt tokens 未被 mask，因此这是目标函数路径证据，不是模型质量或泛化证据。
+      </p>
+
+      <section class="status" aria-label="status">
+        <div class="box"><strong>OpenSpec change</strong><code>run-runtime-label-provenance-check</code></div>
+        <div class="box"><strong>当前状态</strong><span class="ok">archived · post-archive validation passed</span></div>
+        <div class="box"><strong>runtime_check_status</strong><code>executed_runtime_label_provenance_check</code></div>
+        <div class="box"><strong>evidence_status</strong><code>labels_inspected</code></div>
+      </section>
+
+      <h2>项目阶段进度</h2>
+      <ul>
+        <li>当前阶段目标：first-phase SFT/DPO companion evidence；来源是 <code>CONTEXT.md</code>、ADR 和 OpenSpec specs。</li>
+        <li>本阶段推进：新增 observed/runtime evidence helper、train CLI、report CLI、本地安全测试，并完成真实 A100 runtime 检查。</li>
+        <li>剩余缺口：当前证据仍不支持 assistant-only loss masking、模型恢复、held-out 泛化或 live-browser 改善结论。</li>
+        <li>下一步：若要改训练目标，应另起 bounded OpenSpec change，聚焦 prompt mask / assistant-only loss path。</li>
+      </ul>
+
+      <h2>本阶段已完成</h2>
+      <ul>
+        <li>新增 <code>run_sft_runtime_label_provenance_check</code>，把 prep evidence 与 observed runtime evidence 分开。</li>
+        <li>新增 <code>voice2task-train sft-runtime-label-provenance-check</code>，默认不运行，必须显式 <code>--run-runtime-check</code>。</li>
+        <li>新增 <code>voice2task-report runtime-label-provenance-check</code>，强制 safe claims 和 private-path sanitization。</li>
+        <li>修正 runtime loader：优先使用 repo-external private override 的本地 model path，避免误走网络下载。</li>
+        <li>默认 runtime inspector 按当前 SFT text-field causal-LM 标签路径记录 evidence；如果 prompt 未被 mask，会如实显示 <code>prompt_tokens_masked=false</code>。</li>
+      </ul>
+
+      <h2>A100 观测结果</h2>
+      <ul>
+        <li><code>label_tensor_available=true</code>，<code>true_label_mask_status=inspectable</code>。</li>
+        <li><code>label_source=actual_training_labels</code>，<code>label_source_kind=private_training_runtime</code>。</li>
+        <li><code>assistant_tokens_carry_loss=true</code>，说明 assistant contract target tokens 参与 loss。</li>
+        <li><code>prompt_tokens_masked=false</code>，说明当前 SFT text-field causal-LM 路径不是 assistant-only masking。</li>
+        <li>没有 raw logs、private override、host details、model snapshots、checkpoints、adapters 或 private paths 进入 git。</li>
+      </ul>
+
+      <h2>验证结果</h2>
+      <table>
+        <thead>
+          <tr><th>命令</th><th>结果</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>PYTHONPATH=src pytest -q tests/test_a100_sft_smoke.py tests/test_report_cli.py -k "runtime_label_provenance"</code></td><td class="ok">26 passed, 14 deselected</td></tr>
+          <tr><td><code>PYTHONPATH=src pytest -q tests/test_a100_sft_smoke.py tests/test_report_cli.py tests/test_leak_scan.py -k "runtime_label_provenance or leak_scan"</code></td><td class="ok">38 passed, 8 deselected</td></tr>
+          <tr><td><code>PYTHONPATH=src pytest -q</code></td><td class="ok">110 passed</td></tr>
+          <tr><td><code>A100 runtime label provenance check</code></td><td class="ok">executed; labels_inspected; prompt_tokens_masked=false; assistant_tokens_carry_loss=true</td></tr>
+          <tr><td><code>voice2task.cli.report runtime-label-provenance-check</code></td><td class="ok">public-safe JSON/Markdown evidence written</td></tr>
+          <tr><td><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code></td><td class="ok">ok; 12 SFT rows, 26 DPO pairs</td></tr>
+          <tr><td><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code></td><td class="ok">26 pairs checked</td></tr>
+          <tr><td><code>PYTHONPATH=src python -m voice2task.cli.eval metrics --gold data/public-samples/sft_public_sample.jsonl --predictions reports/public-sample/rule_baseline_predictions.jsonl --output &lt;temp_metrics_dir&gt;</code></td><td class="ok">ok; metrics smoke written outside repo</td></tr>
+          <tr><td><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan --paths reports/public-sample/runtime-label-provenance-check docs/human-briefs/2026-06-04-run-runtime-label-provenance-check.html docs/human-briefs/2026-06-04-autonomous-loop-run-runtime-label-provenance-check.html openspec/changes/archive/2026-06-04-run-runtime-label-provenance-check openspec/specs/contract-evaluation/spec.md openspec/specs/supervised-contract-tuning/spec.md</code></td><td class="ok">ok; no findings</td></tr>
+          <tr><td><code>ruff check .</code></td><td class="ok">All checks passed</td></tr>
+          <tr><td><code>mypy src</code></td><td class="ok">Success; no issues found in 16 source files</td></tr>
+          <tr><td><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code></td><td class="ok">4 passed, 0 failed</td></tr>
+          <tr><td><code>git diff --check</code></td><td class="ok">passed</td></tr>
+        </tbody>
+      </table>
+
+      <h2>不可夸大结论</h2>
+      <ul>
+        <li>可以声称真实 A100 runtime label provenance check 已完成并生成脱敏公开摘要。</li>
+        <li>不能声称 checkpoint release、adapter release、held-out generalization、production readiness 或 live-browser improvement。</li>
+        <li>不能把 <code>assistant_tokens_carry_loss=true</code> 解释成模型已学会 Browser Task Contract；它只说明目标函数路径里 assistant tokens 参与 loss。</li>
+        <li><code>prompt_tokens_masked=false</code> 是一个重要限制：当前证据不支持 assistant-only loss-mask claim。</li>
+      </ul>
+
+      <h2>推荐下一步</h2>
+      <p>建议下一阶段先确认是否要新增 assistant-only masking / collator objective 修正 change；这会改变训练目标实现，应独立提案。</p>
+    </main>
+  </body>
+</html>

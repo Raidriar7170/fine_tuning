@@ -11,6 +11,7 @@ from voice2task.training import (
     run_dpo,
     run_sft,
     run_sft_prediction_export,
+    run_sft_runtime_label_provenance_check,
 )
 
 
@@ -41,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_prep.add_argument("--config", type=Path, required=True)
     runtime_prep.add_argument("--manifest", type=Path, required=True)
     runtime_prep.add_argument("--output", type=Path, required=True)
+    runtime_check = subcommands.add_parser("sft-runtime-label-provenance-check")
+    runtime_check.add_argument("--config", type=Path, required=True)
+    runtime_check.add_argument("--manifest", type=Path, required=True)
+    runtime_check.add_argument("--split", default="train")
+    runtime_check.add_argument("--output", type=Path, required=True)
+    runtime_check.add_argument("--run-runtime-check", action="store_true", default=False)
     return parser
 
 
@@ -62,12 +69,23 @@ def main(argv: list[str] | None = None) -> int:
         metadata = inspect_sft_objective_from_manifest(args.manifest, split=args.split)
     elif args.command == "sft-prepare-runtime-label-provenance":
         metadata = prepare_sft_runtime_label_provenance(args.config, args.manifest, metadata_path=args.output)
+    elif args.command == "sft-runtime-label-provenance-check":
+        metadata = run_sft_runtime_label_provenance_check(
+            args.config,
+            args.manifest,
+            split=args.split,
+            output_path=args.output,
+            run_runtime_check=args.run_runtime_check,
+        )
     else:
         raise AssertionError(f"unhandled command: {args.command}")
     if args.command == "sft-inspect-objective" and args.output:
         write_json(args.output, metadata)
     elif args.command == "sft-prepare-runtime-label-provenance":
         write_json(args.output, metadata)
+    elif args.command == "sft-runtime-label-provenance-check":
+        if not args.output.exists():
+            print(json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         print(json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True))
     return 0

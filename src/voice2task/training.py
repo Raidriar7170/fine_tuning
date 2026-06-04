@@ -5,6 +5,7 @@ import importlib.util
 import json
 import re
 import sys
+from collections.abc import Callable
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -93,6 +94,7 @@ def _gpu_selection_policy(config: dict[str, Any]) -> dict[str, str]:
 
 PRIVATE_PATH_PREFIXES = ("/mnt/data/", "/Users/", "/root/", "/tmp/", "/private/")
 PRIVATE_DECODED_PATH_RE = re.compile(r"(/mnt/data/[^\s\"')]+)")
+PRIVATE_METADATA_PATH_RE = re.compile(r"(/(?:mnt/data|Users|root|tmp|private)/[^\s\"')]+)")
 
 
 def _public_display_path(value: Path | str, placeholder: str) -> str:
@@ -117,7 +119,7 @@ def _public_display_artifact_path(value: Path, placeholder: str) -> str:
 
 def _sanitize_training_metadata_value(value: Any) -> Any:
     if isinstance(value, str):
-        sanitized = PRIVATE_DECODED_PATH_RE.sub("<private_path>", value)
+        sanitized = PRIVATE_METADATA_PATH_RE.sub("<private_path>", value)
         sanitized = PRIVATE_PATH_RE.sub("<private_path>", sanitized)
         sanitized = PRIVATE_IP_RE.sub("<private_ip>", sanitized)
         return SECRET_RE.sub("<secret>", sanitized)
@@ -178,6 +180,49 @@ def _runtime_output_root_policy(config: dict[str, Any], unresolved_fields: list[
         "output_root": _sanitize_training_metadata_value(raw_output_root or "<missing_output_root>"),
         "public_template_output_root": "<a100_project_root>",
     }
+
+
+def _runtime_check_output_root_policy(
+    config: dict[str, Any],
+    output_path: Path,
+    unresolved_fields: list[str],
+) -> dict[str, Any]:
+    runtime_root = config.get("runtime_check_output_dir") or config.get("output_root")
+    policy = str(config.get("output_root_policy", config.get("a100_project_root_policy", "")) or "")
+    if "output_root" in unresolved_fields or "runtime_check_output_dir" in unresolved_fields:
+        status = "blocked_unresolved_template"
+    elif _output_file_within_configured_runtime_root(config, output_path):
+        status = "approved_private_root"
+    else:
+        status = "blocked_output_outside_approved_root"
+    return {
+        "status": status,
+        "approved_policy": policy or "must_resolve_to_approved_private_a100_project_root",
+        "runtime_check_output_dir": _sanitize_training_metadata_value(
+            runtime_root or "<missing_runtime_check_output_dir>"
+        ),
+        "requested_output": _sanitize_training_metadata_value(output_path.as_posix()),
+        "public_template_output_root": "<a100_project_root>",
+    }
+
+
+def _output_file_within_configured_runtime_root(config: dict[str, Any], output_path: Path) -> bool:
+    root_value = config.get("runtime_check_output_dir") or config.get("output_root")
+    if not isinstance(root_value, str) or not root_value:
+        return False
+    if "<" in root_value or ">" in root_value:
+        return False
+    candidate = output_path.expanduser()
+    root = Path(root_value).expanduser()
+    if not candidate.is_absolute() or not root.is_absolute():
+        return False
+    candidate = candidate.resolve(strict=False)
+    root = root.resolve(strict=False)
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return False
+    return True
 
 
 def _runtime_check_status(
@@ -874,7 +919,7 @@ def _sanitize_prediction_value(value: Any) -> Any:
 
 
 def _sanitize_decoded_prediction_text(text: str) -> str:
-    sanitized = PRIVATE_DECODED_PATH_RE.sub("<private_path>", text)
+    sanitized = PRIVATE_METADATA_PATH_RE.sub("<private_path>", text)
     sanitized = PRIVATE_PATH_RE.sub("<private_path>", sanitized)
     sanitized = PRIVATE_IP_RE.sub("<private_ip>", sanitized)
     sanitized = SECRET_RE.sub("<secret>", sanitized)
@@ -1336,6 +1381,312 @@ def inspect_sft_objective_from_manifest(manifest_path: Path, *, split: str = "tr
         result["inspection_status"] = "row_unavailable"
         return result
     return inspect_sft_objective(rows[0], tokenizer=None)
+
+
+def _runtime_label_provenance_claims() -> dict[str, bool]:
+    return {
+        "checkpoint_release": False,
+        "adapter_release": False,
+        "held_out_generalization_claim": False,
+        "production_readiness_claim": False,
+        "live_browser_benchmark_claim": False,
+        "model_recovery_claim": False,
+    }
+
+
+def _runtime_label_provenance_artifact_policy() -> dict[str, bool]:
+    return {
+        "raw_rendered_prompts_written": False,
+        "raw_logs_copied_to_git": False,
+        "checkpoints_or_adapters_copied_to_git": False,
+        "private_paths_omitted": True,
+    }
+
+
+class _RuntimeFullTextCausalLmCollator:
+    def __call__(self, features: list[dict[str, Any]]) -> dict[str, list[list[Any]]]:
+        feature = features[0]
+        input_ids = _token_list(feature.get("input_ids"))
+        return {"labels": [list(input_ids)]}
+
+
+def _inspect_runtime_sft_objective(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
+    if not _train_dependencies_available():
+        return _objective_unavailable("train dependencies or tokenizer are not available in this runtime")
+    base_model = config.get("base_model")
+    if not isinstance(base_model, str) or not base_model:
+        if isinstance(config.get("base_model_public_id"), str) and config.get("base_model_public_id"):
+            return _objective_unavailable(
+                "runtime base model must be a repo-external private local path for this check",
+                inspection_status="tokenizer_unavailable",
+                tokenizer_status="unavailable",
+                tokenizer_template_status="unavailable",
+                collator_status="unavailable",
+                evidence_gaps=["runtime_base_model_not_private_local_path"],
+            )
+        return _objective_unavailable(
+            "runtime base model was not configured",
+            inspection_status="tokenizer_unavailable",
+            tokenizer_status="unavailable",
+            tokenizer_template_status="unavailable",
+            collator_status="unavailable",
+            evidence_gaps=["runtime_base_model_missing"],
+        )
+    if "<" in base_model or ">" in base_model or not Path(base_model).expanduser().is_absolute():
+        return _objective_unavailable(
+            "runtime base model must be a repo-external private local path for this check",
+            inspection_status="tokenizer_unavailable",
+            tokenizer_status="unavailable",
+            tokenizer_template_status="unavailable",
+            collator_status="unavailable",
+            evidence_gaps=["runtime_base_model_not_private_local_path"],
+        )
+    try:
+        tokenizer_factory = cast(Any, globals().get("AutoTokenizer"))
+        if tokenizer_factory is None:
+            from transformers import AutoTokenizer
+
+            tokenizer_factory = AutoTokenizer
+
+        tokenizer = tokenizer_factory.from_pretrained(base_model, trust_remote_code=True, local_files_only=True)
+    except Exception:
+        return _objective_unavailable(
+            "runtime tokenizer could not be loaded; raw model/runtime error details remain private",
+            inspection_status="tokenizer_unavailable",
+            tokenizer_status="unavailable",
+            tokenizer_template_status="unavailable",
+            collator_status="unavailable",
+            evidence_gaps=["runtime_tokenizer_load_failed"],
+        )
+    try:
+        return inspect_sft_objective(
+            row,
+            tokenizer=tokenizer,
+            collator=_RuntimeFullTextCausalLmCollator(),
+            label_source="actual_training_labels",
+            label_provenance={"source_kind": "private_training_runtime", "real_training_path": True},
+        )
+    except Exception:
+        return _objective_unavailable(
+            "runtime label inspection failed; raw tokenizer/collator error details remain private",
+            inspection_status="labels_unavailable",
+            dependency_unavailable=False,
+            tokenizer_status="available",
+            tokenizer_template_status=_tokenizer_template_status(tokenizer),
+            collator_status="unavailable",
+            evidence_gaps=["runtime_label_inspection_failed"],
+        )
+
+
+def _runtime_label_evidence_status(objective_inspection: dict[str, Any]) -> str:
+    provenance = objective_inspection.get("label_provenance")
+    source_kind = str(provenance.get("source_kind", "")) if isinstance(provenance, dict) else str(provenance or "")
+    real_training_path = isinstance(provenance, dict) and provenance.get("real_training_path") is True
+    if objective_inspection.get("true_label_mask_status") == "fixture_only" or source_kind in {
+        "fixture",
+        "fixture_collator",
+        "simulated",
+        "simulated_collator",
+    }:
+        return "fixture_only"
+    if (
+        objective_inspection.get("inspection_status") == "inspectable"
+        and objective_inspection.get("label_tensor_available") is True
+        and objective_inspection.get("true_label_mask_status") == "inspectable"
+        and real_training_path
+    ):
+        return "labels_inspected"
+    if objective_inspection.get("label_tensor_available") is True:
+        return "labels_available_but_not_real_training_proof"
+    return "labels_unavailable"
+
+
+def _runtime_label_metadata_base(
+    *,
+    config_path: Path,
+    manifest_path: Path,
+    output_path: Path,
+    split: str,
+    status: str,
+    config: dict[str, Any],
+    manifest_summary: dict[str, Any],
+    unresolved_fields: list[str],
+    run_runtime_check: bool,
+    output_root_policy: dict[str, Any],
+    evidence_gaps: list[str] | None = None,
+) -> dict[str, Any]:
+    config_allows_runtime_check = bool(config.get("allow_runtime_label_provenance_check", False))
+    private_override_required = bool(config.get("private_override_required", True))
+    private_override_resolved = not unresolved_fields
+    return {
+        "evidence_kind": "sft_runtime_label_provenance_observed",
+        "stage": "sft_runtime_label_provenance_observed",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "config_path": _sanitize_training_metadata_value(config_path.as_posix()),
+        "dataset_manifest_path": _sanitize_training_metadata_value(manifest_path.as_posix()),
+        "dataset_manifest_id": manifest_summary["manifest_id"],
+        "manifest_counts": manifest_summary["manifest_counts"],
+        "manifest_public_safe": manifest_summary["manifest_public_safe"],
+        "split": split,
+        "metadata_path": _sanitize_training_metadata_value(output_path.as_posix()),
+        "runtime_source_kind": "private_a100_runtime",
+        "runtime_check_status": status,
+        "evidence_status": status,
+        "runtime_gate": {
+            "cli_requested_runtime_check": run_runtime_check,
+            "config_allow_runtime_label_provenance_check": config_allows_runtime_check,
+            "private_override_resolved": private_override_resolved,
+            "will_run_runtime_label_provenance_check": (
+                run_runtime_check
+                and config_allows_runtime_check
+                and private_override_resolved
+                and output_root_policy.get("status") == "approved_private_root"
+            ),
+        },
+        "private_override": {
+            "required": private_override_required,
+            "status": "resolved" if private_override_resolved else "unresolved",
+            "unresolved_fields": unresolved_fields,
+            "requirements": _sanitize_training_metadata_value(config.get("private_override_requirements", [])),
+            "public_placeholder": "<a100_project_root>",
+        },
+        "output_root_policy": output_root_policy,
+        "dependency_policy": {
+            "policy": str(config.get("dependency_policy", "runtime_check_no_public_model_download_in_local_tests")),
+            "model_download_allowed": False,
+            "private_adapter_load_allowed": False,
+            "raw_private_logs_copied_to_git": False,
+        },
+        "package_versions": _sanitized_package_versions(),
+        "label_tensor_available": False,
+        "true_label_mask_status": "unavailable",
+        "inspection_status": status,
+        "label_source": "unavailable",
+        "label_source_kind": "unavailable",
+        "label_provenance": {"source_kind": "unavailable", "real_training_path": False},
+        "prompt_tokens_masked": None,
+        "assistant_tokens_carry_loss": None,
+        "evidence_gaps": _deduped_gaps(evidence_gaps or []),
+        "prior_artifacts": _sanitize_training_metadata_value(config.get("prior_artifacts", {})),
+        "release_status": "not_released",
+        "claims": _runtime_label_provenance_claims(),
+        "artifact_policy": _runtime_label_provenance_artifact_policy(),
+    }
+
+
+def _maybe_write_runtime_label_metadata(output_path: Path, metadata: dict[str, Any]) -> None:
+    output_root_policy = metadata.get("output_root_policy", {})
+    if not isinstance(output_root_policy, dict) or output_root_policy.get("status") != "approved_private_root":
+        return
+    write_json(output_path, metadata)
+
+
+def run_sft_runtime_label_provenance_check(
+    config_path: Path,
+    manifest_path: Path,
+    *,
+    split: str = "train",
+    output_path: Path,
+    run_runtime_check: bool = False,
+    objective_inspector: Callable[[SFTDatasetRow, dict[str, Any]], dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    config = _load_config(config_path)
+    manifest_summary = _manifest_metadata_without_dataset_load(manifest_path)
+    unresolved_fields = _unresolved_runtime_fields(config)
+    output_root_policy = _runtime_check_output_root_policy(config, output_path, unresolved_fields)
+    config_allows_runtime_check = bool(config.get("allow_runtime_label_provenance_check", False))
+
+    status = "executed_runtime_label_provenance_check"
+    gaps: list[str] = []
+    if not run_runtime_check or not config_allows_runtime_check:
+        status = "skipped_no_runtime_opt_in"
+        gaps.extend(["runtime_check_not_executed", "runtime_opt_in_missing"])
+    elif unresolved_fields:
+        status = "blocked_unresolved_private_override"
+        gaps.extend(["runtime_check_not_executed", "private_override_unresolved"])
+    elif output_root_policy["status"] != "approved_private_root":
+        status = "blocked_output_outside_approved_root"
+        gaps.extend(["runtime_check_not_executed", "runtime_output_outside_approved_root"])
+
+    metadata = _runtime_label_metadata_base(
+        config_path=config_path,
+        manifest_path=manifest_path,
+        output_path=output_path,
+        split=split,
+        status=status,
+        config=config,
+        manifest_summary=manifest_summary,
+        unresolved_fields=unresolved_fields,
+        run_runtime_check=run_runtime_check,
+        output_root_policy=output_root_policy,
+        evidence_gaps=gaps,
+    )
+    if status != "executed_runtime_label_provenance_check":
+        sanitized = _sanitize_training_metadata_value(metadata)
+        if not isinstance(sanitized, dict):
+            raise AssertionError("runtime label provenance metadata must be a mapping")
+        result = cast(dict[str, Any], sanitized)
+        _maybe_write_runtime_label_metadata(output_path, result)
+        return result
+
+    rows = _load_sft_training_rows(manifest_path, split=split)
+    if not rows:
+        metadata["runtime_check_status"] = "blocked_no_sft_rows"
+        metadata["evidence_status"] = "blocked_no_sft_rows"
+        metadata["inspection_status"] = "row_unavailable"
+        metadata["evidence_gaps"] = ["runtime_check_not_executed", "sft_rows_unavailable"]
+        sanitized = _sanitize_training_metadata_value(metadata)
+        if not isinstance(sanitized, dict):
+            raise AssertionError("runtime label provenance metadata must be a mapping")
+        result = cast(dict[str, Any], sanitized)
+        _maybe_write_runtime_label_metadata(output_path, result)
+        return result
+
+    inspector = objective_inspector or _inspect_runtime_sft_objective
+    objective_inspection = inspector(rows[0], config)
+    provenance = objective_inspection.get("label_provenance")
+    if not isinstance(provenance, dict):
+        provenance = _label_provenance(
+            provenance if isinstance(provenance, str) else None,
+            source_kind="unavailable",
+            real_training_path=False,
+        )
+    evidence_status = _runtime_label_evidence_status(objective_inspection)
+    metadata.update(
+        {
+            "evidence_status": evidence_status,
+            "inspection_status": objective_inspection.get("inspection_status", "unknown"),
+            "tokenizer_status": objective_inspection.get("tokenizer_status", "unknown"),
+            "tokenizer_template_status": objective_inspection.get("tokenizer_template_status", "unknown"),
+            "collator_status": objective_inspection.get("collator_status", "unknown"),
+            "label_source": objective_inspection.get("label_source", "unavailable"),
+            "label_source_kind": str(provenance.get("source_kind", "unavailable")),
+            "label_provenance": dict(provenance),
+            "label_tensor_available": bool(objective_inspection.get("label_tensor_available", False)),
+            "true_label_mask_status": objective_inspection.get("true_label_mask_status", "unavailable"),
+            "prompt_token_count": objective_inspection.get("prompt_token_count"),
+            "assistant_token_count": objective_inspection.get("assistant_token_count"),
+            "prompt_tokens_masked": objective_inspection.get("prompt_tokens_masked"),
+            "assistant_tokens_carry_loss": objective_inspection.get("assistant_tokens_carry_loss"),
+            "evidence_gaps": _deduped_gaps(
+                [str(gap) for gap in objective_inspection.get("evidence_gaps", []) if gap]
+            ),
+            "loss_interpretation": _sanitize_training_metadata_value(
+                objective_inspection.get("loss_interpretation", _loss_interpretation())
+            ),
+            "notes": (
+                "Runtime label provenance metadata records objective-path evidence only. It is not a checkpoint "
+                "release, adapter release, held-out generalization claim, production-readiness claim, or "
+                "live-browser benchmark improvement claim."
+            ),
+        }
+    )
+    sanitized = _sanitize_training_metadata_value(metadata)
+    if not isinstance(sanitized, dict):
+        raise AssertionError("runtime label provenance metadata must be a mapping")
+    result = cast(dict[str, Any], sanitized)
+    write_json(output_path, result)
+    return result
 
 
 def _load_dpo_training_pairs(manifest_path: Path, split: str) -> list[DPOPair]:
