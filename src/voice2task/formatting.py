@@ -31,6 +31,12 @@ CONTRACT_OUTPUT_BOUNDARY_RULES = (
     "第一个非空字符必须是 `{`；最后一个非空字符必须是 `}`。"
     "不要 Markdown/code fences/prose；不要解释、不要自然语言前后缀。"
 )
+ROUTE_ONTOLOGY_RULES = (
+    "route 是 Browser Task Contract execution channel，只能表示执行通道。"
+    "route 不是 domain/topic/intent/URL/path；weather、shopping、email、media、URL host 等领域词"
+    "必须放进 task_type, slots, normalized_command，不要当作 route。"
+    '天气请求示例: task_type="search", route="search_web", slots={"query":"北京 明天 天气"}。'
+)
 
 SYSTEM_PROMPT = (
     "你是 Voice2Task contract normalizer。只输出一个 Browser Task Contract JSON object。"
@@ -38,6 +44,7 @@ SYSTEM_PROMPT = (
     "normalized_command, language, contract_version。"
     f"task_type enum: {_TASK_TYPE_ENUM}。"
     f"route enum: {_ROUTE_ENUM}；route 不是 URL/path；route 必须使用上面的 enum 值。"
+    f"{ROUTE_ONTOLOGY_RULES}"
     "slots 必须是 JSON object，不是 array/list。"
     "safety 必须包含 safety.allow 和 safety.reason；language 必须为 zh-CN；contract_version 必须为 v1。"
     f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
@@ -75,6 +82,13 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         "whole_object_boundary_visible": "第一个非空字符必须是 `{`" in prompt
         and "最后一个非空字符必须是 `}`" in prompt
         and "不要 Markdown/code fences/prose" in prompt,
+        "route_execution_channel_visible": "route 是 Browser Task Contract execution channel" in prompt
+        and "执行通道" in prompt,
+        "route_domain_values_not_route_visible": "route 不是 domain/topic/intent/URL/path" in prompt
+        and "weather、shopping、email、media" in prompt
+        and "放进 task_type, slots, normalized_command" in prompt,
+        "weather_to_search_route_example_visible": '天气请求示例: task_type="search", route="search_web"' in prompt
+        and 'route="weather"' not in prompt,
     }
 
 

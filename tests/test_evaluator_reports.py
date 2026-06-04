@@ -508,6 +508,9 @@ def test_source_diagnostics_report_targets_prompt_split_prediction_and_decoding_
     assert diagnostics["current_prompt_constraints"]["task_type_enum_visible"] is True
     assert diagnostics["current_prompt_constraints"]["route_enum_visible"] is True
     assert diagnostics["current_prompt_constraints"]["route_not_url_or_path_visible"] is True
+    assert diagnostics["current_prompt_constraints"]["route_execution_channel_visible"] is True
+    assert diagnostics["current_prompt_constraints"]["route_domain_values_not_route_visible"] is True
+    assert diagnostics["current_prompt_constraints"]["weather_to_search_route_example_visible"] is True
     assert diagnostics["current_prompt_constraints"]["slots_object_not_array_visible"] is True
     assert diagnostics["prediction_run_prompt_evidence"]["prompt_constraints_present"] is False
     assert "prompt_constraints_at_prediction_time" in diagnostics["prediction_run_prompt_evidence"]["evidence_gaps"]
@@ -533,6 +536,9 @@ def test_source_diagnostics_report_targets_prompt_split_prediction_and_decoding_
     assert "invalid predictions remain invalid" in markdown
     assert "does not repair, normalize, coerce, or replace predictions" in markdown
     assert "route is not a URL/path" in markdown
+    assert "route execution-channel ontology visible: `True`" in markdown
+    assert "route domain/topic values excluded from route visible: `True`" in markdown
+    assert "weather-to-search route example visible: `True`" in markdown
     assert "Current Prompt Constraints" in markdown
     assert "Prediction-Run Prompt Evidence" in markdown
     assert "prompt_constraints_at_prediction_time" in markdown

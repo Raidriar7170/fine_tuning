@@ -207,6 +207,62 @@ def test_sft_prediction_prompt_includes_canonical_one_shot_and_whole_object_boun
     assert summary["whole_object_boundary_visible"] is True
 
 
+def test_sft_training_text_exposes_route_execution_channel_ontology() -> None:
+    row = SFTDatasetRow(
+        id="sft-weather-1",
+        split="train",
+        input_text="帮我查上海明天的天气",
+        target_contract=BrowserTaskContract(
+            task_type="search",
+            route="search_web",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"query": "上海明天天气"},
+            normalized_command="搜索上海明天天气",
+        ),
+        provenance={"source_id": "seed-search-weather", "public_safe": True},
+    )
+
+    text = formatting.format_sft_training_text(row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary()
+
+    assert "route 是 Browser Task Contract execution channel" in text
+    assert "route 不是 domain/topic/intent/URL/path" in text
+    assert "weather、shopping、email、media" in text
+    assert "放进 task_type, slots, normalized_command" in text
+    assert '天气请求示例: task_type="search", route="search_web"' in text
+    assert 'route="weather"' not in text
+    assert summary["route_execution_channel_visible"] is True
+    assert summary["route_domain_values_not_route_visible"] is True
+    assert summary["weather_to_search_route_example_visible"] is True
+
+
+def test_sft_prediction_prompt_exposes_route_ontology_without_row_gold_target_or_bad_weather_route_example() -> None:
+    row = SFTDatasetRow(
+        id="sft-weather-1",
+        split="train",
+        input_text="帮我查上海明天的天气",
+        target_contract=BrowserTaskContract(
+            task_type="search",
+            route="search_web",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"query": "gold-weather-token"},
+            normalized_command="搜索 gold-weather-token",
+        ),
+        provenance={"source_id": "seed-search-weather", "public_safe": True},
+    )
+
+    prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+
+    assert "route 是 Browser Task Contract execution channel" in prompt
+    assert "route 不是 domain/topic/intent/URL/path" in prompt
+    assert "weather、shopping、email、media" in prompt
+    assert '天气请求示例: task_type="search", route="search_web"' in prompt
+    assert "gold-weather-token" not in prompt
+    assert 'route="weather"' not in prompt
+
+
 def test_sft_training_text_fallback_is_deterministic_contract_only_text() -> None:
     row = SFTDatasetRow(
         id="sft-1",

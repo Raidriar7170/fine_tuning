@@ -1,0 +1,118 @@
+{
+  "evidence_kind": "route_task_ontology_output_repair_local",
+  "generated_at": "2026-06-04T14:23:54Z",
+  "repair_scope": "local_shared_prompt_route_ontology_only",
+  "a100_execution": false,
+  "private_prediction_run": false,
+  "training_run": false,
+  "schema_repair_applied": false,
+  "output_coercion_applied": false,
+  "source_prior_phase": "reports/public-sample/a100-constrained-output-train-split-rerun",
+  "prior_failure_context": {
+    "row_id": "seed-search-weather",
+    "invalid_route": "weather",
+    "gold_route": "search_web",
+    "raw_parse_status": "json_object",
+    "schema_guard_result": "invalid",
+    "validation_error": "route must be one of ['clarify', 'deny', 'extract_page', 'fill_form', 'open_url', 'search_web']",
+    "evidence_files": [
+      "reports/public-sample/a100-constrained-output-train-split-rerun/raw_decoded_summary.jsonl",
+      "reports/public-sample/a100-constrained-output-train-split-rerun/predictions.jsonl",
+      "reports/public-sample/a100-constrained-output-train-split-rerun/train_split_gold.jsonl",
+      "reports/public-sample/a100-constrained-output-train-split-rerun/report.md"
+    ]
+  },
+  "prompt_surface": {
+    "shared_training_text": true,
+    "trained_adapter_prediction_prompt": true,
+    "dpo_prompt": true,
+    "prediction_prompt_excludes_row_gold_target": true
+  },
+  "prompt_constraints": {
+    "task_type_enum_visible": true,
+    "route_enum_visible": true,
+    "route_not_url_or_path_visible": true,
+    "route_execution_channel_visible": true,
+    "route_domain_values_not_route_visible": true,
+    "weather_to_search_route_example_visible": true,
+    "slots_object_not_array_visible": true,
+    "required_field_skeleton_visible": true,
+    "required_field_checklist_visible": true,
+    "canonical_json_one_shot_visible": true,
+    "whole_object_boundary_visible": true
+  },
+  "route_ontology_repair": {
+    "route_definition": "route is a Browser Task Contract execution channel enum, not a domain/topic/intent/URL/path value",
+    "domain_value_policy": "weather, shopping, email, media, URL hosts, and similar domain words stay in task_type, slots, or normalized_command instead of route",
+    "weather_example": "weather information request -> task_type=search, route=search_web, slots.query contains the weather query",
+    "bad_output_example_recorded_as_prior_failure": "seed-search-weather invalid route weather"
+  },
+  "boundary_statements": [
+    "This phase did not train.",
+    "This phase did not run private prediction or A100 execution.",
+    "This phase did not repair or coerce model outputs.",
+    "This phase does not prove model recovery.",
+    "This phase does not prove held-out generalization, checkpoint release, adapter release, production readiness, public full-corpus release, or live-browser benchmark improvement."
+  ],
+  "focused_validation": [
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_formatting_training.py::test_sft_training_text_exposes_route_execution_channel_ontology tests/test_formatting_training.py::test_sft_prediction_prompt_exposes_route_ontology_without_row_gold_target_or_bad_weather_route_example tests/test_a100_sft_prediction_smoke.py::test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config tests/test_a100_sft_prediction_smoke.py::test_route_task_ontology_output_repair_evidence_is_public_safe_and_bounded",
+      "result": "4 passed"
+    },
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_a100_sft_prediction_smoke.py",
+      "result": "52 passed"
+    }
+  ],
+  "full_validation": [
+    {
+      "command": "PYTHONPATH=src pytest -q",
+      "result": "136 passed"
+    },
+    {
+      "command": "uv run ruff check .",
+      "result": "All checks passed"
+    },
+    {
+      "command": "uv run mypy src",
+      "result": "Success: no issues found in 16 source files"
+    },
+    {
+      "command": "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
+      "result": "ok true, 12 SFT rows, 26 DPO pairs"
+    },
+    {
+      "command": "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
+      "result": "26 DPO pairs checked"
+    },
+    {
+      "command": "PYTHONPATH=src python -m voice2task.cli.report leak-scan reports/public-sample/route-task-ontology-output-repair docs/human-briefs/2026-06-04-repair-route-task-ontology-output.html openspec/changes/repair-route-task-ontology-output --output reports/public-sample/route-task-ontology-output-repair/leak_scan_result.json",
+      "result": "ok true, 0 findings"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
+      "result": "5 passed, 0 failed before archive"
+    },
+    {
+      "command": "OPENSPEC_TELEMETRY=0 openspec archive repair-route-task-ontology-output -y",
+      "result": "specs updated, change archived as 2026-06-04-repair-route-task-ontology-output"
+    },
+    {
+      "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
+      "result": "4 passed, 0 failed after archive"
+    }
+  ],
+  "claims": {
+    "a100_model_recovery_claim": false,
+    "held_out_generalization_claim": false,
+    "checkpoint_release": false,
+    "adapter_release": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "live_browser_benchmark_claim": false
+  }
+}

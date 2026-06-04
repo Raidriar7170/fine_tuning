@@ -468,6 +468,9 @@ _PROMPT_CONSTRAINT_FIELDS = (
     "task_type_enum_visible",
     "route_enum_visible",
     "route_not_url_or_path_visible",
+    "route_execution_channel_visible",
+    "route_domain_values_not_route_visible",
+    "weather_to_search_route_example_visible",
     "slots_object_not_array_visible",
 )
 

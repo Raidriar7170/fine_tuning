@@ -104,6 +104,9 @@ def test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config(tmp_p
     assert dry_run["prompt_constraints"]["slots_object_not_array_visible"] is True
     assert dry_run["prompt_constraints"]["canonical_json_one_shot_visible"] is True
     assert dry_run["prompt_constraints"]["whole_object_boundary_visible"] is True
+    assert dry_run["prompt_constraints"]["route_execution_channel_visible"] is True
+    assert dry_run["prompt_constraints"]["route_domain_values_not_route_visible"] is True
+    assert dry_run["prompt_constraints"]["weather_to_search_route_example_visible"] is True
     assert dry_run["decoding_policy"] == {
         "strategy": "greedy",
         "do_sample": False,
@@ -122,6 +125,38 @@ def test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config(tmp_p
     assert blocked["prediction_status"] == "prediction_blocked_missing_adapter"
     assert blocked["prediction_gate"]["will_run_private_prediction"] is False
     assert blocked["decoding_policy"]["schema_repair_applied"] is False
+
+
+def test_route_task_ontology_output_repair_evidence_is_public_safe_and_bounded() -> None:
+    evidence_dir = Path("reports/public-sample/route-task-ontology-output-repair")
+    summary = json.loads((evidence_dir / "repair_summary.json").read_text(encoding="utf-8"))
+    markdown = (evidence_dir / "repair_summary.md").read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    serialized = json.dumps(summary, ensure_ascii=False, sort_keys=True) + markdown
+
+    assert summary["evidence_kind"] == "route_task_ontology_output_repair_local"
+    assert summary["a100_execution"] is False
+    assert summary["private_prediction_run"] is False
+    assert summary["training_run"] is False
+    assert summary["schema_repair_applied"] is False
+    assert summary["source_prior_phase"] == "reports/public-sample/a100-constrained-output-train-split-rerun"
+    assert summary["prior_failure_context"]["row_id"] == "seed-search-weather"
+    assert summary["prior_failure_context"]["invalid_route"] == "weather"
+    assert summary["prompt_constraints"]["route_execution_channel_visible"] is True
+    assert summary["prompt_constraints"]["route_domain_values_not_route_visible"] is True
+    assert summary["prompt_constraints"]["weather_to_search_route_example_visible"] is True
+    assert summary["claims"]["a100_model_recovery_claim"] is False
+    assert summary["claims"]["held_out_generalization_claim"] is False
+    assert summary["claims"]["production_readiness_claim"] is False
+    assert summary["claims"]["live_browser_benchmark_claim"] is False
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert "did not train" in serialized
+    assert "did not run private prediction or A100 execution" in serialized
+    assert "did not repair or coerce model outputs" in serialized
+    assert "does not prove model recovery" in serialized
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
 
 
 def test_sft_prediction_metadata_uses_configured_max_new_tokens(tmp_path: Path) -> None:

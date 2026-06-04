@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Route/task ontology prompt repair brief</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #172033;
+      background: #f6f7f9;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #0f766e;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #64748b;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eaf4f1;
+    }
+    a {
+      color: #0f766e;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Route/task ontology prompt repair</h1>
+  <p class="summary">
+    结论：本阶段只完成本地 route/task ontology prompt 修复；它让 <code>route</code> 明确表示执行通道，而不是 weather 等领域词，但没有训练、没有 A100/private prediction、也不证明模型恢复。
+  </p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">阶段</span><span class="value">archived</span></div>
+    <div class="tile"><span class="label">A100 execution</span><span class="value">not run</span></div>
+    <div class="tile"><span class="label">Focused tests</span><span class="value">52 passed</span></div>
+    <div class="tile"><span class="label">Claim</span><span class="value">no recovery</span></div>
+  </div>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li><code>SYSTEM_PROMPT</code> 新增 route ontology：<code>route</code> 是 Browser Task Contract execution channel enum。</li>
+    <li>明确 weather、shopping、email、media、URL host 等领域词不能作为 <code>route</code>，应进入 <code>task_type</code>、<code>slots</code> 或 <code>normalized_command</code>。</li>
+    <li>新增 weather 示例：天气查询使用 <code>task_type=search</code> 和 <code>route=search_web</code>。</li>
+    <li><code>prompt_constraint_summary()</code> 新增三个可测试 flag，prediction dry-run metadata 会带出这些约束。</li>
+    <li>新增本地 public-safe evidence pack，记录 prior A100 failure 与本阶段边界。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../src/voice2task/formatting.py">src/voice2task/formatting.py</a></li>
+    <li><a href="../../tests/test_formatting_training.py">tests/test_formatting_training.py</a></li>
+    <li><a href="../../tests/test_a100_sft_prediction_smoke.py">tests/test_a100_sft_prediction_smoke.py</a></li>
+    <li><a href="../../reports/public-sample/route-task-ontology-output-repair/repair_summary.json">repair_summary.json</a></li>
+    <li><a href="../../reports/public-sample/route-task-ontology-output-repair/repair_summary.md">repair_summary.md</a></li>
+  </ul>
+
+  <h2>证据链接</h2>
+  <ul>
+    <li>Prior A100 constrained-output run: <a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/report.md">report.md</a></li>
+    <li>具体 failure：<code>seed-search-weather</code> 曾输出 invalid <code>route=weather</code>。</li>
+    <li>gold contract：同一 public-safe train row 的合法 route 是 <code>search_web</code>。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li>新增 focused tests red：4 failed，缺少 route ontology wording/metadata/evidence pack。</li>
+    <li>新增 focused tests green：4 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_a100_sft_prediction_smoke.py</code>: 52 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>: 136 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check</code>: ok, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.report leak-scan reports/public-sample/route-task-ontology-output-repair docs/human-briefs/2026-06-04-repair-route-task-ontology-output.html openspec/changes/repair-route-task-ontology-output --output reports/public-sample/route-task-ontology-output-repair/leak_scan_result.json</code>: ok true, 0 findings。</li>
+    <li><code>git diff --check</code>: passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: 5 passed, 0 failed before archive。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec archive repair-route-task-ontology-output -y</code>: specs updated, change archived。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: 4 passed, 0 failed after archive。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是训练、DPO、GRPO 或远程 A100 执行。</li>
+    <li>这不是 schema aliasing、输出修复、输出替换或 coercion。</li>
+    <li>这不证明当前 adapter 恢复 schema-valid 输出。</li>
+    <li>这不证明 held-out generalization、release、production readiness、full-corpus publication 或 live-browser benchmark improvement。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    本阶段已归档。下一阶段可以在用户单独授权下做很小的 A100 rerun，专门观察 route/task ontology 是否改善真实 adapter 输出。
+  </p>
+</main>
+</body>
+</html>

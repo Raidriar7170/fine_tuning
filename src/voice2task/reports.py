@@ -879,6 +879,12 @@ def write_source_diagnostics_report(
         f"- task_type enum visible: `{current_prompt_constraints['task_type_enum_visible']}`",
         f"- route enum visible: `{current_prompt_constraints['route_enum_visible']}`",
         f"- route is not a URL/path visible: `{current_prompt_constraints['route_not_url_or_path_visible']}`",
+        "- route execution-channel ontology visible: "
+        f"`{current_prompt_constraints.get('route_execution_channel_visible', False)}`",
+        "- route domain/topic values excluded from route visible: "
+        f"`{current_prompt_constraints.get('route_domain_values_not_route_visible', False)}`",
+        "- weather-to-search route example visible: "
+        f"`{current_prompt_constraints.get('weather_to_search_route_example_visible', False)}`",
         f"- slots object-not-array visible: `{current_prompt_constraints['slots_object_not_array_visible']}`",
         "",
         "## Prediction-Run Prompt Evidence",

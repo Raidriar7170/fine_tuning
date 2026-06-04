@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous loop - route/task ontology output repair</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #172033;
+      background: #f6f7f9;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #0f766e;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #64748b;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eaf4f1;
+    }
+    a {
+      color: #0f766e;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: route/task ontology output repair</h1>
+  <p class="summary">
+    结论：本轮完成并归档 1 个本地 bounded phase，把 <code>route</code> 从 weather 等领域词重新钉回 Browser Task Contract execution-channel enum；下一步若要验证真实 adapter 输出，需要单独授权 A100 rerun。
+  </p>
+
+  <div class="grid">
+    <div class="tile"><span class="label">Loop status</span><span class="value">stopped</span></div>
+    <div class="tile"><span class="label">Completed phases</span><span class="value">1 archived</span></div>
+    <div class="tile"><span class="label">A100 this loop</span><span class="value">not run</span></div>
+    <div class="tile"><span class="label">Recovery claim</span><span class="value">none</span></div>
+  </div>
+
+  <h2>停止原因</h2>
+  <p>
+    停止条件：推荐的下一步是新的 A100 train-split rerun，会使用私有基础设施和已有 private adapter 路径；按本仓库 A100 规则和 opsx-auto hard stop，需要用户再次明确确认后才能继续。
+  </p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：first-phase speech-to-contract normalization，来源为 <a href="../../README.md">README.md</a> 和 <a href="../../CONTEXT.md">CONTEXT.md</a>。</li>
+    <li>本阶段推进：把上一轮 <code>seed-search-weather</code> 的 <code>route=weather</code> failure 转成可测试的 prompt ontology 约束和 public-safe evidence。</li>
+    <li>能力差距：当前 adapter 仍没有新的真实输出证据证明 schema-valid、route、slot 或 retry-format recovery。</li>
+    <li>证据差距：没有 dev/test held-out generalization、checkpoint/adapter release、production readiness 或 live-browser benchmark evidence。</li>
+    <li>下一阶段计划：用户确认 A100 后，新开一个很小的 rerun phase，仅观察 train split 上的 raw/retry/validated output 是否因 route ontology prompt 改善。</li>
+  </ul>
+
+  <h2>完成的阶段</h2>
+  <ul>
+    <li>OpenSpec change: <code>repair-route-task-ontology-output</code>，已归档为 <code>openspec/changes/archive/2026-06-04-repair-route-task-ontology-output/</code>。</li>
+    <li>长期 specs 已新增 <a href="../../openspec/specs/supervised-contract-tuning/spec.md">SFT route ontology prompt requirement</a> 与 <a href="../../openspec/specs/contract-evaluation/spec.md">local repair evidence requirement</a>。</li>
+    <li>阶段 Human Brief：<a href="2026-06-04-repair-route-task-ontology-output.html">2026-06-04-repair-route-task-ontology-output.html</a>。</li>
+    <li>公开证据：<a href="../../reports/public-sample/route-task-ontology-output-repair/repair_summary.md">repair_summary.md</a> / <a href="../../reports/public-sample/route-task-ontology-output-repair/repair_summary.json">repair_summary.json</a>。</li>
+  </ul>
+
+  <h2>Reviewer</h2>
+  <ul>
+    <li>内部 Reviewer verdict：Pass with fixes；Re-plan Needed: No。</li>
+    <li>Must Fix：补齐 evidence/Human Brief 的 leak-scan 与 OpenSpec strict validation 记录，已修复并复验。</li>
+    <li>Should Fix：给 source diagnostics 新 prompt flags 增加测试断言，已修复并复验。</li>
+    <li>External Pro review：未运行。本阶段是本地 prompt/evidence 修复，内部 Reviewer 与 leak scan 覆盖了主要 public-safety/overclaim 风险。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>: 136 passed。</li>
+    <li><code>uv run ruff check .</code>: All checks passed。</li>
+    <li><code>uv run mypy src</code>: Success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --public</code>: ok true, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check</code>: 26 DPO pairs checked。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok true, 0 findings before archive。</li>
+    <li><code>git diff --check</code>: passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: 5 passed before archive, 4 passed after archive。</li>
+  </ul>
+
+  <h2>Auto integration</h2>
+  <p>
+    当前状态：pending guarded integration at report generation time。最终 commit、merge 和 push 状态以 Codex 最终回复为准；不在本 HTML 中写入自指 commit hash。
+  </p>
+
+  <h2>剩余风险与不要夸大的结论</h2>
+  <ul>
+    <li>本轮没有训练、DPO、GRPO、A100 execution 或 private prediction。</li>
+    <li>本轮没有 schema aliasing、输出修复、输出替换或 coercion。</li>
+    <li>本轮不证明模型恢复、train/dev/test 泛化、checkpoint release、adapter release、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>下一步若 A100 rerun 仍是 0/3，需要回到训练数据/目标函数/模型容量假设，而不是把 prompt repair 包装成成功。</li>
+  </ul>
+
+  <h2>推荐的下一步</h2>
+  <p>
+    推荐用户确认是否使用 A100 开一个新的小 rerun phase：只复验 train split 3 行，记录 raw attempt、retry attempt、validated output source、route enum failure 和 leak scan；不训练、不发布、不扩大到 dev/test。
+  </p>
+</main>
+</body>
+</html>

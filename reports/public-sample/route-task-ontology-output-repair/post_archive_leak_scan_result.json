@@ -1,0 +1,14 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-04T14:33:29.665325+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/route-task-ontology-output-repair",
+    "docs/human-briefs/2026-06-04-repair-route-task-ontology-output.html",
+    "docs/human-briefs/2026-06-04-autonomous-loop-repair-route-task-ontology-output.html",
+    "openspec/changes/archive/2026-06-04-repair-route-task-ontology-output",
+    "openspec/specs/supervised-contract-tuning/spec.md",
+    "openspec/specs/contract-evaluation/spec.md"
+  ]
+}
