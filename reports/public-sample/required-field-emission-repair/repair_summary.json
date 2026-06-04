@@ -1,0 +1,50 @@
+{
+  "evidence_kind": "required_field_emission_repair_local",
+  "generated_at": "2026-06-04T08:11:50.623391+00:00",
+  "repair_scope": "local_prompt_and_schema_guard_retry_only",
+  "a100_execution": false,
+  "private_prediction_run": false,
+  "prompt_constraints": {
+    "task_type_enum_visible": true,
+    "route_enum_visible": true,
+    "route_not_url_or_path_visible": true,
+    "slots_object_not_array_visible": true,
+    "required_field_skeleton_visible": true,
+    "required_field_checklist_visible": true
+  },
+  "schema_guard": {
+    "enabled": true,
+    "validates_raw_attempt_with": "BrowserTaskContract.from_dict",
+    "bounded_retry_max_attempts": 1,
+    "preserves_raw_invalid_attempts": true,
+    "validated_output_source_values": [
+      "raw_attempt",
+      "retry_attempt",
+      "none"
+    ]
+  },
+  "schema_validation_surface": {
+    "final_contract_metrics": "not_run",
+    "raw_attempt_schema_valid": "not_run",
+    "retry_attempt_schema_valid": "not_run",
+    "validated_output_schema_valid": "not_run"
+  },
+  "focused_tests": [
+    "tests/test_formatting_training.py::test_sft_prediction_prompt_includes_required_field_skeleton_without_gold_contract",
+    "tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_retries_schema_invalid_missing_required_fields",
+    "tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_skips_retry_when_raw_attempt_is_valid"
+  ],
+  "source_files": [
+    "src/voice2task/formatting.py",
+    "src/voice2task/training.py"
+  ],
+  "claims": {
+    "a100_improvement_claim": false,
+    "held_out_generalization_claim": false,
+    "checkpoint_release": false,
+    "adapter_release": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "live_browser_benchmark_claim": false
+  }
+}

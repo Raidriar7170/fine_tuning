@@ -134,6 +134,45 @@ def test_sft_prediction_prompt_uses_generation_prompt_without_gold_contract() ->
     assert [message["role"] for message in tokenizer.calls[0]["messages"]] == ["system", "user"]
 
 
+def test_sft_prediction_prompt_includes_required_field_skeleton_without_gold_contract() -> None:
+    row = SFTDatasetRow(
+        id="sft-1",
+        split="train",
+        input_text="帮我处理这个公开页面",
+        target_contract=BrowserTaskContract(
+            task_type="search",
+            route="search_web",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"query": "gold-only-token"},
+            normalized_command="搜索 gold-only-token",
+        ),
+        provenance={"source_id": "seed-1", "public_safe": True},
+    )
+
+    prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary()
+
+    assert "Browser Task Contract required skeleton" in prompt
+    for field in (
+        '"task_type"',
+        '"route"',
+        '"safety"',
+        '"confirmation_required"',
+        '"slots"',
+        '"normalized_command"',
+        '"language"',
+        '"contract_version"',
+    ):
+        assert field in prompt
+    assert '"allow"' in prompt
+    assert '"reason"' in prompt
+    assert "每次输出都必须包含全部 8 个顶层字段" in prompt
+    assert "gold-only-token" not in prompt
+    assert summary["required_field_skeleton_visible"] is True
+    assert summary["required_field_checklist_visible"] is True
+
+
 def test_sft_training_text_fallback_is_deterministic_contract_only_text() -> None:
     row = SFTDatasetRow(
         id="sft-1",

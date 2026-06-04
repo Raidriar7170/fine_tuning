@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Required-field emission repair brief</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #2563eb;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Required-field emission repair</h1>
+  <p class="summary">
+    结论：本阶段完成本地 prompt + schema guard/retry 修复；它能防止缺必填字段的 raw attempt 被误计为成功，并为下一次 A100 rerun 提供更强的 required-field 输出约束。
+  </p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">阶段</span><span class="value">archived</span></div>
+    <div class="tile"><span class="label">A100 execution</span><span class="value">not run</span></div>
+    <div class="tile"><span class="label">Retry max</span><span class="value">1</span></div>
+    <div class="tile"><span class="label">Full pytest</span><span class="value">124 passed</span></div>
+  </div>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：first-phase speech-to-contract normalization。</li>
+    <li>目标来源：<a href="../../CONTEXT.md">CONTEXT.md</a> 和 <a href="../../openspec/specs/supervised-contract-tuning/spec.md">supervised-contract-tuning spec</a>。</li>
+    <li>本阶段推进：把上轮诊断中“raw JSON 可解析但缺 Browser Task Contract 必填字段”的问题转成 prompt skeleton 和 schema guard/retry 机制。</li>
+    <li>剩余差距：还没有真实 A100 rerun 证明 schema-valid rate 改善；下一阶段才适合做小规模 A100 train-split rerun 或 dev/test 验证。</li>
+  </ul>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li><code>SYSTEM_PROMPT</code> 新增完整 Browser Task Contract required skeleton 和 required-field checklist。</li>
+    <li><code>prompt_constraint_summary</code> 新增 skeleton/checklist 可见性信号。</li>
+    <li>private-adapter prediction writer 对 raw attempt 调用 <code>BrowserTaskContract.from_dict</code> 做 schema guard。</li>
+    <li>当 raw attempt schema-invalid 且 retry enabled 时，最多追加一次 required-field retry prompt。</li>
+    <li>输出记录新增 <code>schema_guard</code>，区分 <code>raw_attempt</code>、<code>retry_attempt</code> 和 <code>none</code>。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/required-field-emission-repair/repair_summary.json">repair_summary.json</a></li>
+    <li><a href="../../reports/public-sample/required-field-emission-repair/repair_summary.md">repair_summary.md</a></li>
+    <li><a href="../../reports/public-sample/required-field-emission-repair/leak_scan_result.json">leak_scan_result.json</a></li>
+    <li><a href="../../openspec/changes/repair-contract-required-field-emission/proposal.md">OpenSpec proposal</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_a100_sft_prediction_smoke.py</code>: 42 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: repair evidence ok, 0 findings。</li>
+    <li>Full validation: passed, 124 pytest cases。</li>
+  </ul>
+
+  <h2>Schema 分离面</h2>
+  <ul>
+    <li><code>raw_attempt_schema_valid</code>、<code>retry_attempt_schema_valid</code>、<code>validated_output_schema_valid</code> 和 <code>final_contract_metrics</code> 在本阶段记为 <code>not_run</code>。</li>
+    <li>本阶段只发布 guard/retry 元数据形状和本地证据，不宣称 A100 实跑后的契约恢复结果。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 A100 improvement evidence。</li>
+    <li>这不是 held-out generalization evidence。</li>
+    <li>这不是 checkpoint release、adapter release、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>retry 成功时也必须报告 validated output source，不能把它说成 first-pass raw model recovery。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    本阶段归档后，下一步建议做一个小的 A100 train-split rerun，用新的 prompt/guard 路径验证 required-field schema failure 是否下降；若 train split 恢复，再进入 dev/test held-out 验证。
+  </p>
+</main>
+</body>
+</html>

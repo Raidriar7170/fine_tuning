@@ -7,6 +7,16 @@ from voice2task.schemas import ROUTES, TASK_TYPES, BrowserTaskContract, DPOPair,
 
 _TASK_TYPE_ENUM = ", ".join(sorted(TASK_TYPES))
 _ROUTE_ENUM = ", ".join(sorted(ROUTES))
+CONTRACT_REQUIRED_FIELD_SKELETON = (
+    "Browser Task Contract required skeleton: "
+    '{"task_type":"<one of task_type enum>","route":"<one of route enum>",'
+    '"safety":{"allow":<boolean>,"reason":"<non-empty string>"},'
+    '"confirmation_required":<boolean>,"slots":{...},'
+    '"normalized_command":"<Chinese normalized command>","language":"zh-CN","contract_version":"v1"}。'
+    "Required-field checklist: task_type, route, safety, confirmation_required, slots, "
+    "normalized_command, language, contract_version. 每次输出都必须包含全部 8 个顶层字段；"
+    "即使字段值很简单，也不能省略 safety、normalized_command 或 contract_version。"
+)
 
 SYSTEM_PROMPT = (
     "你是 Voice2Task contract normalizer。只输出一个 Browser Task Contract JSON object。"
@@ -16,6 +26,7 @@ SYSTEM_PROMPT = (
     f"route enum: {_ROUTE_ENUM}；route 不是 URL/path；route 必须使用上面的 enum 值。"
     "slots 必须是 JSON object，不是 array/list。"
     "safety 必须包含 safety.allow 和 safety.reason；language 必须为 zh-CN；contract_version 必须为 v1。"
+    f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
     "不要解释、不要添加 Markdown、不要输出自然语言前后缀、不要生成 GUI 动作或浏览器点击/输入步骤。"
 )
 
@@ -39,6 +50,10 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         "slots_object_not_array_visible": "slots" in prompt
         and "JSON object" in prompt
         and ("不是 array/list" in prompt or ("not" in prompt_lower and "array" in prompt_lower)),
+        "required_field_skeleton_visible": "Browser Task Contract required skeleton" in prompt
+        and all(f'"{field}"' in prompt for field in ("task_type", "route", "safety", "slots")),
+        "required_field_checklist_visible": "Required-field checklist" in prompt
+        and "每次输出都必须包含全部 8 个顶层字段" in prompt,
     }
 
 

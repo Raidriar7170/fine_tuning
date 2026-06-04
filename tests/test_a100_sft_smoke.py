@@ -15,6 +15,7 @@ from voice2task.training import run_sft
 REPO_ROOT = Path(__file__).resolve().parents[1]
 A100_PROJECT_DIR = "/mnt/data/" + "minghongsun/voice2task-post-training"
 A100_PROJECT_ROOT_POLICY = "must_resolve_to_approved_private_a100_project_root"
+RUNTIME_SFT_MAX_SEQ_LENGTH = 2048
 
 
 def _write_manifest(tmp_path: Path) -> Path:
@@ -104,6 +105,7 @@ def _write_runtime_label_provenance_config(
                 "runtime_check_output_dir": resolved_runtime_check_output_dir,
                 "adapter_path": adapter_path,
                 "dependency_policy": "prep_only_no_train_dependency_import_no_model_download",
+                "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH,
                 "label_provenance_intent": "inspect_real_tokenizer_collator_labels_later",
                 "prior_artifacts": {
                     "sft_label_provenance": "reports/public-sample/sft-label-provenance/",
@@ -624,7 +626,7 @@ def test_runtime_label_provenance_default_inspector_masks_prompt_tokens_with_ass
 
     result = training._inspect_runtime_sft_objective(  # noqa: SLF001
         rows[0],
-        {"base_model": local_model},
+        {"base_model": local_model, "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH},
     )
 
     assert calls == [local_model]
@@ -750,7 +752,7 @@ def test_runtime_label_provenance_default_inspector_uses_training_record_data_co
 
     result = training._inspect_runtime_sft_objective(  # noqa: SLF001
         rows[0],
-        {"base_model": local_model},
+        {"base_model": local_model, "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH},
     )
 
     assert collator_features
@@ -786,6 +788,7 @@ def test_runtime_label_provenance_default_inspector_prefers_private_base_model_f
         {
             "base_model": private_base_model,
             "base_model_public_id": "Qwen/Qwen2.5-0.5B-Instruct",
+            "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH,
         },
     )
 
@@ -812,7 +815,10 @@ def test_runtime_label_provenance_default_inspector_rejects_public_id_fallback(
 
     result = training._inspect_runtime_sft_objective(  # noqa: SLF001
         rows[0],
-        {"base_model_public_id": "Qwen/Qwen2.5-0.5B-Instruct"},
+        {
+            "base_model_public_id": "Qwen/Qwen2.5-0.5B-Instruct",
+            "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH,
+        },
     )
 
     assert calls == []
@@ -1216,6 +1222,7 @@ def test_real_sft_heavy_path_keeps_new_trl_sfttrainer_with_assistant_only_labels
         {
             "base_model": "fake-qwen",
             "dataset_split": "train",
+            "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH,
             "lora": {"r": 8, "alpha": 16, "dropout": 0.05, "target_modules": ["q_proj"]},
         },
         manifest,
@@ -1288,6 +1295,7 @@ def test_real_sft_heavy_path_supports_old_trl_sfttrainer_tokenizer_signature(
         {
             "base_model": "fake-qwen",
             "dataset_split": "train",
+            "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH,
             "lora": {"r": 8, "alpha": 16, "dropout": 0.05, "target_modules": ["q_proj"]},
         },
         manifest,

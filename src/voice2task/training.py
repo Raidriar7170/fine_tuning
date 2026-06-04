@@ -24,8 +24,10 @@ from voice2task.schemas import (
     PRIVATE_IP_RE,
     PRIVATE_PATH_RE,
     SECRET_RE,
+    BrowserTaskContract,
     DPOPair,
     SFTDatasetRow,
+    ValidationError,
     as_contract,
     canonical_contract_json,
 )
@@ -615,12 +617,16 @@ def _prediction_gate(config: dict[str, Any], dry_run: bool, fixture_mode: bool) 
 
 
 def _decoding_policy(config: dict[str, Any]) -> dict[str, Any]:
+    schema_retry_enabled = bool(config.get("schema_retry_enabled", True))
     return {
         "strategy": "greedy",
         "do_sample": False,
         "max_new_tokens": int(config.get("max_new_tokens", 256)),
         "raw_decoded_sidecar_written": False,
         "schema_repair_applied": False,
+        "schema_guard_enabled": True,
+        "schema_retry_enabled": schema_retry_enabled,
+        "schema_retry_max_attempts": 1 if schema_retry_enabled else 0,
     }
 
 
@@ -789,9 +795,14 @@ def _decoded_parse_status(decoded: str) -> str:
     return "non_json"
 
 
-def _raw_decoded_summary_row(row_id: str, decoded: str) -> dict[str, Any]:
+def _raw_decoded_summary_row(
+    row_id: str,
+    decoded: str,
+    *,
+    schema_guard: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     sanitized = _sanitize_decoded_prediction_text(decoded)
-    return {
+    row = {
         "id": row_id,
         "parse_status": _decoded_parse_status(sanitized),
         "decoded_sha256": _sha256_text(sanitized),
@@ -801,6 +812,9 @@ def _raw_decoded_summary_row(row_id: str, decoded: str) -> dict[str, Any]:
         "private_values_sanitized": sanitized != decoded,
         "schema_repair_applied": False,
     }
+    if schema_guard is not None:
+        row["schema_guard"] = schema_guard
+    return row
 
 
 def _write_jsonl_records(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -921,6 +935,114 @@ def _extract_json_object(text: str) -> Any:
     return _sanitize_decoded_prediction_text(stripped)
 
 
+def _required_field_missing(prediction: Any) -> list[str]:
+    required = {
+        "task_type",
+        "route",
+        "safety",
+        "confirmation_required",
+        "slots",
+        "normalized_command",
+        "language",
+        "contract_version",
+    }
+    if not isinstance(prediction, dict):
+        return sorted(required)
+    return sorted(required - set(prediction))
+
+
+def _schema_guard_status(prediction: Any) -> dict[str, Any]:
+    if not isinstance(prediction, dict):
+        return {
+            "schema_valid": False,
+            "validation_error": "prediction must be a JSON object matching Browser Task Contract",
+            "missing_required_fields": _required_field_missing(prediction),
+        }
+    try:
+        BrowserTaskContract.from_dict(prediction)
+    except ValidationError as exc:
+        return {
+            "schema_valid": False,
+            "validation_error": str(exc),
+            "missing_required_fields": _required_field_missing(prediction),
+        }
+    return {
+        "schema_valid": True,
+        "validation_error": None,
+        "missing_required_fields": [],
+    }
+
+
+def _schema_retry_prompt(row: SFTDatasetRow, raw_prediction: Any, guard_status: dict[str, Any]) -> str:
+    missing = guard_status.get("missing_required_fields", [])
+    missing_text = ", ".join(str(field) for field in missing) if missing else "unknown"
+    raw_summary = json.dumps(_sanitize_prediction_value(raw_prediction), ensure_ascii=False, sort_keys=True)
+    return "\n".join(
+        [
+            "你刚才输出的 JSON 不是合法 Browser Task Contract。",
+            f"缺失字段: {missing_text}。",
+            "请重新输出一个完整 Browser Task Contract JSON object，必须包含全部 8 个顶层字段：",
+            "task_type, route, safety, confirmation_required, slots, normalized_command, language, contract_version。",
+            "safety 必须是 object，且包含 boolean safety.allow 和非空字符串 safety.reason。",
+            "不要解释、不要 Markdown、不要自然语言前后缀。",
+            f"用户输入: {row.input_text}",
+            f"上一轮输出摘要: {raw_summary[:500]}",
+        ]
+    )
+
+
+def _decode_prediction_attempt(
+    *,
+    model: Any,
+    tokenizer: Any,
+    prompt: str,
+    max_new_tokens: int,
+    torch_module: Any,
+) -> tuple[str, Any, Any]:
+    inputs: Any = tokenizer(prompt, return_tensors="pt").to(model.device)
+    with torch_module.no_grad():
+        generated: Any = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    new_tokens = generated[0][inputs["input_ids"].shape[-1] :]
+    decoded_value = tokenizer.decode(new_tokens, skip_special_tokens=True)
+    decoded = decoded_value if isinstance(decoded_value, str) else str(decoded_value)
+    return decoded, new_tokens, inputs
+
+
+def _build_schema_guard(
+    *,
+    raw_status: dict[str, Any],
+    retry_enabled: bool,
+    retry_attempted: bool,
+    retry_status: dict[str, Any] | None,
+) -> dict[str, Any]:
+    retry_schema_valid = None if retry_status is None else retry_status["schema_valid"]
+    if raw_status["schema_valid"]:
+        validated_source = "raw_attempt"
+        validated_valid = True
+    elif retry_status is not None and retry_status["schema_valid"]:
+        validated_source = "retry_attempt"
+        validated_valid = True
+    else:
+        validated_source = "none"
+        validated_valid = False
+    return {
+        "raw_attempt_schema_valid": raw_status["schema_valid"],
+        "raw_attempt_validation_error": raw_status["validation_error"],
+        "raw_attempt_missing_required_fields": raw_status["missing_required_fields"],
+        "retry_enabled": retry_enabled,
+        "retry_attempted": retry_attempted,
+        "retry_attempt_schema_valid": retry_schema_valid,
+        "retry_attempt_validation_error": None if retry_status is None else retry_status["validation_error"],
+        "validated_output_schema_valid": validated_valid,
+        "validated_output_source": validated_source,
+    }
+
+
 def _sanitize_prediction_object(value: dict[str, Any]) -> dict[str, Any]:
     return {
         _sanitize_decoded_prediction_text(key): _sanitize_prediction_value(item)
@@ -969,6 +1091,7 @@ def _run_real_sft_prediction(
     model = PeftModel.from_pretrained(model, adapter_path)
     model.eval()
     max_new_tokens = int(config.get("max_new_tokens", 256))
+    schema_retry_enabled = bool(config.get("schema_retry_enabled", True))
     prompt_rows: list[dict[str, Any]] = []
     raw_rows: list[dict[str, Any]] = []
     trace_rows: list[dict[str, Any]] = []
@@ -977,18 +1100,40 @@ def _run_real_sft_prediction(
         for row in rows:
             prompt = format_sft_prediction_prompt(row, tokenizer=tokenizer)
             prompt_rows.append(_prompt_snapshot_row(row, prompt))
-            inputs: Any = tokenizer(prompt, return_tensors="pt").to(model.device)
-            with torch.no_grad():
-                generated: Any = model.generate(
-                    **inputs,
+            decoded, new_tokens, _ = _decode_prediction_attempt(
+                model=model,
+                tokenizer=tokenizer,
+                prompt=prompt,
+                max_new_tokens=max_new_tokens,
+                torch_module=torch,
+            )
+            raw_prediction = _extract_json_object(decoded)
+            raw_status = _schema_guard_status(raw_prediction)
+            retry_status: dict[str, Any] | None = None
+            retry_prediction: Any = None
+            retry_attempted = False
+            if schema_retry_enabled and not raw_status["schema_valid"]:
+                retry_attempted = True
+                retry_prompt = _schema_retry_prompt(row, raw_prediction, raw_status)
+                retry_decoded, _, _ = _decode_prediction_attempt(
+                    model=model,
+                    tokenizer=tokenizer,
+                    prompt=retry_prompt,
                     max_new_tokens=max_new_tokens,
-                    do_sample=False,
-                    pad_token_id=tokenizer.eos_token_id,
+                    torch_module=torch,
                 )
-            new_tokens = generated[0][inputs["input_ids"].shape[-1] :]
-            decoded_value = tokenizer.decode(new_tokens, skip_special_tokens=True)
-            decoded = decoded_value if isinstance(decoded_value, str) else str(decoded_value)
-            raw_rows.append(_raw_decoded_summary_row(row.id, decoded))
+                retry_prediction = _extract_json_object(retry_decoded)
+                retry_status = _schema_guard_status(retry_prediction)
+            schema_guard = _build_schema_guard(
+                raw_status=raw_status,
+                retry_enabled=schema_retry_enabled,
+                retry_attempted=retry_attempted,
+                retry_status=retry_status,
+            )
+            final_prediction = (
+                retry_prediction if schema_guard["validated_output_source"] == "retry_attempt" else raw_prediction
+            )
+            raw_rows.append(_raw_decoded_summary_row(row.id, decoded, schema_guard=schema_guard))
             trace_rows.append(
                 _generation_trace_row(
                     row_id=row.id,
@@ -1000,7 +1145,8 @@ def _run_real_sft_prediction(
             )
             record = {
                 "id": row.id,
-                "prediction": _extract_json_object(decoded),
+                "prediction": final_prediction,
+                "schema_guard": schema_guard,
                 "prediction_source_kind": "private_a100_adapter",
                 "provenance": {"public_safe": True, "source_id": row.provenance.get("source_id", row.id)},
             }

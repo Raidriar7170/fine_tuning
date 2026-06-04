@@ -108,6 +108,9 @@ def test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config(tmp_p
         "max_new_tokens": 256,
         "raw_decoded_sidecar_written": False,
         "schema_repair_applied": False,
+        "schema_guard_enabled": True,
+        "schema_retry_enabled": True,
+        "schema_retry_max_attempts": 1,
     }
 
     missing_adapter_config = _write_prediction_config(tmp_path, adapter_path=None)
@@ -335,6 +338,45 @@ class _FakeJsonPathTokenizer(_FakeTokenizer):
         )
 
 
+class _FakeRetryTokenizer(_FakeTokenizer):
+    def __init__(self) -> None:
+        self.prompts: list[str] = []
+        self.decode_calls = 0
+
+    def __call__(self, prompt: str, *, return_tensors: str) -> _FakeInputs:
+        self.prompts.append(prompt)
+        return _FakeInputs({"input_ids": _FakeInputIds()})
+
+    def decode(self, new_tokens: list[int], *, skip_special_tokens: bool) -> str:
+        self.decode_calls += 1
+        if self.decode_calls == 1:
+            return json.dumps(
+                {
+                    "task_type": "search",
+                    "route": "search_web",
+                    "confirmation_required": False,
+                    "slots": {"query": "机票"},
+                    "language": "zh-CN",
+                },
+                ensure_ascii=False,
+            )
+        return json.dumps(_contract("机票"), ensure_ascii=False)
+
+
+class _FakeValidTokenizer(_FakeTokenizer):
+    def __init__(self) -> None:
+        self.prompts: list[str] = []
+        self.decode_calls = 0
+
+    def __call__(self, prompt: str, *, return_tensors: str) -> _FakeInputs:
+        self.prompts.append(prompt)
+        return _FakeInputs({"input_ids": _FakeInputIds()})
+
+    def decode(self, new_tokens: list[int], *, skip_special_tokens: bool) -> str:
+        self.decode_calls += 1
+        return json.dumps(_contract("机票"), ensure_ascii=False)
+
+
 class _FakeModel:
     device = "cpu"
 
@@ -502,6 +544,125 @@ def test_real_sft_prediction_sanitizes_private_paths_inside_json_output(
     assert record["prediction"]["safety"]["reason"] == "read from <private_path>"
     assert "/mnt/data/" not in serialized
     assert scan_paths([output]).ok is True
+
+
+def test_real_sft_prediction_retries_schema_invalid_missing_required_fields(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "trained_predictions.jsonl"
+    tokenizer = _FakeRetryTokenizer()
+    row = SFTDatasetRow(
+        id="sft-test-1",
+        split="test",
+        input_text="帮我搜索机票",
+        target_contract=_contract("机票"),
+        provenance={"source_id": "sft-test-1", "public_safe": True},
+    )
+    torch_module = types.ModuleType("torch")
+    torch_module.float16 = "float16"
+    torch_module.float32 = "float32"
+    torch_module.cuda = types.SimpleNamespace(is_available=lambda: False)
+    torch_module.no_grad = lambda: _FakeNoGrad()
+    peft_module = types.ModuleType("peft")
+    peft_module.PeftModel = types.SimpleNamespace(from_pretrained=lambda model, adapter_path: model)
+    transformers_module = types.ModuleType("transformers")
+    transformers_module.AutoTokenizer = types.SimpleNamespace(from_pretrained=lambda *args, **kwargs: tokenizer)
+    transformers_module.AutoModelForCausalLM = types.SimpleNamespace(
+        from_pretrained=lambda *args, **kwargs: _FakeModel()
+    )
+    monkeypatch.setitem(sys.modules, "torch", torch_module)
+    monkeypatch.setitem(sys.modules, "peft", peft_module)
+    monkeypatch.setitem(sys.modules, "transformers", transformers_module)
+
+    count = training._run_real_sft_prediction(
+        {
+            "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+            "adapter_path": (tmp_path / "adapter").as_posix(),
+            "schema_retry_enabled": True,
+        },
+        [row],
+        output,
+        sidecar_paths={
+            "prompt_snapshot": tmp_path / "prompt_snapshot.json",
+            "raw_decoded_summary": tmp_path / "raw_decoded_summary.jsonl",
+            "generation_trace": tmp_path / "generation_trace.jsonl",
+        },
+    )
+
+    record = json.loads(output.read_text(encoding="utf-8"))
+    raw_rows = [
+        json.loads(line)
+        for line in (tmp_path / "raw_decoded_summary.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    result = evaluate_predictions([row], load_predictions(output))
+
+    assert count == 1
+    assert tokenizer.decode_calls == 2
+    assert len(tokenizer.prompts) == 2
+    assert "缺失字段" in tokenizer.prompts[1]
+    assert "safety" in tokenizer.prompts[1]
+    assert record["prediction"] == _contract("机票")
+    assert record["schema_guard"]["raw_attempt_schema_valid"] is False
+    assert record["schema_guard"]["retry_attempted"] is True
+    assert record["schema_guard"]["retry_attempt_schema_valid"] is True
+    assert record["schema_guard"]["validated_output_source"] == "retry_attempt"
+    assert raw_rows[0]["schema_guard"]["raw_attempt_schema_valid"] is False
+    assert raw_rows[0]["schema_guard"]["retry_attempted"] is True
+    assert raw_rows[0]["schema_guard"]["validated_output_source"] == "retry_attempt"
+    assert result.metrics["json_valid_rate"] == 1.0
+    assert scan_paths([output, tmp_path / "raw_decoded_summary.jsonl"]).ok is True
+
+
+def test_real_sft_prediction_skips_retry_when_raw_attempt_is_valid(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "trained_predictions.jsonl"
+    tokenizer = _FakeValidTokenizer()
+    row = SFTDatasetRow(
+        id="sft-test-1",
+        split="test",
+        input_text="帮我搜索机票",
+        target_contract=_contract("机票"),
+        provenance={"source_id": "sft-test-1", "public_safe": True},
+    )
+    torch_module = types.ModuleType("torch")
+    torch_module.float16 = "float16"
+    torch_module.float32 = "float32"
+    torch_module.cuda = types.SimpleNamespace(is_available=lambda: False)
+    torch_module.no_grad = lambda: _FakeNoGrad()
+    peft_module = types.ModuleType("peft")
+    peft_module.PeftModel = types.SimpleNamespace(from_pretrained=lambda model, adapter_path: model)
+    transformers_module = types.ModuleType("transformers")
+    transformers_module.AutoTokenizer = types.SimpleNamespace(from_pretrained=lambda *args, **kwargs: tokenizer)
+    transformers_module.AutoModelForCausalLM = types.SimpleNamespace(
+        from_pretrained=lambda *args, **kwargs: _FakeModel()
+    )
+    monkeypatch.setitem(sys.modules, "torch", torch_module)
+    monkeypatch.setitem(sys.modules, "peft", peft_module)
+    monkeypatch.setitem(sys.modules, "transformers", transformers_module)
+
+    count = training._run_real_sft_prediction(
+        {
+            "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+            "adapter_path": (tmp_path / "adapter").as_posix(),
+            "schema_retry_enabled": True,
+        },
+        [row],
+        output,
+    )
+
+    record = json.loads(output.read_text(encoding="utf-8"))
+
+    assert count == 1
+    assert tokenizer.decode_calls == 1
+    assert len(tokenizer.prompts) == 1
+    assert record["prediction"] == _contract("机票")
+    assert record["schema_guard"]["raw_attempt_schema_valid"] is True
+    assert record["schema_guard"]["retry_attempted"] is False
+    assert record["schema_guard"]["validated_output_schema_valid"] is True
+    assert record["schema_guard"]["validated_output_source"] == "raw_attempt"
 
 
 def test_extract_json_sanitizes_top_level_lists_strings_ips_and_secrets() -> None:
