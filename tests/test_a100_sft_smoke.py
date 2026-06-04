@@ -1,4 +1,6 @@
 import json
+import sys
+import types
 from pathlib import Path
 from typing import Any
 
@@ -7,7 +9,7 @@ import pytest
 from voice2task import training
 from voice2task.cli import train as train_cli
 from voice2task.leak_scan import scan_paths
-from voice2task.schemas import SFTDatasetRow
+from voice2task.schemas import SFTDatasetRow, canonical_contract_json
 from voice2task.training import run_sft
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -127,6 +129,33 @@ class _RuntimeInspectableTokenizer:
             "input_ids": tokens,
             "attention_mask": [1 for _ in tokens],
             "offset_mapping": offsets,
+        }
+
+
+class _MissingOffsetTokenizer(_RuntimeInspectableTokenizer):
+    def __call__(self, text: str, **kwargs: Any) -> dict[str, Any]:
+        encoded = super().__call__(text, **kwargs)
+        encoded.pop("offset_mapping")
+        return encoded
+
+
+class _MismatchedOffsetTokenizer(_RuntimeInspectableTokenizer):
+    def __call__(self, text: str, **kwargs: Any) -> dict[str, Any]:
+        encoded = super().__call__(text, **kwargs)
+        encoded["offset_mapping"] = encoded["offset_mapping"][:-1]
+        return encoded
+
+
+class _BoundaryOverlapTokenizer(_RuntimeInspectableTokenizer):
+    def __call__(self, text: str, **kwargs: Any) -> dict[str, Any]:
+        target = '{"contract_version"'
+        boundary = text.find(target)
+        if boundary < 0:
+            boundary = max(1, len(text) // 2)
+        return {
+            "input_ids": [1, 2],
+            "attention_mask": [1, 1],
+            "offset_mapping": [(0, boundary + 1), (boundary + 1, len(text))],
         }
 
 
@@ -573,7 +602,7 @@ def test_runtime_label_provenance_check_downgrades_non_real_provenance_to_availa
     assert metadata["evidence_status"] == "labels_available_but_not_real_training_proof"
 
 
-def test_runtime_label_provenance_default_inspector_uses_runtime_tokenizer_and_collator(
+def test_runtime_label_provenance_default_inspector_masks_prompt_tokens_with_assistant_only_labels(
     monkeypatch: Any,
     tmp_path: Path,
 ) -> None:
@@ -607,7 +636,130 @@ def test_runtime_label_provenance_default_inspector_uses_runtime_tokenizer_and_c
     }
     assert result["label_tensor_available"] is True
     assert result["true_label_mask_status"] == "inspectable"
-    assert result["prompt_tokens_masked"] is False
+    assert result["prompt_tokens_masked"] is True
+    assert result["assistant_tokens_carry_loss"] is True
+
+
+def test_sft_objective_fails_closed_when_assistant_target_span_is_ambiguous(tmp_path: Path) -> None:
+    manifest = _write_manifest(tmp_path)
+    row = training._load_sft_training_rows(manifest, split="train")[0]  # noqa: SLF001
+    target = canonical_contract_json(row.target_contract)
+    ambiguous_row = SFTDatasetRow(
+        id=row.id,
+        split=row.split,
+        input_text=f"用户贴了候选合同 JSON: {target}",
+        target_contract=row.target_contract,
+        provenance=row.provenance,
+    )
+
+    result = training.inspect_sft_objective(
+        ambiguous_row,
+        tokenizer=_RuntimeInspectableTokenizer(),
+        collator=_AssistantOnlyRuntimeLossCollator(),
+        label_source="trl_collator_labels",
+        label_provenance={"source_kind": "private_training_runtime", "real_training_path": True},
+    )
+
+    assert result["inspection_status"] == "assistant_span_ambiguous"
+    assert result["label_tensor_available"] is False
+    assert result["prompt_tokens_masked"] is None
+    assert result["assistant_tokens_carry_loss"] is None
+    assert "assistant_span_ambiguous" in result["evidence_gaps"]
+
+
+def test_sft_assistant_only_training_record_masks_prompt_and_keeps_contract_loss(tmp_path: Path) -> None:
+    manifest = _write_manifest(tmp_path)
+    row = training._load_sft_training_rows(manifest, split="train")[0]  # noqa: SLF001
+    target = canonical_contract_json(row.target_contract)
+
+    record = training._assistant_only_training_record(row, _RuntimeInspectableTokenizer())  # noqa: SLF001
+    loss_text = "".join(
+        chr(token_id)
+        for token_id, label in zip(record["input_ids"], record["labels"], strict=True)
+        if label != -100
+    )
+    masked_text = "".join(
+        chr(token_id)
+        for token_id, label in zip(record["input_ids"], record["labels"], strict=True)
+        if label == -100
+    )
+
+    assert loss_text == target
+    assert "system:" in masked_text
+    assert "user:" in masked_text
+    assert "assistant:" in masked_text
+
+
+def test_sft_assistant_only_training_record_fails_closed_when_max_seq_length_exceeded(tmp_path: Path) -> None:
+    manifest = _write_manifest(tmp_path)
+    row = training._load_sft_training_rows(manifest, split="train")[0]  # noqa: SLF001
+
+    with pytest.raises(ValueError, match="max_seq_length_exceeded"):
+        training._assistant_only_training_record(row, _RuntimeInspectableTokenizer(), max_seq_length=5)  # noqa: SLF001
+
+
+def test_sft_assistant_only_training_record_fails_closed_without_offsets(tmp_path: Path) -> None:
+    manifest = _write_manifest(tmp_path)
+    row = training._load_sft_training_rows(manifest, split="train")[0]  # noqa: SLF001
+
+    with pytest.raises(ValueError, match="token_offsets_unavailable"):
+        training._assistant_only_training_record(row, _MissingOffsetTokenizer())  # noqa: SLF001
+
+
+def test_sft_assistant_only_training_record_fails_closed_on_offset_length_mismatch(tmp_path: Path) -> None:
+    manifest = _write_manifest(tmp_path)
+    row = training._load_sft_training_rows(manifest, split="train")[0]  # noqa: SLF001
+
+    with pytest.raises(ValueError, match="label_token_offset_length_mismatch"):
+        training._assistant_only_training_record(row, _MismatchedOffsetTokenizer())  # noqa: SLF001
+
+
+def test_sft_assistant_only_training_record_fails_closed_on_assistant_boundary_overlap(tmp_path: Path) -> None:
+    manifest = _write_manifest(tmp_path)
+    row = training._load_sft_training_rows(manifest, split="train")[0]  # noqa: SLF001
+
+    with pytest.raises(ValueError, match="assistant_span_token_boundary_unavailable"):
+        training._assistant_only_training_record(row, _BoundaryOverlapTokenizer())  # noqa: SLF001
+
+
+def test_runtime_label_provenance_default_inspector_uses_training_record_data_collator(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    rows = training._load_sft_training_rows(manifest, split="train")  # noqa: SLF001
+    local_model = (tmp_path / "runtime-model").as_posix()
+    collator_features: list[list[dict[str, Any]]] = []
+
+    class FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(base_model: str, **kwargs: Any) -> _RuntimeInspectableTokenizer:
+            return _RuntimeInspectableTokenizer()
+
+    class SpyTrainingCollator:
+        def __init__(self, tokenizer: Any, *, tensorize: bool = True) -> None:
+            assert tensorize is False
+
+        def __call__(self, features: list[dict[str, Any]]) -> dict[str, list[list[int]]]:
+            collator_features.append(features)
+            return {"labels": [list(features[0]["labels"])]}
+
+    monkeypatch.setattr(training, "_train_dependencies_available", lambda: True)
+    monkeypatch.setattr(training, "AutoTokenizer", FakeAutoTokenizer, raising=False)
+    monkeypatch.setattr(training, "_AssistantOnlyCausalLmDataCollator", SpyTrainingCollator)
+
+    result = training._inspect_runtime_sft_objective(  # noqa: SLF001
+        rows[0],
+        {"base_model": local_model},
+    )
+
+    assert collator_features
+    assert {"input_ids", "attention_mask", "labels"} <= set(collator_features[0][0])
+    assert result["inspection_status"] == "inspectable"
+    assert result["label_source"] == "actual_training_labels"
+    assert result["collator_status"] == "labels_inspected"
+    assert result["true_label_mask_status"] == "inspectable"
+    assert result["prompt_tokens_masked"] is True
     assert result["assistant_tokens_carry_loss"] is True
 
 
@@ -951,6 +1103,202 @@ def test_sft_a100_run_training_blocks_unresolved_public_template_output_root(
     assert metadata["training_status"] == "training_blocked_by_output_policy"
     assert metadata["heavy_training_gate"]["will_run_heavy_training"] is False
     assert "unresolved output_root template" in metadata["notes"]
+
+
+def _install_fake_training_modules(
+    monkeypatch: Any,
+    *,
+    sft_trainer_class: type[Any],
+    dataset_records: list[list[dict[str, list[int]]]],
+    trainer_calls: list[dict[str, Any]],
+    saved_paths: list[str],
+) -> None:
+    class FakeDataset:
+        @staticmethod
+        def from_list(records: list[dict[str, list[int]]]) -> list[dict[str, list[int]]]:
+            dataset_records.append(records)
+            return records
+
+    class FakeModel:
+        def save_pretrained(self, path: str) -> None:
+            saved_paths.append(path)
+
+    class FakeAutoModelForCausalLM:
+        @staticmethod
+        def from_pretrained(base_model: str) -> FakeModel:
+            assert base_model == "fake-qwen"
+            return FakeModel()
+
+    class FakeAutoTokenizer:
+        @staticmethod
+        def from_pretrained(base_model: str) -> _RuntimeInspectableTokenizer:
+            assert base_model == "fake-qwen"
+            return _RuntimeInspectableTokenizer()
+
+    class FakeTrainingArguments:
+        def __init__(self, **kwargs: Any) -> None:
+            self.kwargs = kwargs
+
+    class FakeTransformersTrainer:
+        def __init__(self, **kwargs: Any) -> None:
+            trainer_calls.append(kwargs)
+            self.model = kwargs["model"]
+
+        def train(self) -> None:
+            return None
+
+    fake_datasets = types.SimpleNamespace(Dataset=FakeDataset)
+    fake_transformers = types.SimpleNamespace(
+        AutoModelForCausalLM=FakeAutoModelForCausalLM,
+        AutoTokenizer=FakeAutoTokenizer,
+        Trainer=FakeTransformersTrainer,
+        TrainingArguments=FakeTrainingArguments,
+    )
+    fake_peft = types.SimpleNamespace(
+        LoraConfig=lambda **kwargs: {"lora": kwargs},
+        get_peft_model=lambda model, peft_config: model,
+    )
+    fake_trl = types.SimpleNamespace(SFTTrainer=sft_trainer_class)
+    monkeypatch.setitem(sys.modules, "datasets", fake_datasets)
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+    monkeypatch.setitem(sys.modules, "peft", fake_peft)
+    monkeypatch.setitem(sys.modules, "trl", fake_trl)
+
+
+def test_real_sft_heavy_path_keeps_new_trl_sfttrainer_with_assistant_only_labels(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    rows = training._load_sft_training_rows(manifest, split="train")  # noqa: SLF001
+    target = canonical_contract_json(rows[0].target_contract)
+    dataset_records: list[list[dict[str, list[int]]]] = []
+    sft_trainer_calls: list[dict[str, Any]] = []
+    trainer_calls: list[dict[str, Any]] = []
+    saved_paths: list[str] = []
+
+    class FakeSFTTrainer:
+        def __init__(
+            self,
+            *,
+            model: Any,
+            processing_class: Any,
+            train_dataset: list[dict[str, list[int]]],
+            args: Any,
+            peft_config: dict[str, Any],
+            data_collator: Any,
+        ) -> None:
+            sft_trainer_calls.append(
+                {
+                    "model": model,
+                    "processing_class": processing_class,
+                    "train_dataset": train_dataset,
+                    "args": args,
+                    "peft_config": peft_config,
+                    "data_collator": data_collator,
+                }
+            )
+            self.model = model
+
+        def train(self) -> None:
+            return None
+
+    _install_fake_training_modules(
+        monkeypatch,
+        sft_trainer_class=FakeSFTTrainer,
+        dataset_records=dataset_records,
+        trainer_calls=trainer_calls,
+        saved_paths=saved_paths,
+    )
+
+    training._run_real_sft(  # noqa: SLF001
+        {"adapter_path": (tmp_path / "adapter").as_posix()},
+        {
+            "base_model": "fake-qwen",
+            "dataset_split": "train",
+            "lora": {"r": 8, "alpha": 16, "dropout": 0.05, "target_modules": ["q_proj"]},
+        },
+        manifest,
+        tmp_path / "run",
+    )
+
+    assert trainer_calls == []
+    assert len(sft_trainer_calls) == 1
+    assert dataset_records
+    record = dataset_records[0][0]
+    loss_text = "".join(
+        chr(token_id)
+        for token_id, label in zip(record["input_ids"], record["labels"], strict=True)
+        if label != -100
+    )
+    assert loss_text == target
+    assert isinstance(sft_trainer_calls[0]["processing_class"], _RuntimeInspectableTokenizer)
+    assert sft_trainer_calls[0]["data_collator"].__class__.__name__ == "_AssistantOnlyCausalLmDataCollator"
+    assert "dataset_text_field" not in sft_trainer_calls[0]
+    assert "tokenizer" not in sft_trainer_calls[0]
+    assert saved_paths == [(tmp_path / "adapter").as_posix()]
+
+
+def test_real_sft_heavy_path_supports_old_trl_sfttrainer_tokenizer_signature(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    dataset_records: list[list[dict[str, list[int]]]] = []
+    sft_trainer_calls: list[dict[str, Any]] = []
+    trainer_calls: list[dict[str, Any]] = []
+    saved_paths: list[str] = []
+
+    class FakeSFTTrainer:
+        def __init__(
+            self,
+            *,
+            model: Any,
+            tokenizer: Any,
+            train_dataset: list[dict[str, list[int]]],
+            args: Any,
+            peft_config: dict[str, Any],
+            data_collator: Any,
+        ) -> None:
+            sft_trainer_calls.append(
+                {
+                    "model": model,
+                    "tokenizer": tokenizer,
+                    "train_dataset": train_dataset,
+                    "args": args,
+                    "peft_config": peft_config,
+                    "data_collator": data_collator,
+                }
+            )
+            self.model = model
+
+        def train(self) -> None:
+            return None
+
+    _install_fake_training_modules(
+        monkeypatch,
+        sft_trainer_class=FakeSFTTrainer,
+        dataset_records=dataset_records,
+        trainer_calls=trainer_calls,
+        saved_paths=saved_paths,
+    )
+
+    training._run_real_sft(  # noqa: SLF001
+        {"adapter_path": (tmp_path / "adapter").as_posix()},
+        {
+            "base_model": "fake-qwen",
+            "dataset_split": "train",
+            "lora": {"r": 8, "alpha": 16, "dropout": 0.05, "target_modules": ["q_proj"]},
+        },
+        manifest,
+        tmp_path / "run",
+    )
+
+    assert trainer_calls == []
+    assert len(sft_trainer_calls) == 1
+    assert isinstance(sft_trainer_calls[0]["tokenizer"], _RuntimeInspectableTokenizer)
+    assert "processing_class" not in sft_trainer_calls[0]
+    assert saved_paths == [(tmp_path / "adapter").as_posix()]
 
 
 def test_sft_metadata_contains_public_safe_a100_smoke_fields(monkeypatch: Any, tmp_path: Path) -> None:

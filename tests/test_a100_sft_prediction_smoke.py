@@ -796,7 +796,7 @@ def test_sft_objective_inspection_allows_gap_free_labels_only_with_explicit_real
     assert result["evidence_gaps"] == []
 
 
-def test_sft_objective_inspection_does_not_claim_loss_mask_without_labels() -> None:
+def test_sft_objective_inspection_does_not_claim_real_loss_mask_without_provenance() -> None:
     row = SFTDatasetRow(
         id="sft-train-1",
         split="train",
@@ -807,17 +807,19 @@ def test_sft_objective_inspection_does_not_claim_loss_mask_without_labels() -> N
 
     result = training.inspect_sft_objective(row, tokenizer=_OffsetOnlyTokenizer())
 
-    assert result["inspection_status"] == "labels_unavailable"
-    assert result["prompt_tokens_masked"] is None
-    assert result["assistant_tokens_carry_loss"] is None
+    assert result["inspection_status"] == "inspectable"
+    assert result["prompt_tokens_masked"] is True
+    assert result["assistant_tokens_carry_loss"] is True
     assert result["loss_interpretation"]["loss_improvement_alone_proves_contract_learning"] is False
     assert result["dependency_unavailable"] is False
     assert result["tokenizer_status"] == "available"
     assert result["tokenizer_template_status"] == "fallback"
-    assert result["collator_status"] == "not_supplied"
-    assert result["label_source"] == "unavailable"
-    assert result["label_tensor_available"] is False
-    assert "collator_not_supplied" in result["evidence_gaps"]
+    assert result["collator_status"] == "assistant_only_labels_constructed"
+    assert result["label_source"] == "assistant_only_constructed_labels"
+    assert result["label_tensor_available"] is True
+    assert result["true_label_mask_status"] == "unavailable"
+    assert "label_provenance_unspecified" in result["evidence_gaps"]
+    assert "real_training_label_provenance_missing" in result["evidence_gaps"]
 
 
 def test_sft_objective_inspection_reports_dependency_unavailable_without_train_deps(

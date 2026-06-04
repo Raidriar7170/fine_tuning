@@ -44,8 +44,9 @@ PYTHONPATH=src python -m voice2task.cli.train dpo \
   --dry-run
 ```
 
-Heavy training is opt-in. `--run-training` checks the real TRL/PEFT entrypoint, but configs must set
-`allow_heavy_training: true` before any model download or training run starts.
+Heavy training is opt-in. `--run-training` checks the real TRL/PEFT training entrypoint; SFT uses
+pretokenized assistant-only labels with the TRL SFT path, while DPO uses the TRL preference path.
+Configs must set `allow_heavy_training: true` before any model download or training run starts.
 
 ## A100 Public-Sample SFT Smoke Runbook
 
@@ -165,4 +166,9 @@ train-split overfit pass may support only train-internal recovery; it must keep
 
 The first-phase model capability is speech-to-contract normalization: emit canonical browser task contract JSON from Chinese spoken commands or ASR transcripts. It does not route arbitrary skills, choose browser actions, publish a full private corpus, promise GRPO/rule-reward training, or claim live-browser benchmark improvement.
 
-Training commands in this bootstrap phase default to dry-run metadata export. They record the intended TRL/PEFT stack, base model, dataset manifest, hyperparameters, and adapter output path without downloading models. The real SFT/DPO code path is present behind an explicit `--run-training` plus config opt-in so validation cannot accidentally start a heavy run. The DPO bootstrap path initializes from the configured base model and records `sft_model_ref` as metadata; adapter-continuation DPO can be scoped as a later change.
+Training commands in this bootstrap phase default to dry-run metadata export. They record the intended
+TRL/PEFT SFT/DPO training stack, base model, dataset manifest, hyperparameters, loss-mask policy, and adapter
+output path without downloading models. The real SFT/DPO code path is present behind an explicit
+`--run-training` plus config opt-in so validation cannot accidentally start a heavy run. The DPO
+bootstrap path initializes from the configured base model and records `sft_model_ref` as metadata;
+adapter-continuation DPO can be scoped as a later change.

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>implement-sft-assistant-only-loss-masking Human Brief</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #17202a; background: #f7f9fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 40px 24px 56px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    code { background: #edf2f7; border-radius: 4px; padding: 2px 5px; }
+    .summary { font-size: 18px; font-weight: 650; padding: 16px 18px; background: #e8f5ef; border-left: 5px solid #2f855a; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 16px; }
+    .box { background: white; border: 1px solid #d8e1ea; border-radius: 8px; padding: 14px 16px; }
+    .ok { color: #276749; font-weight: 650; }
+    .warn { color: #975a16; font-weight: 650; }
+    table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #d8e1ea; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e6edf3; text-align: left; vertical-align: top; }
+    th { background: #eef4f8; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>implement-sft-assistant-only-loss-masking</h1>
+  <p class="summary">结论：本阶段已把本地 SFT 目标从 full-text causal LM labels 修正为 assistant-only/completion-only labels；但没有运行新的私有 A100 训练或预测，因此不声称模型恢复。</p>
+
+  <div class="grid">
+    <div class="box"><strong>当前状态</strong><br><code>archived / local validation passed</code></div>
+    <div class="box"><strong>OpenSpec change</strong><br><code>implement-sft-assistant-only-loss-masking</code></div>
+    <div class="box"><strong>A100 边界</strong><br><code>not run</code></div>
+  </div>
+
+  <h2>本阶段改动</h2>
+  <ul>
+    <li>新增 assistant target span 解析：目标 JSON 必须在 rendered SFT text 中唯一出现；重复或缺失时 fail closed。</li>
+    <li>新增 assistant-only label 构造：system/user/role 前缀和其他非目标 token 标为 <code>-100</code>，只有 assistant Browser Task Contract JSON token 保留 loss。</li>
+    <li>默认 runtime objective inspector 不再使用 full-text labels；它使用同一套 assistant-only label path，并保留 real-training provenance gate。</li>
+    <li>真实 SFT heavy path 保持 TRL <code>SFTTrainer</code>，但改为 pretokenized <code>input_ids</code>/<code>attention_mask</code>/<code>labels</code>，避免 <code>SFTTrainer(dataset_text_field="text")</code> 静默训练 prompt tokens。</li>
+    <li>README 和 SFT metadata 增加 loss-mask policy，说明 SFT 仍使用 TRL/PEFT 路径，但改为 pretokenized assistant-only labels；DPO 仍使用 TRL preference path。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>src/voice2task/training.py</code></li>
+    <li><code>tests/test_a100_sft_smoke.py</code></li>
+    <li><code>tests/test_a100_sft_prediction_smoke.py</code></li>
+    <li><code>README.md</code></li>
+    <li><code>openspec/changes/implement-sft-assistant-only-loss-masking/</code></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <table>
+    <thead><tr><th>命令</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td><code>PYTHONPATH=src pytest -q tests/test_a100_sft_smoke.py -k "assistant_only_labels or ambiguous"</code></td><td class="ok">red: 2 failed for expected full-text/ambiguous-span reasons; green: 2 passed</td></tr>
+      <tr><td><code>PYTHONPATH=src pytest -q tests/test_a100_sft_smoke.py -k "assistant_only_training_record"</code></td><td class="ok">red: missing helper; green: 1 passed</td></tr>
+      <tr><td><code>PYTHONPATH=src pytest -q tests/test_a100_sft_smoke.py -k "real_sft_heavy_path_keeps_trl"</code></td><td class="ok">red: called Transformers Trainer; green: TRL SFTTrainer with assistant-only labels</td></tr>
+      <tr><td><code>PYTHONPATH=src pytest -q tests/test_a100_sft_smoke.py -k "real_sft_heavy_path or training_record_fails_closed or default_inspector_uses_training_record_data_collator"</code></td><td class="ok">7 passed</td></tr>
+      <tr><td><code>PYTHONPATH=src pytest -q</code></td><td class="ok">119 passed</td></tr>
+      <tr><td><code>uv run ruff check .</code></td><td class="ok">passed</td></tr>
+      <tr><td><code>uv run mypy src</code></td><td class="ok">16 source files clean</td></tr>
+      <tr><td><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code></td><td class="ok">ok; 12 SFT rows, 26 DPO pairs</td></tr>
+      <tr><td><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code></td><td class="ok">26 pairs checked</td></tr>
+      <tr><td><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code></td><td class="ok">5 passed, 0 failed</td></tr>
+      <tr><td><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan --paths README.md CONTEXT.md data/public-samples reports/public-sample reports/templates docs/human-briefs openspec</code></td><td class="ok">ok; 0 findings</td></tr>
+      <tr><td><code>git diff --check</code></td><td class="ok">passed after final task/brief edits</td></tr>
+    </tbody>
+  </table>
+
+  <h2>证据边界</h2>
+  <ul>
+    <li>本轮没有运行私有 A100、没有下载模型、没有重新训练 adapter、没有生成新的 private prediction。</li>
+    <li>历史 runtime label provenance artifact 仍应被视为旧证据；本轮只证明本地代码路径和测试中的 objective mask 修复。</li>
+    <li>不要把本轮解释成 held-out generalization、checkpoint release、adapter release、production readiness 或 live-browser benchmark improvement。</li>
+  </ul>
+
+  <h2>建议下一步</h2>
+  <p>先由 Reviewer 审查 diff；若通过，再单独决定是否开启一个明确授权的私有 A100 rerun phase，把新的 objective path 放到真实 runtime 上验证。</p>
+</main>
+</body>
+</html>

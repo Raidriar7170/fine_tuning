@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import inspect
 import json
 import re
 import sys
@@ -404,6 +405,24 @@ def _command_summary(
     }
 
 
+def _loss_mask_policy(stage: str) -> dict[str, Any]:
+    if stage == "sft":
+        return {
+            "policy": "assistant_only_completion_only",
+            "prompt_label_id": -100,
+            "assistant_target": "browser_task_contract_json",
+            "trainer_integration": "trl_sfttrainer_pretokenized_input_ids_attention_mask_labels",
+            "full_text_causal_lm_labels": False,
+        }
+    return {"policy": "dpo_pairwise_preference_loss"}
+
+
+def _training_stack(stage: str) -> str:
+    if stage == "sft":
+        return "transformers+peft+trl+pretokenized_assistant_only_labels"
+    return "transformers+peft+trl"
+
+
 def _metadata_common(
     *,
     stage: str,
@@ -420,7 +439,7 @@ def _metadata_common(
     heavy_training_gate = _heavy_training_gate(config, dry_run)
     return {
         "stage": stage,
-        "stack": "transformers+peft+trl",
+        "stack": _training_stack(stage),
         "base_model": config.get("base_model"),
         "adapter_path": adapter_path.as_posix(),
         "dataset_manifest_id": load_summary["manifest_id"],
@@ -432,6 +451,7 @@ def _metadata_common(
         "adapter_release_status": "not_released",
         "training_status": "dry_run" if dry_run else "pending_heavy_training",
         "formatting_policy": dict(FORMATTING_POLICY),
+        "loss_mask_policy": _loss_mask_policy(stage),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "package_versions": _sanitized_package_versions(),
         "gpu_selection_policy": _gpu_selection_policy(config),
@@ -1239,26 +1259,161 @@ def _collator_labels(
     collator: Any | None,
     encoded: Any,
     assistant_start: int,
+    assistant_end: int,
+    offsets: list[tuple[int, int]],
     row_id: str,
-) -> tuple[list[Any], str, str]:
+) -> tuple[list[Any], str, str, list[str]]:
     if collator is None:
-        labels = _token_list(_mapping_value(encoded, "labels"))
-        if labels:
-            return labels, "tokenizer_encoding_labels", "labels_from_tokenizer_encoding"
-        return [], "unavailable", "not_supplied"
+        labels, evidence_gaps = _assistant_only_labels_from_encoded(
+            encoded=encoded,
+            offsets=offsets,
+            assistant_start=assistant_start,
+            assistant_end=assistant_end,
+        )
+        if labels and not evidence_gaps:
+            return labels, "assistant_only_constructed_labels", "assistant_only_labels_constructed", []
+        return [], "unavailable", "assistant_only_labels_unavailable", evidence_gaps
     if not callable(collator):
-        return [], "unavailable", "not_callable"
+        return [], "unavailable", "not_callable", ["collator_not_callable"]
     feature = dict(encoded) if isinstance(encoded, dict) else {"input_ids": _mapping_value(encoded, "input_ids")}
     feature["label_provenance_row_id"] = row_id
     feature["label_provenance_assistant_start"] = assistant_start
+    feature["label_provenance_assistant_end"] = assistant_end
     try:
         batch = collator([feature])
     except Exception:
-        return [], "unavailable", "error"
+        return [], "unavailable", "error", ["collator_label_extraction_failed"]
     labels = _token_list(_mapping_value(batch, "labels"))
     if labels:
-        return labels, "trl_collator_labels", "labels_inspected"
-    return [], "unavailable", "labels_missing"
+        return labels, "trl_collator_labels", "labels_inspected", []
+    return [], "unavailable", "labels_missing", ["label_tensor_unavailable"]
+
+
+def _assistant_target_span(training_text: str, assistant_text: str) -> tuple[str, int | None, int | None]:
+    if not assistant_text:
+        return "assistant_span_unavailable", None, None
+    starts: list[int] = []
+    next_start = training_text.find(assistant_text)
+    while next_start >= 0:
+        starts.append(next_start)
+        next_start = training_text.find(assistant_text, next_start + len(assistant_text))
+    if not starts:
+        return "assistant_span_unavailable", None, None
+    if len(starts) > 1:
+        return "assistant_span_ambiguous", None, None
+    start = starts[0]
+    return "available", start, start + len(assistant_text)
+
+
+def _assistant_only_labels_from_encoded(
+    *,
+    encoded: Any,
+    offsets: list[tuple[int, int]],
+    assistant_start: int,
+    assistant_end: int,
+) -> tuple[list[Any], list[str]]:
+    input_ids = _token_list(_mapping_value(encoded, "input_ids"))
+    if not input_ids:
+        return [], ["input_ids_unavailable"]
+    if not offsets or len(input_ids) != len(offsets):
+        gaps = ["token_offsets_unavailable"] if not offsets else ["label_token_offset_length_mismatch"]
+        return [], gaps
+
+    assistant_indices: set[int] = set()
+    boundary_overlap = False
+    for index, (start, end) in enumerate(offsets):
+        if start == end:
+            continue
+        if (start < assistant_start < end) or (start < assistant_end < end):
+            boundary_overlap = True
+            continue
+        if start >= assistant_start and end <= assistant_end:
+            assistant_indices.add(index)
+
+    if boundary_overlap:
+        return [], ["assistant_span_token_boundary_unavailable"]
+    if not assistant_indices:
+        return [], ["assistant_target_tokens_unavailable"]
+
+    return [
+        token_id if index in assistant_indices else -100
+        for index, token_id in enumerate(input_ids)
+    ], []
+
+
+def _assistant_only_training_record(
+    row: SFTDatasetRow,
+    tokenizer: Any,
+    *,
+    max_seq_length: int | None = None,
+) -> dict[str, list[Any]]:
+    training_text = format_sft_training_text(row, tokenizer=tokenizer)
+    assistant_text = canonical_contract_json(row.target_contract)
+    span_status, assistant_start, assistant_end = _assistant_target_span(training_text, assistant_text)
+    if span_status != "available" or assistant_start is None or assistant_end is None:
+        raise ValueError(f"assistant-only SFT labels unavailable: {span_status}")
+
+    encoded = tokenizer(training_text, return_offsets_mapping=True, add_special_tokens=False)
+    input_ids = _token_list(_mapping_value(encoded, "input_ids"))
+    offsets = _flatten_offsets(_mapping_value(encoded, "offset_mapping"))
+    labels, evidence_gaps = _assistant_only_labels_from_encoded(
+        encoded=encoded,
+        offsets=offsets,
+        assistant_start=assistant_start,
+        assistant_end=assistant_end,
+    )
+    if not labels or evidence_gaps:
+        gaps = ",".join(evidence_gaps) if evidence_gaps else "label_tensor_unavailable"
+        raise ValueError(f"assistant-only SFT labels unavailable: {gaps}")
+    if max_seq_length is not None and len(input_ids) > max_seq_length:
+        raise ValueError("assistant-only SFT labels unavailable: max_seq_length_exceeded")
+
+    attention_mask = _token_list(_mapping_value(encoded, "attention_mask"))
+    if len(attention_mask) != len(input_ids):
+        attention_mask = [1 for _ in input_ids]
+    return {
+        "input_ids": input_ids,
+        "attention_mask": attention_mask,
+        "labels": labels,
+    }
+
+
+class _AssistantOnlyCausalLmDataCollator:
+    def __init__(self, tokenizer: Any, *, tensorize: bool = True) -> None:
+        self._tokenizer = tokenizer
+        self._tensorize = tensorize
+
+    def __call__(self, features: list[dict[str, Any]]) -> dict[str, Any]:
+        pad_token_id = getattr(self._tokenizer, "pad_token_id", None)
+        if pad_token_id is None:
+            pad_token_id = getattr(self._tokenizer, "eos_token_id", 0)
+        max_length = max(len(_token_list(feature.get("input_ids"))) for feature in features)
+        batch: dict[str, list[list[Any]]] = {"input_ids": [], "attention_mask": [], "labels": []}
+        for feature in features:
+            input_ids = _token_list(feature.get("input_ids"))
+            attention_mask = _token_list(feature.get("attention_mask"))
+            labels = _token_list(feature.get("labels"))
+            pad_length = max_length - len(input_ids)
+            batch["input_ids"].append(input_ids + [pad_token_id for _ in range(pad_length)])
+            batch["attention_mask"].append(attention_mask + [0 for _ in range(pad_length)])
+            batch["labels"].append(labels + [-100 for _ in range(pad_length)])
+        if not self._tensorize:
+            return batch
+        import torch
+
+        return {key: torch.tensor(value, dtype=torch.long) for key, value in batch.items()}
+
+
+def _sft_trainer_tokenizer_kwargs(trainer_class: Any, tokenizer: Any) -> dict[str, Any]:
+    try:
+        parameters = inspect.signature(trainer_class.__init__).parameters
+    except (TypeError, ValueError):
+        return {"processing_class": tokenizer}
+    if "processing_class" in parameters:
+        return {"processing_class": tokenizer}
+    if "tokenizer" in parameters:
+        return {"tokenizer": tokenizer}
+    return {}
 
 
 def inspect_sft_objective(
@@ -1286,38 +1441,32 @@ def inspect_sft_objective(
     template_status = _tokenizer_template_status(tokenizer)
     training_text = format_sft_training_text(row, tokenizer=tokenizer)
     assistant_text = canonical_contract_json(row.target_contract)
-    assistant_start = training_text.find(assistant_text)
-    if assistant_start < 0:
-        assistant_start = training_text.find("{")
-    if assistant_start < 0:
+    span_status, assistant_start, assistant_end = _assistant_target_span(training_text, assistant_text)
+    if span_status != "available" or assistant_start is None or assistant_end is None:
         return _objective_unavailable(
             "assistant target span was not found in rendered training text",
-            inspection_status="assistant_span_unavailable",
+            inspection_status=span_status,
             dependency_unavailable=False,
             tokenizer_status="available",
             tokenizer_template_status=template_status,
             collator_status="unavailable" if collator is None else "not_inspected",
-            evidence_gaps=["assistant_span_unavailable"],
+            evidence_gaps=[span_status],
         )
 
     encoded = tokenizer(training_text, return_offsets_mapping=True, add_special_tokens=False)
     offsets = _flatten_offsets(_mapping_value(encoded, "offset_mapping"))
-    labels, inferred_label_source, collator_status = _collator_labels(
+    labels, inferred_label_source, collator_status, label_evidence_gaps = _collator_labels(
         collator=collator,
         encoded=encoded,
         assistant_start=assistant_start,
+        assistant_end=assistant_end,
+        offsets=offsets,
         row_id=row.id,
     )
     if not labels or not offsets or len(labels) != len(offsets):
-        gaps = ["label_tensor_unavailable"]
+        gaps = ["label_tensor_unavailable", *label_evidence_gaps]
         if not offsets:
             gaps.append("token_offsets_unavailable")
-        if collator_status == "not_supplied":
-            gaps.append("collator_not_supplied")
-        elif collator_status == "error":
-            gaps.append("collator_label_extraction_failed")
-        elif collator_status == "not_callable":
-            gaps.append("collator_not_callable")
         return _objective_unavailable(
             "labels or token offsets were not available from the inspected local path",
             inspection_status="labels_unavailable",
@@ -1329,7 +1478,11 @@ def inspect_sft_objective(
         )
 
     prompt_indices = [index for index, (_, end) in enumerate(offsets) if end <= assistant_start]
-    assistant_indices = [index for index, (start, _) in enumerate(offsets) if start >= assistant_start]
+    assistant_indices = [
+        index
+        for index, (start, end) in enumerate(offsets)
+        if start >= assistant_start and end <= assistant_end and start != end
+    ]
     prompt_tokens_masked = bool(prompt_indices) and all(labels[index] == -100 for index in prompt_indices)
     assistant_tokens_carry_loss = bool(assistant_indices) and any(labels[index] != -100 for index in assistant_indices)
     resolved_label_source = label_source or inferred_label_source
@@ -1403,13 +1556,6 @@ def _runtime_label_provenance_artifact_policy() -> dict[str, bool]:
     }
 
 
-class _RuntimeFullTextCausalLmCollator:
-    def __call__(self, features: list[dict[str, Any]]) -> dict[str, list[list[Any]]]:
-        feature = features[0]
-        input_ids = _token_list(feature.get("input_ids"))
-        return {"labels": [list(input_ids)]}
-
-
 def _inspect_runtime_sft_objective(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
     if not _train_dependencies_available():
         return _objective_unavailable("train dependencies or tokenizer are not available in this runtime")
@@ -1459,10 +1605,17 @@ def _inspect_runtime_sft_objective(row: SFTDatasetRow, config: dict[str, Any]) -
             evidence_gaps=["runtime_tokenizer_load_failed"],
         )
     try:
+        max_seq_length = int(config.get("max_seq_length", 1024))
+        training_record = _assistant_only_training_record(row, tokenizer, max_seq_length=max_seq_length)
+        training_collator = _AssistantOnlyCausalLmDataCollator(tokenizer, tensorize=False)
+
+        def runtime_training_collator(features: list[dict[str, Any]]) -> dict[str, Any]:
+            return training_collator([training_record])
+
         return inspect_sft_objective(
             row,
             tokenizer=tokenizer,
-            collator=_RuntimeFullTextCausalLmCollator(),
+            collator=runtime_training_collator,
             label_source="actual_training_labels",
             label_provenance={"source_kind": "private_training_runtime", "real_training_path": True},
         )
@@ -1704,17 +1857,17 @@ def _run_real_sft(metadata: dict[str, Any], config: dict[str, Any], manifest_pat
 
     rows = _load_sft_training_rows(manifest_path, split=str(config.get("dataset_split", "train")))
     tokenizer = AutoTokenizer.from_pretrained(config["base_model"])
-    texts = [format_sft_training_text(row, tokenizer=tokenizer) for row in rows]
-    dataset = Dataset.from_list([{"text": text} for text in texts])
+    max_seq_length = int(config.get("max_seq_length", 1024))
+    records = [_assistant_only_training_record(row, tokenizer, max_seq_length=max_seq_length) for row in rows]
+    dataset = Dataset.from_list(records)
     model = AutoModelForCausalLM.from_pretrained(config["base_model"])
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
         train_dataset=dataset,
         args=_training_arguments(config, output_dir),
         peft_config=_lora_config(config),
-        dataset_text_field="text",
-        max_seq_length=int(config.get("max_seq_length", 1024)),
+        data_collator=_AssistantOnlyCausalLmDataCollator(tokenizer),
+        **_sft_trainer_tokenizer_kwargs(SFTTrainer, tokenizer),
     )
     trainer.train()
     trainer.model.save_pretrained(metadata["adapter_path"])

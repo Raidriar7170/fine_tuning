@@ -140,14 +140,14 @@ The system SHALL provide a public-safe preparation path for train-split overfit 
 - **THEN** the prediction artifact and sidecars MUST preserve sanitized failure evidence without replacing it with fixture, rule-baseline, or gold contracts
 
 ### Requirement: Inspect SFT objective masking before overfit claims
-The system SHALL expose an objective-inspection result for the SFT data path before train-split overfit results are interpreted as evidence that assistant contract targets were learned, and SHALL fail closed when real label evidence is unavailable.
+The system SHALL expose an objective-inspection result for the SFT data path before train-split overfit results are interpreted as evidence that assistant contract targets were learned, and SHALL fail closed when real label evidence is unavailable or prompt/system/user labels are not masked.
 
 #### Scenario: Report objective mask status
 - **WHEN** objective inspection runs on a public-sample SFT row
 - **THEN** the output MUST report prompt/system/user mask status and assistant contract loss status only when labels from the actual inspected training path are available, otherwise it MUST set those fields to null and report `dependency_unavailable`, `tokenizer_unavailable`, or `labels_unavailable`
 
 #### Scenario: Bound objective interpretation
-- **WHEN** objective inspection cannot prove assistant-only or completion-only loss
+- **WHEN** objective inspection cannot prove assistant-only or completion-only loss, or reports that prompt/system/user tokens are not masked
 - **THEN** the overfit diagnostic MUST report that loss improvement alone is not proof of Browser Task Contract learning
 
 ### Requirement: Run A100 train-split overfit diagnostic
@@ -264,4 +264,4 @@ The system SHALL support a bounded, explicitly authorized A100 runtime label pro
 
 #### Scenario: Bound objective interpretation
 - **WHEN** real runtime label provenance evidence is available
-- **THEN** the system MUST state that label-mask evidence only supports SFT objective-path interpretation and MUST NOT claim checkpoint release, adapter release, held-out generalization, production readiness, public full-corpus release, or live-browser benchmark improvement
+- **THEN** the system MUST state whether prompt/system/user tokens were masked and assistant contract tokens carried loss, and MUST NOT claim checkpoint release, adapter release, held-out generalization, production readiness, public full-corpus release, or live-browser benchmark improvement
