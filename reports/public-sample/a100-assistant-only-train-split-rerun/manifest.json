@@ -1,0 +1,86 @@
+{
+  "adapter_metadata_path": "reports/public-sample/a100-assistant-only-train-split-rerun/adapter_metadata.json",
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false
+  },
+  "assistant_only_objective": {
+    "assistant_tokens_carry_loss": true,
+    "label_source_kind": "private_training_runtime",
+    "prompt_tokens_masked": true,
+    "true_label_mask_status": "inspectable"
+  },
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "generalization_claim": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_quality_evidence": false,
+    "production_readiness_claim": false,
+    "release_claim": false
+  },
+  "controlled_smoke_status": {
+    "enabled": false,
+    "failed": 0,
+    "notes": "not_run_for_train_split_diagnostic",
+    "passed": 0
+  },
+  "dataset_manifest_id": "public-sample-20260601T162313Z",
+  "diagnostic_artifacts": {
+    "leak_scan": "reports/public-sample/a100-assistant-only-train-split-rerun/leak_scan_result.json",
+    "objective_inspection": "reports/public-sample/a100-assistant-only-train-split-rerun/objective_inspection.json"
+  },
+  "evidence_kind": "a100_assistant_only_train_split_rerun",
+  "evidence_status": "private_adapter_predictions_written",
+  "generalization_claim": false,
+  "generated_at": "2026-06-04T07:00:51.152718+00:00",
+  "leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-04T07:00:51.491425+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/a100-assistant-only-train-split-rerun"
+    ]
+  },
+  "loss_mask_policy": {
+    "assistant_target": "browser_task_contract_json",
+    "full_text_causal_lm_labels": false,
+    "policy": "assistant_only_completion_only",
+    "prompt_label_id": -100,
+    "trainer_integration": "trl_sfttrainer_pretokenized_input_ids_attention_mask_labels"
+  },
+  "metrics_path": "reports/public-sample/a100-assistant-only-train-split-rerun/metrics.json",
+  "model_source": "modelscope_local_snapshot",
+  "overfit_diagnostic": true,
+  "prediction_artifact_path": "reports/public-sample/a100-assistant-only-train-split-rerun/predictions.jsonl",
+  "prediction_count": 3,
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_split": "train",
+  "prior_diagnostic_context": {
+    "comparison_boundary": "before_after_context_only_not_generalization_or_release_evidence",
+    "pre_assistant_only_objective_repair": "reports/public-sample/a100-train-split-overfit-diagnostic",
+    "prior_generalization_claim": false,
+    "prior_prediction_split": "train"
+  },
+  "release_status": "not_released",
+  "source_manifest_rows": {
+    "sft_rows": 12
+  },
+  "training_row_ids": [
+    "seed-search-weather",
+    "seed-search-weather-aug-1",
+    "seed-search-weather-aug-2"
+  ],
+  "training_rows_used": 3,
+  "training_split": "train",
+  "sidecars": {
+    "generation_trace": "reports/public-sample/a100-assistant-only-train-split-rerun/generation_trace.jsonl",
+    "prompt_snapshot": "reports/public-sample/a100-assistant-only-train-split-rerun/prompt_snapshot.json",
+    "raw_decoded_summary": "reports/public-sample/a100-assistant-only-train-split-rerun/raw_decoded_summary.jsonl"
+  }
+}

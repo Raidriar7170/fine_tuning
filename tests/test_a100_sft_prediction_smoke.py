@@ -1111,6 +1111,57 @@ def test_train_split_overfit_metrics_are_standalone_bounded() -> None:
     assert "3 条 train prediction" in human_brief
 
 
+def test_assistant_only_train_split_rerun_evidence_is_bounded_and_public_safe() -> None:
+    evidence_dir = Path("reports/public-sample/a100-assistant-only-train-split-rerun")
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    adapter_metadata = json.loads((evidence_dir / "adapter_metadata.json").read_text(encoding="utf-8"))
+    full_leak_scan = json.loads((evidence_dir / "full_public_leak_scan_result.json").read_text(encoding="utf-8"))
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    objective = json.loads((evidence_dir / "objective_inspection.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8")
+    prediction_count = sum(
+        1 for line in (evidence_dir / "predictions.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()
+    )
+
+    assert manifest["evidence_kind"] == "a100_assistant_only_train_split_rerun"
+    assert manifest["prediction_split"] == "train"
+    assert manifest["overfit_diagnostic"] is True
+    assert manifest["generalization_claim"] is False
+    assert manifest["prediction_count"] == prediction_count == 3
+    assert manifest["training_row_ids"] == [
+        "seed-search-weather",
+        "seed-search-weather-aug-1",
+        "seed-search-weather-aug-2",
+    ]
+    assert manifest["source_manifest_rows"]["sft_rows"] == 12
+    assert manifest["training_split"] == "train"
+    assert manifest["training_rows_used"] == 3
+    assert (
+        adapter_metadata["dataset_load"]["loaded_rows_scope"]
+        == "public_sample_manifest_sft_rows_before_train_split_filter"
+    )
+    assert adapter_metadata["dataset_load"]["training_row_ids"] == manifest["training_row_ids"]
+    assert adapter_metadata["dataset_load"]["training_split"] == "train"
+    assert adapter_metadata["dataset_load"]["training_rows_used"] == 3
+    assert adapter_metadata["training_row_ids"] == manifest["training_row_ids"]
+    assert adapter_metadata["training_split"] == "train"
+    assert adapter_metadata["training_rows_used"] == 3
+    assert "private A100 runtime" in adapter_metadata["notes"]
+    assert manifest["claims"]["held_out_generalization_claim"] is False
+    assert manifest["claims"]["model_quality_evidence"] is False
+    assert objective["prompt_tokens_masked"] is True
+    assert objective["assistant_tokens_carry_loss"] is True
+    assert metrics["evidence_context"]["assistant_only_objective_inspected"] is True
+    assert metrics["evidence_context"]["train_internal_recovery_observed"] is False
+    assert metrics["failure_slices"]["schema"]["count"] == 3
+    assert full_leak_scan["ok"] is True
+    assert full_leak_scan["findings"] == []
+    assert "pre-assistant-only-objective-repair context" in report
+    assert "schema-valid Browser Task Contract `json_valid_rate=0.0000`" in report
+    assert "not held-out generalization" in report
+    assert scan_paths([evidence_dir]).ok is True
+
+
 def test_contract_output_recovery_template_is_public_safe_and_bounded() -> None:
     template = Path("reports/templates/a100-sft-contract-output-recovery.md")
 

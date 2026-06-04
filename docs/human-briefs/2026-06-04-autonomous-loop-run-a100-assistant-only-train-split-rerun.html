@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous loop A100 assistant-only rerun</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #0f766e;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Phase Loop: A100 assistant-only rerun</h1>
+  <p class="summary">
+    结论：本轮 opsx-auto 已完成 A100 assistant-only train-split rerun、公开安全证据包、Reviewer 审查和 OpenSpec archive；结果证明训练目标 mask 路径成立，但没有证明 schema 恢复或泛化提升。
+  </p>
+
+  <h2>Loop 状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">OpenSpec change</span><span class="value">archived</span></div>
+    <div class="tile"><span class="label">A100 execution</span><span class="value">completed</span></div>
+    <div class="tile"><span class="label">Contract schema-valid rate</span><span class="value">0.0000</span></div>
+    <div class="tile"><span class="label">Leak scan</span><span class="value">0 findings</span></div>
+  </div>
+
+  <h2>完成内容</h2>
+  <ul>
+    <li>使用用户授权的 A100 运行当前 assistant-only SFT 训练路径，并把私有 adapter、缓存、原始日志和远端细节留在 repo 外。</li>
+    <li>记录 runtime/objective label provenance：<code>prompt_tokens_masked=true</code>，<code>assistant_tokens_carry_loss=true</code>。</li>
+    <li>只对 train split 生成 3 条 private-adapter prediction，公开证据中显式标注 <code>overfit_diagnostic=true</code> 和 <code>generalization_claim=false</code>。</li>
+    <li>新增 evidence regression test，锁定 12 条 public SFT source rows 与 3 条 train rows 的边界，避免指标被误读。</li>
+    <li>Reviewer 结论为 Must Fix none；Should Fix 已处理，包括 <code>json_valid_rate</code> 语义和 private A100 runtime 表述。</li>
+    <li>OpenSpec change 已归档，并把 accepted delta spec 同步进主 spec。</li>
+  </ul>
+
+  <h2>关键链接</h2>
+  <ul>
+    <li><a href="../../openspec/changes/archive/2026-06-04-run-a100-assistant-only-train-split-rerun/proposal.md">OpenSpec archive proposal</a></li>
+    <li><a href="./2026-06-04-run-a100-assistant-only-train-split-rerun.html">阶段 Human Brief</a></li>
+    <li><a href="../../reports/public-sample/a100-assistant-only-train-split-rerun/manifest.json">manifest.json</a></li>
+    <li><a href="../../reports/public-sample/a100-assistant-only-train-split-rerun/report.md">report.md</a></li>
+    <li><a href="../../reports/public-sample/a100-assistant-only-train-split-rerun/full_public_leak_scan_result.json">full_public_leak_scan_result.json</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>: 120 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check</code>: ok, 26 pairs。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok, 0 findings。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: post-archive 4 passed。</li>
+    <li><code>git diff --check</code>: passed。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>不是 checkpoint release、adapter release、production readiness 或 live-browser benchmark improvement。</li>
+    <li>不是 dev/test held-out generalization evidence。</li>
+    <li>不是 schema recovery evidence：3 条 train prediction 仍全部未通过 Browser Task Contract schema。</li>
+    <li>当前结论只说明 assistant-only objective 在真实训练路径上可检查且成立，下一步仍要诊断输出格式失败。</li>
+  </ul>
+
+  <h2>推荐下一阶段</h2>
+  <p>
+    建议开启一个很小的 bounded decoding/schema-output diagnosis：比较 prompt snapshot、generation trace、raw decoded summary、gold contract 和 schema validator failure，先定位模型为何仍输出缺字段或错字段，再决定是否需要改 decoding、prompt contract、训练目标或样本配方。
+  </p>
+</main>
+</body>
+</html>
