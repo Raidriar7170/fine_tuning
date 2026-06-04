@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A100 required-field repair train-split rerun brief</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #dc2626;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>A100 required-field repair train-split rerun</h1>
+  <p class="summary">
+    结论：本轮真实 A100 rerun 已完成并回填 public-safe evidence；required-field prompt/schema guard 可观测性修好了，但当前 adapter 在 3 条 train prediction 上仍是 0/3 schema-valid，不能说模型已恢复 Browser Task Contract 输出。
+  </p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">阶段</span><span class="value">needs review</span></div>
+    <div class="tile"><span class="label">预测数量</span><span class="value">3 train rows</span></div>
+    <div class="tile"><span class="label">Contract schema-valid rate</span><span class="value">0.0000</span></div>
+    <div class="tile"><span class="label">Validated outputs</span><span class="value">0 / 3</span></div>
+  </div>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>在用户授权后使用 A100 rerun，同一 train split、10 epoch、assistant-only label objective，私有 adapter、日志、配置和缓存均留在远端批准目录。</li>
+    <li>修复并测试了 prediction sidecar：现在 <code>raw_decoded_summary.jsonl</code> 同时保存 <code>raw_attempt</code> 与 <code>retry_attempt</code> 的 decoded 摘要。</li>
+    <li>重新运行 private-adapter prediction，保持 <code>prediction_split=train</code>、<code>overfit_diagnostic=true</code>、<code>generalization_claim=false</code>。</li>
+    <li>生成 public-safe metrics、schema guard summary、manifest、report 和 leak-scan artifacts。</li>
+  </ul>
+
+  <h2>模型目前能达到什么效果</h2>
+  <ul>
+    <li>训练路径跑通：<code>prompt_tokens_masked=true</code>，<code>assistant_tokens_carry_loss=true</code>，说明 assistant-only 目标路径可检查且成立。</li>
+    <li>输出效果仍不达标：3 条 train prediction 的 raw attempt 都不是 schema-valid contract。</li>
+    <li>retry 机制被触发 3 次，但 retry attempt 仍 0/3 schema-valid；最终 <code>validated_output_source</code> 全部为 <code>none</code>。</li>
+    <li>本轮不能作为模型质量恢复、泛化、生产可用、发布或 live-browser benchmark 改进证据。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/manifest.json">manifest.json</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/report.md">report.md</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/metrics.json">metrics.json</a> / <a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/metrics.md">metrics.md</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/schema_guard_summary.json">schema_guard_summary.json</a> / <a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/schema_guard_summary.md">schema_guard_summary.md</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/raw_decoded_summary.jsonl">raw_decoded_summary.jsonl</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/objective_inspection.json">objective_inspection.json</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/full_public_leak_scan_result.json">full_public_leak_scan_result.json</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>: 125 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check</code>: ok, 26 pairs。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok, 0 findings。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: 5 passed, 0 failed。</li>
+    <li><code>git diff --check</code>: passed。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 checkpoint release 或 adapter release。</li>
+    <li>这不是 dev/test held-out generalization 证据。</li>
+    <li>这不是 production readiness 或 live-browser benchmark improvement。</li>
+    <li>required-field skeleton 可见和 retry 可观测，不等于模型已经会输出 schema-valid Browser Task Contract。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    下一阶段建议先开一个很小的 decoding/schema-output diagnosis 或 constrained-output 修复阶段，不再急着继续 A100 训练。优先比较 prompt、raw attempt、retry attempt 和目标 JSON，判断应该先加 canonical JSON one-shot、约束解码、还是更改训练样本输出形状。
+  </p>
+</main>
+</body>
+</html>

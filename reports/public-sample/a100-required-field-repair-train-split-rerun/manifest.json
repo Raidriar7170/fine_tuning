@@ -1,0 +1,100 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_configs_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false
+  },
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_quality_evidence": false,
+    "production_readiness_claim": false,
+    "release_claim": false
+  },
+  "dataset_manifest_id": "public-sample-20260601T162313Z",
+  "decoding_policy": {
+    "do_sample": false,
+    "generation_trace_sidecar_written": true,
+    "max_new_tokens": 256,
+    "raw_decoded_sidecar_written": true,
+    "schema_guard_enabled": true,
+    "schema_repair_applied": false,
+    "schema_retry_enabled": true,
+    "schema_retry_max_attempts": 1,
+    "strategy": "greedy"
+  },
+  "diagnostic_artifacts": {
+    "adapter_metadata": "reports/public-sample/a100-required-field-repair-train-split-rerun/adapter_metadata.json",
+    "full_public_leak_scan": "reports/public-sample/a100-required-field-repair-train-split-rerun/full_public_leak_scan_result.json",
+    "leak_scan": "reports/public-sample/a100-required-field-repair-train-split-rerun/leak_scan_result.json",
+    "objective_inspection": "reports/public-sample/a100-required-field-repair-train-split-rerun/objective_inspection.json",
+    "prediction_metadata": "reports/public-sample/a100-required-field-repair-train-split-rerun/prediction_metadata.json"
+  },
+  "evidence_kind": "a100_required_field_repair_train_split_rerun",
+  "evidence_status": "private_adapter_predictions_written",
+  "generalization_claim": false,
+  "generated_at": "2026-06-04T09:41:35.166665+00:00",
+  "leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-04T09:40:39.109549+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/a100-required-field-repair-train-split-rerun"
+    ]
+  },
+  "loss_mask_policy": {
+    "assistant_target": "browser_task_contract_json",
+    "full_text_causal_lm_labels": false,
+    "policy": "assistant_only_completion_only",
+    "prompt_label_id": -100,
+    "trainer_integration": "trl_sfttrainer_pretokenized_input_ids_attention_mask_labels"
+  },
+  "metrics_path": "reports/public-sample/a100-required-field-repair-train-split-rerun/metrics.json",
+  "model_source": "modelscope_local_snapshot",
+  "observed_result": {
+    "json_valid_rate": 0.0,
+    "raw_attempt_schema_valid_count": 0,
+    "retry_attempt_schema_valid_count": 0,
+    "schema_failures": 3,
+    "train_internal_recovery_observed": false,
+    "validated_output_schema_valid_count": 0
+  },
+  "overfit_diagnostic": true,
+  "prediction_artifact_path": "reports/public-sample/a100-required-field-repair-train-split-rerun/predictions.jsonl",
+  "prediction_count": 3,
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_split": "train",
+  "release_status": "not_released",
+  "schema_guard_policy": {
+    "generation_trace_sidecar_written": true,
+    "raw_decoded_sidecar_written": true,
+    "schema_guard_enabled": true,
+    "schema_repair_applied": false,
+    "schema_retry_enabled": true,
+    "schema_retry_max_attempts": 1
+  },
+  "schema_guard_summary_path": "reports/public-sample/a100-required-field-repair-train-split-rerun/schema_guard_summary.json",
+  "sidecars": {
+    "generation_trace": "reports/public-sample/a100-required-field-repair-train-split-rerun/generation_trace.jsonl",
+    "prompt_snapshot": "reports/public-sample/a100-required-field-repair-train-split-rerun/prompt_snapshot.json",
+    "raw_decoded_summary": "reports/public-sample/a100-required-field-repair-train-split-rerun/raw_decoded_summary.jsonl"
+  },
+  "source_manifest_rows": {
+    "dpo_pairs": 26,
+    "seed_rows": 4,
+    "sft_rows": 12
+  },
+  "training_row_ids": [
+    "seed-search-weather",
+    "seed-search-weather-aug-1",
+    "seed-search-weather-aug-2"
+  ],
+  "training_rows_used": 3,
+  "training_split": "train"
+}

@@ -795,21 +795,31 @@ def _decoded_parse_status(decoded: str) -> str:
     return "non_json"
 
 
-def _raw_decoded_summary_row(
-    row_id: str,
-    decoded: str,
-    *,
-    schema_guard: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+def _decoded_attempt_summary(decoded: str) -> dict[str, Any]:
     sanitized = _sanitize_decoded_prediction_text(decoded)
-    row = {
-        "id": row_id,
+    return {
         "parse_status": _decoded_parse_status(sanitized),
         "decoded_sha256": _sha256_text(sanitized),
         "decoded_char_count": len(sanitized),
         "decoded_prefix": sanitized[:240],
         "decoded_suffix": sanitized[-240:],
         "private_values_sanitized": sanitized != decoded,
+    }
+
+
+def _raw_decoded_summary_row(
+    row_id: str,
+    decoded: str,
+    *,
+    schema_guard: dict[str, Any] | None = None,
+    retry_decoded: str | None = None,
+) -> dict[str, Any]:
+    raw_attempt = _decoded_attempt_summary(decoded)
+    row = {
+        "id": row_id,
+        **raw_attempt,
+        "raw_attempt": raw_attempt,
+        "retry_attempt": _decoded_attempt_summary(retry_decoded) if retry_decoded is not None else None,
         "schema_repair_applied": False,
     }
     if schema_guard is not None:
@@ -1111,6 +1121,7 @@ def _run_real_sft_prediction(
             raw_status = _schema_guard_status(raw_prediction)
             retry_status: dict[str, Any] | None = None
             retry_prediction: Any = None
+            retry_decoded: str | None = None
             retry_attempted = False
             if schema_retry_enabled and not raw_status["schema_valid"]:
                 retry_attempted = True
@@ -1133,7 +1144,14 @@ def _run_real_sft_prediction(
             final_prediction = (
                 retry_prediction if schema_guard["validated_output_source"] == "retry_attempt" else raw_prediction
             )
-            raw_rows.append(_raw_decoded_summary_row(row.id, decoded, schema_guard=schema_guard))
+            raw_rows.append(
+                _raw_decoded_summary_row(
+                    row.id,
+                    decoded,
+                    schema_guard=schema_guard,
+                    retry_decoded=retry_decoded,
+                )
+            )
             trace_rows.append(
                 _generation_trace_row(
                     row_id=row.id,

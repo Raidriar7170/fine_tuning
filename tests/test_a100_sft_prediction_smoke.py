@@ -610,6 +610,9 @@ def test_real_sft_prediction_retries_schema_invalid_missing_required_fields(
     assert raw_rows[0]["schema_guard"]["raw_attempt_schema_valid"] is False
     assert raw_rows[0]["schema_guard"]["retry_attempted"] is True
     assert raw_rows[0]["schema_guard"]["validated_output_source"] == "retry_attempt"
+    assert raw_rows[0]["raw_attempt"]["parse_status"] == "json_object"
+    assert raw_rows[0]["retry_attempt"]["parse_status"] == "json_object"
+    assert raw_rows[0]["retry_attempt"]["decoded_prefix"].startswith("{")
     assert result.metrics["json_valid_rate"] == 1.0
     assert scan_paths([output, tmp_path / "raw_decoded_summary.jsonl"]).ok is True
 
@@ -1386,6 +1389,60 @@ def test_contract_output_recovery_template_is_public_safe_and_bounded() -> None:
     assert "private_a100_adapter" in text
     assert "<a100_project_root>" in text
     assert scan_paths([template]).ok is True
+
+
+def test_required_field_repair_train_split_rerun_evidence_preserves_retry_attempts_and_bounds() -> None:
+    evidence_dir = Path("reports/public-sample/a100-required-field-repair-train-split-rerun")
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    schema_summary = json.loads((evidence_dir / "schema_guard_summary.json").read_text(encoding="utf-8"))
+    full_leak_scan = json.loads((evidence_dir / "full_public_leak_scan_result.json").read_text(encoding="utf-8"))
+    raw_rows = [
+        json.loads(line)
+        for line in (evidence_dir / "raw_decoded_summary.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8")
+
+    assert manifest["evidence_kind"] == "a100_required_field_repair_train_split_rerun"
+    assert manifest["prediction_split"] == "train"
+    assert manifest["training_rows_used"] == 3
+    assert manifest["prediction_count"] == 3
+    assert manifest["claims"]["held_out_generalization_claim"] is False
+    assert manifest["claims"]["adapter_release"] is False
+    assert manifest["observed_result"]["json_valid_rate"] == 0.0
+    assert manifest["observed_result"]["validated_output_schema_valid_count"] == 0
+    assert manifest["release_status"] == "not_released"
+    assert manifest["diagnostic_artifacts"]["prediction_metadata"].endswith("prediction_metadata.json")
+    assert manifest["loss_mask_policy"]["policy"] == "assistant_only_completion_only"
+    assert manifest["loss_mask_policy"]["assistant_target"] == "browser_task_contract_json"
+    assert manifest["schema_guard_policy"]["schema_guard_enabled"] is True
+    assert manifest["schema_guard_policy"]["schema_retry_enabled"] is True
+    assert manifest["schema_guard_policy"]["schema_retry_max_attempts"] == 1
+    assert manifest["decoding_policy"]["strategy"] == "greedy"
+    assert manifest["decoding_policy"]["raw_decoded_sidecar_written"] is True
+    assert metrics["evidence_context"]["required_field_skeleton_visible"] is True
+    assert metrics["evidence_context"]["schema_retry_enabled"] is True
+    assert metrics["evidence_context"]["validated_output_schema_valid_count"] == 0
+    assert metrics["failure_slices"]["schema"]["count"] == 3
+    assert schema_summary["raw_attempt_schema_valid_count"] == 0
+    assert schema_summary["retry_attempted_count"] == 3
+    assert schema_summary["retry_attempt_schema_valid_count"] == 0
+    assert schema_summary["validated_output_schema_valid_count"] == 0
+    assert schema_summary["retry_attempt_summary_present"] is True
+    assert all("raw_attempt" in row and "retry_attempt" in row for row in raw_rows)
+    assert all(row["retry_attempt"] is not None for row in raw_rows)
+    assert full_leak_scan["ok"] is True
+    assert full_leak_scan["findings"] == []
+    assert "Prediction metadata:" in report
+    assert "Adapter metadata:" in report
+    assert "Release status: `not_released`" in report
+    assert "Loss-mask policy: `assistant_only_completion_only`" in report
+    assert "Schema guard enabled: `True`" in report
+    assert "Schema retry enabled: `True`" in report
+    assert "Decoding strategy: `greedy`" in report
+    assert "must not be described as schema recovery" in report
+    assert scan_paths([evidence_dir]).ok is True
 
 
 def test_leak_scan_rejects_model_adapter_and_cache_artifacts(tmp_path: Path) -> None:

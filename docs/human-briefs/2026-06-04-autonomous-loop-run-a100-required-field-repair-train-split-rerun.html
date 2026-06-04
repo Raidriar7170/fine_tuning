@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous loop closeout: required-field repair rerun</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #7c3aed;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop closeout</h1>
+  <p class="summary">
+    结论：本轮 Autonomous Phase Loop 已完成并归档 <code>run-a100-required-field-repair-train-split-rerun</code>；A100 rerun 证据显示 required-field 可观测性增强，但当前模型仍是 0/3 train schema-valid。
+  </p>
+
+  <h2>Loop 状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">状态</span><span class="value">completed</span></div>
+    <div class="tile"><span class="label">归档阶段</span><span class="value">1 OpenSpec change</span></div>
+    <div class="tile"><span class="label">主要指标</span><span class="value">json_valid_rate 0.0000</span></div>
+    <div class="tile"><span class="label">Stop reason</span><span class="value">new bounded fix needed</span></div>
+  </div>
+
+  <h2>完成的阶段</h2>
+  <ul>
+    <li>OpenSpec change：<code>run-a100-required-field-repair-train-split-rerun</code>。</li>
+    <li>归档位置：<a href="../../openspec/changes/archive/2026-06-04-run-a100-required-field-repair-train-split-rerun/tasks.md">openspec archive tasks</a>。</li>
+    <li>同步 specs：<a href="../../openspec/specs/contract-evaluation/spec.md">contract-evaluation</a> 与 <a href="../../openspec/specs/supervised-contract-tuning/spec.md">supervised-contract-tuning</a>。</li>
+    <li>阶段 Human Brief：<a href="2026-06-04-run-a100-required-field-repair-train-split-rerun.html">2026-06-04-run-a100-required-field-repair-train-split-rerun.html</a>。</li>
+  </ul>
+
+  <h2>为什么停止</h2>
+  <p>
+    本阶段目标已经完成并归档。下一步不是继续扩大本 rerun，而是新开一个 bounded OpenSpec 修复阶段；该阶段会改变 decoding 或 schema-output behavior，因此需要作为新的明确 change 来承接。
+  </p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前目标：first-phase speech-to-contract normalization，让中文语音/ASR transcript 稳定转成 schema-valid Browser Task Contract。</li>
+    <li>来源：<a href="../../CONTEXT.md">CONTEXT.md</a>、OpenSpec specs、public-sample evidence。</li>
+    <li>本轮贡献：真实 A100 rerun 证明训练/预测路径可执行，assistant-only label provenance 成立，raw/retry attempt evidence 可被 public-safe 保存。</li>
+    <li>剩余差距：模型输出仍不是 schema-valid contract；retry 也未恢复，说明下一阶段应先做 decoding/schema-output diagnosis 或 constrained-output 修复，而不是继续盲目训练。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/manifest.json">manifest.json</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/report.md">report.md</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/metrics.json">metrics.json</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/schema_guard_summary.json">schema_guard_summary.json</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/raw_decoded_summary.jsonl">raw_decoded_summary.jsonl</a></li>
+    <li><a href="../../reports/public-sample/a100-required-field-repair-train-split-rerun/phase_leak_scan_result.json">phase_leak_scan_result.json</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>: 125 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check</code>: ok, 26 pairs。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok, 0 findings。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: post-archive 4 passed, 0 failed。</li>
+    <li><code>git diff --check</code>: passed after archive EOF cleanup。</li>
+  </ul>
+
+  <h2>Review 与集成</h2>
+  <ul>
+    <li>Reviewer verdict：Pass with fixes；Must Fix 是补齐 manifest/report 中 prediction metadata、release status、loss-mask policy、schema guard policy 和 claim boundary 索引。</li>
+    <li>Must Fix 已修复，并新增 evidence regression assertions。</li>
+    <li>External Pro review：未使用；本轮主要是证据/训练 rerun，不需要发送额外外部审查包。</li>
+    <li>Auto integration：报告生成时待执行；最终 commit、merge 和 push 状态以本轮 Codex final response 为准。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>不是 checkpoint release 或 adapter release。</li>
+    <li>不是 held-out generalization、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>required-field skeleton 和 schema retry 可观测，不等于模型已经学会合法 Browser Task Contract 输出。</li>
+  </ul>
+
+  <h2>推荐下一阶段</h2>
+  <p>
+    新开一个很小的 OpenSpec change：优先诊断并修复 constrained decoding / canonical JSON one-shot / schema-output shape。建议先用本轮 3 条 train raw/retry evidence 做最小可复现实验，目标是让 train split 至少产生 schema-valid Browser Task Contract，再决定是否值得第二次 A100 rerun。
+  </p>
+</main>
+</body>
+</html>

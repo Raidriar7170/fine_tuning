@@ -1,0 +1,9 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-04T09:40:39.109549+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-required-field-repair-train-split-rerun"
+  ]
+}

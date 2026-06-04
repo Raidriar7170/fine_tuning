@@ -1,0 +1,12 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-04T09:57:43.186859+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-required-field-repair-train-split-rerun",
+    "docs/human-briefs/2026-06-04-run-a100-required-field-repair-train-split-rerun.html",
+    "docs/human-briefs/2026-06-04-autonomous-loop-run-a100-required-field-repair-train-split-rerun.html",
+    "openspec/changes/archive/2026-06-04-run-a100-required-field-repair-train-split-rerun"
+  ]
+}
