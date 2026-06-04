@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous loop: A100 constrained-output train-split rerun</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #dc2626;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: A100 constrained-output train-split rerun</h1>
+  <p class="summary">
+    结论：本轮完成并归档 1 个 A100 prediction-only 阶段；修复后的 constrained-output prompt 已进入真实 A100 private-adapter 路径，但 3 条 train prediction 仍是 0/3 schema-valid，下一步应先做小范围 route/task ontology repair。
+  </p>
+
+  <h2>循环状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">状态</span><span class="value">completed</span></div>
+    <div class="tile"><span class="label">阶段数</span><span class="value">1 archived</span></div>
+    <div class="tile"><span class="label">A100 result</span><span class="value">0 / 3 valid</span></div>
+    <div class="tile"><span class="label">OpenSpec</span><span class="value">4 passed</span></div>
+  </div>
+
+  <h2>停止原因</h2>
+  <p>
+    本轮停止在一个完整 bounded phase 之后。推荐下一步会进入新的行为修复范围：route/task ontology constrained repair，可能修改 prompt、formatting 或训练/预测约束，因此需要用户确认后再开新的 OpenSpec phase。
+  </p>
+
+  <h2>已完成阶段</h2>
+  <ul>
+    <li><code>run-a100-constrained-output-train-split-rerun</code>: 已执行 A100 prediction-only train split rerun，已导入 public-safe evidence，已通过 Reviewer，已归档到 <a href="../../openspec/changes/archive/2026-06-04-run-a100-constrained-output-train-split-rerun/proposal.md">OpenSpec archive</a>。</li>
+    <li>主 specs 已同步新增 requirement：A100 constrained-output train-split prediction rerun 与对应 public-safe evidence pack。</li>
+  </ul>
+
+  <h2>关键结果</h2>
+  <ul>
+    <li>Prompt repair reached A100 path: <code>canonical_json_one_shot_visible=true</code>，<code>whole_object_boundary_visible=true</code>。</li>
+    <li>Final validated schema-valid: <code>0/3</code>。</li>
+    <li>Raw attempts: 1 条完整 JSON object 但 route enum 非法，2 条 malformed/non-JSON。</li>
+    <li>Retry attempts: <code>3/3</code> 是 Markdown/prose-wrapped JSON fragment，均被 strict parser 保留为失败。</li>
+    <li>结论边界：没有模型恢复、dev/test 泛化、release、production readiness 或 live-browser benchmark improvement 结论。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：first-phase speech-to-contract normalization，来源为 <a href="../../CONTEXT.md">CONTEXT.md</a>。</li>
+    <li>本阶段贡献：证明 constrained-output prompt repair 已进入真实 A100 private-adapter prediction 路径，并把当前失败焦点从“prompt repair 是否生效”收窄到 route/task ontology 与 retry-format drift。</li>
+    <li>剩余能力差距：模型仍不能稳定输出 schema-valid Browser Task Contract；当前 train-internal evidence 仍是失败。</li>
+    <li>剩余证据差距：没有 dev/test held-out generalization，没有 live-browser benchmark，没有 checkpoint/adapter release。</li>
+    <li>下一阶段计划：开一个小的 OpenSpec change，优先修复 route/task enum 约束和 retry prompt 的 pure JSON 输出边界；该步骤需要用户确认。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="2026-06-04-run-a100-constrained-output-train-split-rerun.html">阶段 Human Brief</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/manifest.json">manifest.json</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/report.md">report.md</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/schema_guard_summary.json">schema_guard_summary.json</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/constrained_decoding_diagnosis.json">constrained_decoding_diagnosis.json</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/post_archive_leak_scan_result.json">post_archive_leak_scan_result.json</a></li>
+    <li><a href="../../openspec/specs/supervised-contract-tuning/spec.md">supervised-contract-tuning spec</a></li>
+    <li><a href="../../openspec/specs/contract-evaluation/spec.md">contract-evaluation spec</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py::test_constrained_output_train_split_rerun_evidence_preserves_failure_boundary</code>: 1 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>: 133 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>: ok, 26 pairs。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok, 0 findings。</li>
+    <li><code>git diff --check</code>: passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: post-archive 4 passed, 0 failed；active changes 为空。</li>
+  </ul>
+
+  <h2>Reviewer 与外部评审</h2>
+  <ul>
+    <li>本地 Reviewer verdict: <code>Re-plan Needed = No</code>。</li>
+    <li>已修复 Reviewer Must Fix 和 Should Fix：证据会随提交一起纳入，Human Brief 验证记录已更新，测试已增加精确 train row ID 断言，validation/post-archive leak-scan 已纳入 manifest/test。</li>
+    <li>未使用 ChatGPT Pro 外部评审；本阶段是证据导入与失败边界确认，local review 足够。</li>
+  </ul>
+
+  <h2>Auto Integration 状态</h2>
+  <p>
+    当前分支符合 guarded auto integration 条件：主工作区在 <code>main</code>，无 unrelated dirty files；当前 diff 只包含本阶段 OpenSpec archive/spec sync、A100 public-safe evidence、Human Brief 和 focused evidence test。报告文件先于提交生成，精确 commit/merge hash 记录在最终 Codex 响应中。
+  </p>
+
+  <h2>剩余风险与不要夸大的结论</h2>
+  <ul>
+    <li>本轮没有恢复模型输出；最终结果仍是 <code>0/3</code> schema-valid。</li>
+    <li>这不是 checkpoint release、adapter release、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>当前证据只覆盖 train split prediction-only diagnostic，不覆盖 dev/test 泛化。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    推荐开一个新的很小 bounded phase：<code>repair-route-task-ontology-output</code>。目标是让 first-pass 输出更强地绑定 Browser Task Contract enum，例如将自然语言域名 <code>weather</code> 压回 <code>search_web</code>，并让 retry prompt 继续只接受 whole-string JSON。
+  </p>
+</main>
+</body>
+</html>

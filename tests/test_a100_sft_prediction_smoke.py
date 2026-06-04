@@ -1697,6 +1697,104 @@ def test_strict_retry_train_split_rerun_evidence_preserves_rejected_retry_fragme
     assert scan_paths([evidence_dir]).ok is True
 
 
+def test_constrained_output_train_split_rerun_evidence_preserves_failure_boundary() -> None:
+    evidence_dir = Path("reports/public-sample/a100-constrained-output-train-split-rerun")
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    schema_summary = json.loads((evidence_dir / "schema_guard_summary.json").read_text(encoding="utf-8"))
+    constrained = json.loads((evidence_dir / "constrained_decoding_diagnosis.json").read_text(encoding="utf-8"))
+    prompt_snapshot = json.loads((evidence_dir / "prompt_snapshot.json").read_text(encoding="utf-8"))
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_leak_scan = json.loads((evidence_dir / "phase_leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    post_archive_leak_scan = json.loads(
+        (evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    final_leak_scan = json.loads(
+        (evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    prediction_rows = [
+        json.loads(line)
+        for line in (evidence_dir / "predictions.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    raw_rows = [
+        json.loads(line)
+        for line in (evidence_dir / "raw_decoded_summary.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    generation_trace_rows = [
+        json.loads(line)
+        for line in (evidence_dir / "generation_trace.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    train_gold_rows = [
+        json.loads(line)
+        for line in (evidence_dir / "train_split_gold.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8")
+    expected_row_ids = ["seed-search-weather", "seed-search-weather-aug-1", "seed-search-weather-aug-2"]
+
+    assert manifest["evidence_kind"] == "a100_constrained_output_train_split_rerun"
+    assert manifest["prediction_source_kind"] == "private_a100_adapter"
+    assert manifest["prediction_split"] == "train"
+    assert manifest["prediction_count"] == 3
+    assert manifest["training_rows_used"] == 3
+    assert manifest["training_row_ids"] == expected_row_ids
+    assert [row["id"] for row in prediction_rows] == expected_row_ids
+    assert [row["id"] for row in raw_rows] == expected_row_ids
+    assert [row["id"] for row in generation_trace_rows] == expected_row_ids
+    assert [row["id"] for row in train_gold_rows] == expected_row_ids
+    assert [row["id"] for row in prompt_snapshot["rows"]] == expected_row_ids
+    assert len(prompt_snapshot["rows"]) == 3
+    assert manifest["claims"]["held_out_generalization_claim"] is False
+    assert manifest["claims"]["adapter_release"] is False
+    assert manifest["release_status"] == "not_released"
+    assert manifest["diagnostic_artifacts"]["phase_validation_leak_scan"].endswith(
+        "phase_validation_leak_scan_result.json"
+    )
+    assert manifest["diagnostic_artifacts"]["post_archive_leak_scan"].endswith(
+        "post_archive_leak_scan_result.json"
+    )
+    assert manifest["diagnostic_artifacts"]["final_leak_scan"].endswith(
+        "final_leak_scan_result.json"
+    )
+    assert manifest["observed_result"]["validated_output_schema_valid_count"] == 0
+    assert manifest["observed_result"]["baseline_validated_output_schema_valid_count"] == 0
+    assert manifest["observed_result"]["retry_fragment_objects_rejected_count"] == 3
+    assert manifest["observed_result"]["train_internal_recovery_observed"] is False
+    assert prompt_snapshot["prompt_constraints"]["canonical_json_one_shot_visible"] is True
+    assert prompt_snapshot["prompt_constraints"]["whole_object_boundary_visible"] is True
+    assert metrics["evidence_context"]["training_rows_used"] == 3
+    assert metrics["evidence_context"]["canonical_json_one_shot_visible"] is True
+    assert metrics["evidence_context"]["whole_object_boundary_visible"] is True
+    assert metrics["evidence_context"]["validated_output_schema_valid_count"] == 0
+    assert metrics["failure_slices"]["schema"]["count"] == 3
+    assert schema_summary["comparison_to_pre_repair_strict_retry_baseline"]["schema_recovery_observed"] is False
+    assert schema_summary["strict_retry_parser_rejected_fragment_count"] == 3
+    assert schema_summary["validated_output_source_counts"] == {"none": 3}
+    assert constrained["summary"]["prose_markdown_wrapper_count"] == 3
+    assert constrained["summary"]["validated_output_schema_valid_count"] == 0
+    assert any(row["raw_attempt"]["parse_status"] == "json_object" for row in raw_rows)
+    assert all(row["retry_attempt"]["parse_status"] == "json_fragment_object" for row in raw_rows)
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_leak_scan["ok"] is True
+    assert phase_leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    assert post_archive_leak_scan["ok"] is True
+    assert post_archive_leak_scan["findings"] == []
+    assert final_leak_scan["ok"] is True
+    assert final_leak_scan["findings"] == []
+    assert "final validated schema-valid `0/3`" in report
+    assert "not be described as model recovery" in report
+    assert scan_paths([evidence_dir]).ok is True
+
+
 def test_leak_scan_rejects_model_adapter_and_cache_artifacts(tmp_path: Path) -> None:
     evidence_dir = tmp_path / "evidence"
     (evidence_dir / "adapter").mkdir(parents=True)

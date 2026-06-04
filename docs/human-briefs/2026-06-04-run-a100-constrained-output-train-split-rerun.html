@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A100 constrained-output train-split rerun brief</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #f7f8fb;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+    }
+    .summary {
+      padding: 16px 18px;
+      border-left: 4px solid #dc2626;
+      background: #ffffff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .tile {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .label {
+      display: block;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .value {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef2ff;
+    }
+    a {
+      color: #1d4ed8;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>A100 constrained-output train-split rerun</h1>
+  <p class="summary">
+    结论：A100 prediction-only rerun 已完成，修复后的 constrained-output prompt 确实进入 A100 路径；但 3 条 train prediction 仍是 0/3 schema-valid，下一步应修 route/task ontology 与 retry-format drift，而不是扩大模型恢复结论。
+  </p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="tile"><span class="label">阶段</span><span class="value">archived</span></div>
+    <div class="tile"><span class="label">预测数量</span><span class="value">3 train rows</span></div>
+    <div class="tile"><span class="label">Contract schema-valid rate</span><span class="value">0.0000</span></div>
+    <div class="tile"><span class="label">Prompt repair visible</span><span class="value">yes</span></div>
+  </div>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>在用户授权后使用 A100 运行 prediction-only train-split rerun，复用现有 private adapter，不重新训练。</li>
+    <li>保持 <code>prediction_split=train</code>、<code>overfit_diagnostic=true</code>、<code>generalization_claim=false</code>、<code>schema_retry_enabled=true</code> 和 greedy decoding。</li>
+    <li>只导入 public-safe evidence：predictions、metadata、prompt snapshot、raw decoded summary、generation trace、metrics、schema guard summary、constrained decoding diagnosis、manifest、report 和 leak scan。</li>
+    <li>新增 focused evidence test，锁定 3 条 train 口径、prompt repair 可见、0/3 失败边界、retry fragment 3/3 被拒绝和 leak scan 干净。</li>
+  </ul>
+
+  <h2>模型目前能达到什么效果</h2>
+  <ul>
+    <li>修复后的 prompt 已生效：<code>canonical_json_one_shot_visible=true</code>，<code>whole_object_boundary_visible=true</code>。</li>
+    <li>最终 validated Browser Task Contract 仍是 <code>0/3</code>；没有 train-internal schema recovery。</li>
+    <li>raw attempt：1 条是完整 JSON object 但 route 使用非法值 <code>weather</code>；2 条是 malformed/non-JSON。</li>
+    <li>retry attempt：3 条都是 Markdown/prose-wrapped JSON fragment，被 whole-string parser 正确拒绝。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/manifest.json">manifest.json</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/report.md">report.md</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/metrics.json">metrics.json</a> / <a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/metrics.md">metrics.md</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/schema_guard_summary.json">schema_guard_summary.json</a> / <a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/schema_guard_summary.md">schema_guard_summary.md</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/constrained_decoding_diagnosis.json">constrained_decoding_diagnosis.json</a> / <a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/constrained_decoding_diagnosis.md">constrained_decoding_diagnosis.md</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/prompt_snapshot.json">prompt_snapshot.json</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/raw_decoded_summary.jsonl">raw_decoded_summary.jsonl</a></li>
+    <li><a href="../../reports/public-sample/a100-constrained-output-train-split-rerun/leak_scan_result.json">leak_scan_result.json</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py::test_constrained_output_train_split_rerun_evidence_preserves_failure_boundary</code>: 1 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>: 133 passed。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: success, 16 source files。</li>
+    <li><code>voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>: ok, 12 SFT rows, 26 DPO pairs。</li>
+    <li><code>voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>: ok, 26 pairs。</li>
+    <li><code>voice2task.cli.report leak-scan</code>: ok, 0 findings。</li>
+    <li><code>post_archive_leak_scan_result.json</code>: ok, 0 findings。</li>
+    <li><code>git diff --check</code>: passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: pre-archive 5 passed；post-archive 4 passed, 0 failed，active changes 为空。</li>
+    <li>Reviewer: <code>Re-plan Needed = No</code>；反馈修复包含精确 train row ID 断言、validation leak-scan manifest 引用和验证记录更新。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前目标：first-phase speech-to-contract normalization，来源为 <a href="../../CONTEXT.md">CONTEXT.md</a>。</li>
+    <li>本阶段推进：确认 constrained-output prompt repair 已进入真实 A100 private-adapter prediction 路径。</li>
+    <li>剩余差距：模型仍不会稳定输出 schema-valid Browser Task Contract；失败焦点从“缺 required fields”转向 route/task ontology 与 retry-format drift。</li>
+    <li>下一阶段计划：开一个小的 ontology-constrained repair/diagnostic 阶段，先在本地可测地约束 route/task 输出，再决定是否重新 A100 prediction。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 checkpoint release 或 adapter release。</li>
+    <li>这不是 dev/test held-out generalization 证据。</li>
+    <li>这不是 production readiness、A100 model recovery 或 live-browser benchmark improvement。</li>
+    <li>prompt repair visible 不等于模型已经学会 Browser Task Contract；本轮结果仍是 0/3。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    推荐下一阶段优先做小范围 route/task ontology repair：让输出只能使用 Browser Task Contract enum，而不是自然语言域名如 <code>weather</code> 或 invented route；同时继续保持 strict parser fail-closed。
+  </p>
+</main>
+</body>
+</html>
