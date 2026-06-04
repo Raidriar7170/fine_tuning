@@ -116,7 +116,7 @@
         <li>在 A100 上选择空闲 GPU，所有远端项目文件保持在批准的私有项目根目录下。</li>
         <li>完成 public-sample SFT rerun 和 private-adapter prediction，使用 recovered <code>shared_contract_chat_template</code> formatting policy。</li>
         <li>只复制回 sanitized public-sample predictions、prediction metadata、metrics、controlled smoke、leak-scan、manifest 和 report。</li>
-        <li>强化 leak-scan 和 prediction sanitizer：拒绝 <code>/mnt/data/...</code> 远端私有路径，并递归清洗 parsed JSON dict/list/string 内的 private path、private IP 和 secret。</li>
+        <li>强化 leak-scan 和 prediction sanitizer：拒绝远端私有项目根路径样例，并递归清洗 parsed JSON dict/list/string 内的 private path、private IP 和 secret。</li>
         <li>更新 recovery evidence template、阶段 Human Brief，并把旧 recovery briefs 标记为 historical/superseded。</li>
       </ul>
     </section>

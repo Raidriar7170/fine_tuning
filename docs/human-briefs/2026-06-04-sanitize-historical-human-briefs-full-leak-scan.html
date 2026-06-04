@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Human Brief - sanitize historical human briefs full leak scan</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5d6d7e;
+      --line: #d6dbdf;
+      --panel: #f7f9f9;
+      --accent: #117864;
+      --warn: #9a5a00;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #ffffff;
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 36px 22px 48px;
+    }
+    header {
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 18px;
+      margin-bottom: 26px;
+    }
+    h1 {
+      font-size: 30px;
+      line-height: 1.2;
+      margin: 0 0 10px;
+      letter-spacing: 0;
+    }
+    h2 {
+      font-size: 19px;
+      margin: 26px 0 10px;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 8px 0;
+    }
+    ul {
+      margin: 8px 0 0 1.2rem;
+      padding: 0;
+    }
+    li {
+      margin: 6px 0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #eef2f3;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    a {
+      color: var(--accent);
+    }
+    .summary {
+      font-size: 18px;
+      font-weight: 650;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin: 18px 0;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--panel);
+    }
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .value {
+      font-size: 16px;
+      font-weight: 650;
+      margin-top: 3px;
+    }
+    .ok {
+      color: var(--accent);
+      font-weight: 650;
+    }
+    .warn {
+      color: var(--warn);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>历史 Human Brief 全量 leak-scan 清理</h1>
+      <p class="summary">结论：阶段 A 已清理唯一触发 full public-surface leak-scan 的历史说明文字，核心证据结果没有被改写。</p>
+    </header>
+
+    <section class="grid" aria-label="status">
+      <div class="card">
+        <div class="label">Status</div>
+        <div class="value">archived</div>
+      </div>
+      <div class="card">
+        <div class="label">Change</div>
+        <div class="value">sanitize-historical-human-briefs-full-leak-scan</div>
+      </div>
+      <div class="card">
+        <div class="label">Main Gate</div>
+        <div class="value ok">leak-scan passed</div>
+      </div>
+      <div class="card">
+        <div class="label">Next Phase</div>
+        <div class="value">SFT objective mask</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>项目阶段进度</h2>
+      <p>当前阶段目标：first-phase speech-to-contract normalization，即把中文语音命令或 ASR transcript 转成 schema-valid Browser Task Contract。来源是 <a href="../../README.md">README</a>、<a href="../../CONTEXT.md">CONTEXT</a> 和 <a href="../../openspec/config.yaml">OpenSpec config</a>。</p>
+      <p>本阶段推进的是证据卫生和公开材料可信度：让 committed Human Brief 与 public evidence pack 使用同一类隐私边界。它不改变模型质量结论。</p>
+    </section>
+
+    <section>
+      <h2>本阶段改了什么</h2>
+      <ul>
+        <li>清理一个历史 Human Brief 中的远端私有路径样例，保留“拒绝远端私有项目根路径”的含义。</li>
+        <li>新增 OpenSpec 变更，明确 committed Human Brief HTML 和 loop reports 属于 public documentation surface。</li>
+        <li>保持既有 A100 post-recovery 失败证据、metrics、manifest、prediction rows 和 claim boundary 不变。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>关键文件</h2>
+      <ul>
+        <li><a href="../../docs/human-briefs/2026-06-02-autonomous-loop-a100-sft-post-recovery-rerun.html">historical post-recovery loop brief</a></li>
+        <li><a href="../../openspec/changes/sanitize-historical-human-briefs-full-leak-scan/proposal.md">proposal</a>、<a href="../../openspec/changes/sanitize-historical-human-briefs-full-leak-scan/design.md">design</a>、<a href="../../openspec/changes/sanitize-historical-human-briefs-full-leak-scan/tasks.md">tasks</a></li>
+        <li><a href="../../openspec/changes/sanitize-historical-human-briefs-full-leak-scan/specs/contract-evaluation/spec.md">contract-evaluation spec delta</a></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>验证结果</h2>
+      <ul>
+        <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan --paths README.md CONTEXT.md data/public-samples reports/public-sample reports/templates docs/human-briefs openspec</code>：<span class="ok">passed</span>，0 findings。</li>
+        <li><code>PYTHONPATH=src pytest -q</code>：<span class="ok">110 passed</span>。</li>
+        <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：<span class="ok">passed</span>；pre-archive 为 5 items，archive 后为主 specs 验证。</li>
+        <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>：<span class="ok">passed</span>，12 SFT rows，26 DPO pairs。</li>
+        <li><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>：<span class="ok">passed</span>，26 pairs。</li>
+        <li><code>git diff --check</code>：<span class="ok">passed</span>。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>剩余风险</h2>
+      <ul>
+        <li><span class="warn">不要夸大：</span>这只是公开材料卫生修复，不是训练修复、模型恢复、checkpoint 发布或 live-browser 证据。</li>
+        <li>当前模型质量缺口仍然存在：A100 private adapter 的 public-sample 和 train-split 预测此前仍为 schema-invalid。</li>
+        <li>下一阶段应聚焦 SFT assistant-only/completion-only loss masking，而不是扩数据或 DPO。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>推荐下一步</h2>
+      <p>归档并自动集成本阶段后，继续创建 <code>fix-sft-assistant-only-objective-and-rerun-train-split</code>，目标是证明 prompt/system/user tokens 被 mask，assistant contract tokens 才承担 loss；如需真实 A100 rerun，将触发私有基础设施硬停止或等待明确执行条件。</p>
+    </section>
+  </main>
+</body>
+</html>

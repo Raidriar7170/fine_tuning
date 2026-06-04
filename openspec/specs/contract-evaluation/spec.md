@@ -51,11 +51,11 @@ The system SHALL support an optional execution smoke check that verifies generat
 - **THEN** the evaluator sends eligible contracts to the controlled validation path and reports smoke pass/fail separately from pure contract metrics
 
 ### Requirement: Keep reports public-safe
-The system SHALL prevent public reports from leaking raw private rows, absolute local paths, secrets, tokens, or unreleased private details.
+The system SHALL prevent public reports, committed Human Brief HTML, and loop reports from leaking raw private rows, absolute local paths, private remote paths, secrets, tokens, or unreleased private details.
 
 #### Scenario: Generate public report
-- **WHEN** a report is written for committed documentation
-- **THEN** it contains aggregate metrics, sanitized examples, manifest references, and explicit claim boundaries without raw local/private corpus rows
+- **WHEN** a report or committed Human Brief is written for public or reviewer-facing documentation
+- **THEN** it contains aggregate metrics, sanitized examples, manifest references, and explicit claim boundaries without raw local/private corpus rows, local absolute paths, private remote paths, host details, or path-like private infrastructure examples
 
 ### Requirement: Publish sanitized A100 smoke evidence
 The system SHALL produce a public-safe A100 SFT smoke evidence summary that reports training metadata, contract metrics, controlled smoke status, and leak-scan results without exposing private infrastructure or unreleased model artifacts.
