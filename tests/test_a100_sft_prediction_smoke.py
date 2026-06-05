@@ -437,6 +437,130 @@ def test_a100_confirmation_required_train_split_rerun_evidence_is_public_safe_an
     assert "volcano" not in serialized
 
 
+def test_confirmation_rerun_row_mismatch_diagnosis_pack_is_public_safe_and_bounded() -> None:
+    prior_dir = Path("reports/public-sample/a100-confirmation-required-train-split-rerun")
+    evidence_dir = Path("reports/public-sample/confirmation-rerun-row-mismatch-diagnosis")
+    required_files = {
+        "row_mismatch_diagnosis.json",
+        "row_mismatch_diagnosis.md",
+        "manifest.json",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+        "post_archive_leak_scan_result.json",
+        "final_leak_scan_result.json",
+    }
+    expected_row_ids = ["seed-search-weather", "seed-search-weather-aug-1", "seed-search-weather-aug-2"]
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+
+    diagnosis = json.loads((evidence_dir / "row_mismatch_diagnosis.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    post_archive_leak_scan = json.loads(
+        (evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    final_leak_scan = json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
+    markdown = (evidence_dir / "row_mismatch_diagnosis.md").read_text(encoding="utf-8")
+    prior_metrics = json.loads((prior_dir / "metrics.json").read_text(encoding="utf-8"))
+    serialized = (
+        json.dumps(diagnosis, ensure_ascii=False, sort_keys=True)
+        + json.dumps(manifest, ensure_ascii=False, sort_keys=True)
+        + json.dumps(leak_scan, ensure_ascii=False, sort_keys=True)
+        + json.dumps(phase_validation_leak_scan, ensure_ascii=False, sort_keys=True)
+        + json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True)
+        + json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True)
+        + markdown
+    )
+
+    assert diagnosis["diagnostic_kind"] == "confirmation_required_rerun_row_mismatch_diagnosis"
+    assert diagnosis["summary"]["gold_row_count"] == 3
+    assert diagnosis["summary"]["prediction_count"] == 3
+    assert diagnosis["summary"]["row_mismatch_count"] == 3
+    assert diagnosis["summary"]["schema_invalid_prediction_count"] == 1
+    assert diagnosis["summary"]["strict_final_json_valid_rate"] == prior_metrics["metrics"]["json_valid_rate"] == 2 / 3
+    assert diagnosis["summary"]["strict_final_contract_exact_match"] == (
+        prior_metrics["metrics"]["contract_exact_match"]
+    ) == 0.0
+    assert diagnosis["summary"]["strict_final_task_type_accuracy"] == prior_metrics["metrics"]["task_type_accuracy"]
+    assert diagnosis["summary"]["strict_final_route_accuracy"] == prior_metrics["metrics"]["route_accuracy"]
+    assert diagnosis["summary"]["strict_final_confirmation_accuracy"] == (
+        prior_metrics["metrics"]["confirmation_accuracy"]
+    )
+    assert diagnosis["summary"]["strict_final_slot_f1"] == prior_metrics["metrics"]["slot_f1"]
+    assert diagnosis["summary"]["field_mismatch_counts"] == {
+        "confirmation_required": 1,
+        "normalized_command": 3,
+        "route": 1,
+        "safety.reason": 1,
+        "task_type": 1,
+    }
+    assert diagnosis["summary"]["mismatch_category_counts"] == {
+        "missing_prediction_field": 1,
+        "value_mismatch": 6,
+    }
+    assert diagnosis["summary"]["family_counts"] == {
+        "missing_required_field_schema_failure": 1,
+        "semantic_task_route_safety_mismatch": 1,
+        "strict_string_field_exact_match_mismatch": 1,
+    }
+    row_families = {row["row_id"]: row["primary_failure_family"] for row in diagnosis["rows"]}
+    assert row_families == {
+        "seed-search-weather": "missing_required_field_schema_failure",
+        "seed-search-weather-aug-1": "semantic_task_route_safety_mismatch",
+        "seed-search-weather-aug-2": "strict_string_field_exact_match_mismatch",
+    }
+    assert [row["row_id"] for row in diagnosis["rows"]] == expected_row_ids
+    assert diagnosis["claims"]["local_evidence_only_analysis"] is True
+    assert diagnosis["claims"]["does_not_repair_normalize_coerce_replace_or_rescore"] is True
+    assert diagnosis["claims"]["held_out_generalization_claim"] is False
+    assert diagnosis["claims"]["checkpoint_release"] is False
+    assert diagnosis["claims"]["adapter_release"] is False
+    assert diagnosis["claims"]["production_readiness_claim"] is False
+    assert diagnosis["claims"]["public_full_corpus_release_claim"] is False
+    assert diagnosis["claims"]["live_browser_benchmark_improvement_claim"] is False
+    assert diagnosis["claims"]["model_quality_improvement_claim"] is False
+    assert manifest["evidence_kind"] == "confirmation_rerun_row_mismatch_diagnosis"
+    assert manifest["source_prior_phase"] == "reports/public-sample/a100-confirmation-required-train-split-rerun"
+    assert manifest["source_artifact_policy"]["uses_prior_public_sample_artifacts_only"] is True
+    assert manifest["source_artifact_policy"]["a100_execution_performed"] is False
+    assert manifest["source_artifact_policy"]["prediction_rerun_performed"] is False
+    assert manifest["source_artifact_policy"]["training_or_decoding_changed"] is False
+    assert manifest["metrics_preserved"]["json_valid_rate"] == 2 / 3
+    assert manifest["metrics_preserved"]["contract_exact_match"] == 0.0
+    assert manifest["metrics_preserved"]["task_type_accuracy"] == prior_metrics["metrics"]["task_type_accuracy"]
+    assert manifest["metrics_preserved"]["route_accuracy"] == prior_metrics["metrics"]["route_accuracy"]
+    assert manifest["metrics_preserved"]["confirmation_accuracy"] == prior_metrics["metrics"]["confirmation_accuracy"]
+    assert manifest["metrics_preserved"]["slot_f1"] == prior_metrics["metrics"]["slot_f1"]
+    assert manifest["claims"]["local_evidence_only_analysis"] is True
+    assert manifest["claims"]["model_quality_improvement_claim"] is False
+    assert manifest["diagnostic_artifacts"]["phase_validation_leak_scan"].endswith(
+        "phase_validation_leak_scan_result.json"
+    )
+    assert manifest["diagnostic_artifacts"]["post_archive_leak_scan"].endswith(
+        "post_archive_leak_scan_result.json"
+    )
+    assert manifest["diagnostic_artifacts"]["final_leak_scan"].endswith("final_leak_scan_result.json")
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    assert post_archive_leak_scan["ok"] is True
+    assert post_archive_leak_scan["findings"] == []
+    assert final_leak_scan["ok"] is True
+    assert final_leak_scan["findings"] == []
+    assert "local evidence-only analysis" in markdown
+    assert "does not repair, normalize, coerce, replace, or re-score predictions" in markdown
+    assert "contract_exact_match remains `0.0`" in markdown
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert scan_paths([evidence_dir]).ok is True
+
+
 def test_sft_prediction_metadata_uses_configured_max_new_tokens(tmp_path: Path) -> None:
     manifest = _write_manifest(tmp_path)
     config = _write_prediction_config(tmp_path)

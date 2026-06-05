@@ -338,6 +338,141 @@ def diagnose_alignment_mismatches(rows: list[SFTDatasetRow], predictions: dict[s
     }
 
 
+def _schema_guard_rows_by_id(schema_guard_summary: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    if not isinstance(schema_guard_summary, dict):
+        return {}
+    rows = schema_guard_summary.get("rows")
+    if not isinstance(rows, list):
+        return {}
+    guard_rows: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        row_id = row.get("id")
+        if isinstance(row_id, str):
+            guard_rows[_sanitize_id(row_id)] = row
+    return guard_rows
+
+
+def _metrics_payload(metrics: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(metrics, dict):
+        return {}
+    payload = metrics.get("metrics")
+    return payload if isinstance(payload, dict) else {}
+
+
+def _primary_confirmation_rerun_failure_family(
+    *,
+    raw_prediction: Any,
+    mismatches: list[dict[str, str]],
+    schema_guard: dict[str, Any],
+) -> str:
+    mismatch_paths = {mismatch["field_path"] for mismatch in mismatches}
+    missing_fields = schema_guard.get("raw_attempt_missing_required_fields")
+    missing_required_fields = missing_fields if isinstance(missing_fields, list) else []
+    if _prediction_to_contract(raw_prediction) is None:
+        if "confirmation_required" in missing_required_fields or "confirmation_required" in mismatch_paths:
+            return "missing_required_field_schema_failure"
+        return "schema_failure"
+    if mismatch_paths & {"task_type", "route", "safety.reason"}:
+        return "semantic_task_route_safety_mismatch"
+    if mismatch_paths == {"normalized_command"}:
+        return "strict_string_field_exact_match_mismatch"
+    if "normalized_command" in mismatch_paths:
+        return "strict_string_field_exact_match_mismatch"
+    return "other_field_exact_match_mismatch"
+
+
+def _confirmation_rerun_claims() -> dict[str, bool]:
+    return {
+        "local_evidence_only_analysis": True,
+        "does_not_repair_normalize_coerce_replace_or_rescore": True,
+        "a100_execution_performed": False,
+        "training_or_prediction_rerun_performed": False,
+        "prompt_training_decoding_or_metric_logic_changed": False,
+        "checkpoint_release": False,
+        "adapter_release": False,
+        "held_out_generalization_claim": False,
+        "production_readiness_claim": False,
+        "public_full_corpus_release_claim": False,
+        "live_browser_benchmark_improvement_claim": False,
+        "model_quality_improvement_claim": False,
+    }
+
+
+def diagnose_confirmation_rerun_row_mismatches(
+    rows: list[SFTDatasetRow],
+    predictions: dict[str, Any],
+    *,
+    metrics: dict[str, Any] | None = None,
+    schema_guard_summary: dict[str, Any] | None = None,
+    source_artifacts: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    alignment = diagnose_alignment_mismatches(rows, predictions)
+    guard_rows = _schema_guard_rows_by_id(schema_guard_summary)
+    alignment_rows = {row["row_id"]: row for row in alignment.get("rows", [])}
+    family_counts: dict[str, int] = {}
+    diagnostic_rows: list[dict[str, Any]] = []
+
+    for row in rows:
+        row_id = _sanitize_id(row.id)
+        alignment_row = alignment_rows.get(row_id, {"row_id": row_id, "mismatches": []})
+        mismatches = alignment_row["mismatches"]
+        schema_guard = guard_rows.get(row_id, {})
+        family = _primary_confirmation_rerun_failure_family(
+            raw_prediction=predictions.get(row.id),
+            mismatches=mismatches,
+            schema_guard=schema_guard,
+        )
+        _increment_count(family_counts, family)
+        diagnostic_rows.append(
+            {
+                "row_id": row_id,
+                "primary_failure_family": family,
+                "source_prediction_status": {
+                    "schema_valid_prediction": _prediction_to_contract(predictions.get(row.id)) is not None,
+                    "validated_output_schema_valid": schema_guard.get("validated_output_schema_valid"),
+                    "validated_output_source": schema_guard.get("validated_output_source"),
+                    "raw_attempt_missing_required_fields": schema_guard.get(
+                        "raw_attempt_missing_required_fields", []
+                    ),
+                },
+                "mismatches": mismatches,
+            }
+        )
+
+    metric_values = _metrics_payload(metrics)
+    summary = {
+        **alignment["summary"],
+        "family_counts": dict(sorted(family_counts.items())),
+        "strict_final_json_valid_rate": metric_values.get("json_valid_rate"),
+        "strict_final_task_type_accuracy": metric_values.get("task_type_accuracy"),
+        "strict_final_route_accuracy": metric_values.get("route_accuracy"),
+        "strict_final_confirmation_accuracy": metric_values.get("confirmation_accuracy"),
+        "strict_final_slot_f1": metric_values.get("slot_f1"),
+        "strict_final_contract_exact_match": metric_values.get("contract_exact_match"),
+        "metrics_preserved_from_source": bool(metric_values),
+    }
+    safe_source_artifacts = {
+        str(key): _sanitize_public_summary(str(value)) for key, value in (source_artifacts or {}).items()
+    }
+    return {
+        "diagnostic_kind": "confirmation_required_rerun_row_mismatch_diagnosis",
+        "summary": summary,
+        "rows": diagnostic_rows,
+        "source_artifacts": safe_source_artifacts,
+        "source_artifact_policy": {
+            "uses_prior_public_sample_artifacts_only": True,
+            "a100_execution_performed": False,
+            "prediction_rerun_performed": False,
+            "training_or_decoding_changed": False,
+            "prompt_changed": False,
+            "evaluator_metrics_changed": False,
+        },
+        "claims": _confirmation_rerun_claims(),
+    }
+
+
 def _count_values(values: list[str]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for value in values:

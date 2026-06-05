@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Diagnose Confirmation Rerun Row Mismatches Human Brief</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #20242a; background: #f6f7f9; }
+    main { max-width: 940px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel, .metric { background: #fff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Diagnose confirmation rerun row mismatches</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>本阶段只用上一阶段公开样本 artifacts 做本地 row-level diagnosis，把 3 条 residual exact-match failure 分成缺 required field/schema、task/route/safety 语义错配、以及 <code>normalized_command</code> 严格字符串错配；原始 strict metrics 保持 <code>json_valid_rate=2/3</code>、<code>contract_exact_match=0.0</code>。</p>
+  </section>
+
+  <div class="grid">
+    <div class="metric"><span>当前状态</span><strong>applying</strong></div>
+    <div class="metric"><span>A100 / rerun</span><strong>false</strong></div>
+    <div class="metric"><span>row families</span><strong>3</strong></div>
+    <div class="metric"><span>OpenSpec strict</span><strong>5 passed</strong></div>
+  </div>
+
+  <h2>本阶段变化</h2>
+  <ul>
+    <li>新增 <code>diagnose_confirmation_rerun_row_mismatches</code>，复用现有 alignment mismatches，派生 failure family，不改变 evaluator metrics。</li>
+    <li>新增 <code>write_confirmation_rerun_row_mismatch_report</code>，写出 <code>row_mismatch_diagnosis.json</code> 和 <code>row_mismatch_diagnosis.md</code>。</li>
+    <li>生成 <a href="../../reports/public-sample/confirmation-rerun-row-mismatch-diagnosis/row_mismatch_diagnosis.md">confirmation-rerun row mismatch diagnosis</a> evidence pack 和 manifest。</li>
+    <li>补充 focused tests，锁住 summary counts、field/category/family counts、row primary family、claim boundary、metrics preserved、privacy scan。</li>
+  </ul>
+
+  <h2>关键结果</h2>
+  <ul>
+    <li><code>seed-search-weather</code>：<code>missing_required_field_schema_failure</code>，仍缺 <code>confirmation_required</code>，prediction 保持 schema-invalid。</li>
+    <li><code>seed-search-weather-aug-1</code>：<code>semantic_task_route_safety_mismatch</code>，schema-valid 但 <code>task_type</code>、<code>route</code>、<code>safety.reason</code> 与 gold 不一致。</li>
+    <li><code>seed-search-weather-aug-2</code>：<code>strict_string_field_exact_match_mismatch</code>，schema-valid 且 route/task match，但 <code>normalized_command</code> 严格字符串不一致。</li>
+    <li>聚合 counts：<code>confirmation_required=1</code>、<code>normalized_command=3</code>、<code>route=1</code>、<code>safety.reason=1</code>、<code>task_type=1</code>；category 为 <code>missing_prediction_field=1</code>、<code>value_mismatch=6</code>。</li>
+  </ul>
+
+  <h2>权威源与证据</h2>
+  <ul>
+    <li><a href="../../openspec/changes/diagnose-confirmation-rerun-row-mismatches/proposal.md">OpenSpec proposal</a>、<a href="../../openspec/changes/diagnose-confirmation-rerun-row-mismatches/design.md">design</a>、<a href="../../openspec/changes/diagnose-confirmation-rerun-row-mismatches/specs/contract-evaluation/spec.md">spec delta</a></li>
+    <li><a href="../../reports/public-sample/a100-confirmation-required-train-split-rerun/metrics.json">prior metrics.json</a>、<a href="../../reports/public-sample/a100-confirmation-required-train-split-rerun/schema_guard_summary.json">prior schema_guard_summary.json</a>、<a href="../../reports/public-sample/a100-confirmation-required-train-split-rerun/train_split_gold.jsonl">prior train_split_gold.jsonl</a></li>
+    <li><a href="../../reports/public-sample/confirmation-rerun-row-mismatch-diagnosis/manifest.json">new manifest.json</a>、<a href="../../reports/public-sample/confirmation-rerun-row-mismatch-diagnosis/leak_scan_result.json">new leak_scan_result.json</a></li>
+  </ul>
+
+  <h2>验证记录</h2>
+  <ul>
+    <li>TDD 红灯：focused tests 先因缺少 helper 和 evidence 目录失败。</li>
+    <li><code>PYTHONPATH=src pytest -q tests/test_evaluator_reports.py::test_confirmation_rerun_row_mismatch_diagnosis_buckets_three_residual_failures tests/test_a100_sft_prediction_smoke.py::test_confirmation_rerun_row_mismatch_diagnosis_pack_is_public_safe_and_bounded</code>：2 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：141 passed。</li>
+    <li><code>uv run ruff check .</code>：All checks passed；<code>uv run mypy src</code>：Success，16 source files。</li>
+    <li>Public data validation：ok true，12 SFT rows，26 DPO pairs；DPO check：26 pairs checked。</li>
+    <li>Evidence leak scan：ok true，0 findings；<code>git diff --check</code>：passed；<code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：5 passed，0 failed。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 A100 新运行、训练、prediction rerun、prompt repair、decoder change 或 evaluator metric change。</li>
+    <li>这不是 held-out generalization、checkpoint release、adapter release、production readiness、public full-corpus release、model-quality improvement 或 live-browser benchmark improvement evidence。</li>
+    <li>Human Brief 只是阅读伴侣；权威来源仍是 OpenSpec、source code、tests、prior artifacts 和新 evidence pack。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>先由 Reviewer 检查 diff 和 claim boundary；如无 Must Fix，再进入 OpenSpec archive。后续若继续，应单独开一个小阶段决定是 prompt/training-target/decoding 解释，还是只改展示说明。</p>
+</main>
+</body>
+</html>

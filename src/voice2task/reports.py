@@ -249,6 +249,106 @@ def write_alignment_diagnostics_report(
     return {"json": json_path, "markdown": markdown_path}
 
 
+def write_confirmation_rerun_row_mismatch_report(
+    diagnostics: dict[str, Any],
+    output_dir: Path,
+    title: str = "Confirmation-rerun row mismatch diagnosis",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "row_mismatch_diagnosis.json"
+    markdown_path = output_dir / "row_mismatch_diagnosis.md"
+    write_json(json_path, diagnostics)
+
+    summary = diagnostics["summary"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is a local evidence-only analysis derived from prior public-sample artifacts. "
+            "It does not repair, normalize, coerce, replace, or re-score predictions."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- No A100 execution was performed in this phase.",
+        "- No training, prediction rerun, prompt change, decoding change, or evaluator metric change was performed.",
+        "- This is not a checkpoint release.",
+        "- This is not an adapter release.",
+        "- This is not held-out generalization evidence.",
+        "- This makes no production-readiness claim.",
+        "- This makes no public full-corpus release claim.",
+        "- This is not a live-browser benchmark improvement claim.",
+        "- This is not model-quality improvement evidence.",
+        "",
+        "## Summary",
+        "",
+        f"- Gold rows: `{summary['gold_row_count']}`",
+        f"- Predictions: `{summary['prediction_count']}`",
+        f"- Rows with mismatches: `{summary['row_mismatch_count']}`",
+        f"- Schema-invalid predictions: `{summary['schema_invalid_prediction_count']}`",
+        f"- Strict final JSON-valid rate remains `{summary.get('strict_final_json_valid_rate')}`",
+        f"- Strict final contract_exact_match remains `{summary.get('strict_final_contract_exact_match')}`",
+        "",
+        "## Failure Families",
+        "",
+    ]
+    family_counts = summary.get("family_counts", {})
+    if family_counts:
+        for family, count in sorted(family_counts.items()):
+            lines.append(f"- `{family}`: `{count}`")
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "## Field Mismatch Counts", ""])
+    field_counts = summary.get("field_mismatch_counts", {})
+    if field_counts:
+        for field_path, count in sorted(field_counts.items()):
+            lines.append(f"- `{field_path}`: `{count}`")
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "## Mismatch Category Counts", ""])
+    category_counts = summary.get("mismatch_category_counts", {})
+    if category_counts:
+        for category, count in sorted(category_counts.items()):
+            lines.append(f"- `{category}`: `{count}`")
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "## Source Artifacts", ""])
+    source_artifacts = diagnostics.get("source_artifacts", {})
+    if source_artifacts:
+        for name, path in sorted(source_artifacts.items()):
+            lines.append(f"- `{name}`: `{path}`")
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "## Row Diagnosis", ""])
+    for row in diagnostics.get("rows", []):
+        lines.append(f"### `{row['row_id']}`")
+        lines.append("")
+        lines.append(f"- Primary failure family: `{row['primary_failure_family']}`")
+        status = row.get("source_prediction_status", {})
+        lines.append(f"- Source schema-valid prediction: `{status.get('schema_valid_prediction')}`")
+        lines.append(f"- Validated output schema-valid: `{status.get('validated_output_schema_valid')}`")
+        lines.append(f"- Validated output source: `{status.get('validated_output_source')}`")
+        mismatches = row.get("mismatches", [])
+        if mismatches:
+            for mismatch in mismatches:
+                lines.append(
+                    "- "
+                    f"`{mismatch['field_path']}` "
+                    f"({mismatch['mismatch_category']}): gold {mismatch['gold_value_summary']}; "
+                    f"prediction {mismatch['prediction_value_summary']}"
+                )
+        else:
+            lines.append("- no field mismatch")
+        lines.append("")
+
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path}
+
+
 def write_sft_target_template_alignment_report(
     diagnostics: dict[str, Any],
     output_dir: Path,
