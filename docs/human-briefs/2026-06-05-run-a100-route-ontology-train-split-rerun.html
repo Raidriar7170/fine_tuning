@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>A100 Route Ontology Train-Split Rerun Human Brief</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #20242a; background: #f6f7f9; }
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .status { background: #ffffff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 14px; }
+    .metric { background: #ffffff; border: 1px solid #d8dde6; border-radius: 8px; padding: 14px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>A100 route ontology train-split rerun</h1>
+  <section class="status">
+    <p><strong>一句话结论：</strong>route ontology 修复已经影响到 A100 prediction path，三条 train 预测的 raw <code>route</code> 都是 <code>search_web</code> 并匹配 gold route；但 strict final-contract metrics 仍然是 <code>0/3</code> schema-valid、<code>route_accuracy=0.0000</code>，因为 <code>confirmation_required</code> 仍缺失。</p>
+  </section>
+  <div class="grid">
+    <div class="metric"><span>当前状态</span><strong>archived</strong></div>
+    <div class="metric"><span>raw route/gold match</span><strong>3/3</strong></div>
+    <div class="metric"><span>strict schema-valid</span><strong>0/3</strong></div>
+    <div class="metric"><span>generalization claim</span><strong>false</strong></div>
+  </div>
+  <h2>本阶段变化</h2>
+  <ul>
+    <li>导入 A100 prediction-only rerun 的 sanitized evidence：predictions、metadata、prompt snapshot、raw decoded summary、generation trace。</li>
+    <li>生成 train split gold、metrics、schema guard summary、route ontology diagnosis、manifest、report 和 leak scan。</li>
+    <li>保持边界：不重新训练、不发布 adapter/checkpoint、不做 schema repair、不声明 dev/test 泛化。</li>
+  </ul>
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前目标：first-phase speech-to-contract normalization，来源为 <a href="../../CONTEXT.md">CONTEXT.md</a> 和 <a href="../../README.md">README.md</a>。</li>
+    <li>本阶段推进：证明 route ontology prompt repair 已进入真实 private A100 prediction path，并把 raw route/gold match 从上一轮 weather/domain route failure 收敛到 <code>3/3</code>。</li>
+    <li>剩余差距：strict final-contract schema-valid 仍为 <code>0/3</code>，集中在 <code>confirmation_required</code> 缺失；仍没有 dev/test 泛化、模型恢复、release 或 live-browser benchmark 证据。</li>
+    <li>下一阶段计划：单独提出一个小的 required-field emission 修复阶段，先处理 <code>confirmation_required</code> 输出稳定性，再决定是否需要新的 A100 rerun。</li>
+  </ul>
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-route-ontology-train-split-rerun/report.md">evidence report</a></li>
+    <li><a href="../../reports/public-sample/a100-route-ontology-train-split-rerun/route_ontology_diagnosis.md">route ontology diagnosis</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-05-run-a100-route-ontology-train-split-rerun/tasks.md">Archived OpenSpec tasks</a></li>
+  </ul>
+  <h2>验证记录</h2>
+  <ul>
+    <li>TDD 红灯：新增 evidence 测试先因目标目录不存在而失败。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：137 passed。</li>
+    <li>Focused evidence/prompt/source-diagnostics tests：4 passed。</li>
+    <li><code>uv run ruff check .</code>：passed；<code>uv run mypy src</code>：16 source files passed。</li>
+    <li>Public data validate：ok true；DPO check：26 pairs checked。</li>
+    <li>Leak scan 覆盖 evidence 目录、Human Brief、active OpenSpec change：ok true，0 findings。</li>
+    <li><code>git diff --check</code>：passed；<code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：5 passed，0 failed。</li>
+  </ul>
+  <h2>剩余风险</h2>
+  <p>这是一组 train-internal overfit diagnostic evidence。它说明 raw route ontology / gold-route match 改善到 3/3；同时 strict final-contract route accuracy 仍为 0.0000，因为最终输出不满足完整 schema。它不证明模型恢复、泛化、生产可用或 live-browser benchmark 改善。Reviewer 复审已通过；下一步应单独开一个很小的 required-field emission 修复阶段。</p>
+</main>
+</body>
+</html>

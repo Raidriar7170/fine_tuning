@@ -1,0 +1,72 @@
+{
+  "failure_slices": {
+    "confirmation": {
+      "count": 0,
+      "examples": []
+    },
+    "route": {
+      "count": 0,
+      "examples": []
+    },
+    "safety": {
+      "count": 0,
+      "examples": []
+    },
+    "schema": {
+      "count": 3,
+      "examples": [
+        "seed-search-weather",
+        "seed-search-weather-aug-1",
+        "seed-search-weather-aug-2"
+      ]
+    },
+    "slot": {
+      "count": 0,
+      "examples": []
+    },
+    "task_type": {
+      "count": 0,
+      "examples": []
+    },
+    "unknown": {
+      "count": 0,
+      "examples": []
+    }
+  },
+  "metadata": {
+    "generalization_claim": false,
+    "overfit_diagnostic": true,
+    "prediction_count": 3,
+    "prediction_source_kind": "private_a100_adapter",
+    "prediction_split": "train",
+    "prediction_status": "private_adapter_predictions_written",
+    "raw_route_ontology_counts_available": true,
+    "route_ontology_diagnostic": true,
+    "schema_repair_applied": false,
+    "strict_final_contract_metrics": true,
+    "strict_final_route_accuracy": 0.0
+  },
+  "metrics": {
+    "confirmation_accuracy": 0.0,
+    "contract_exact_match": 0.0,
+    "json_valid_rate": 0.0,
+    "route_accuracy": 0.0,
+    "safety_gold_stop_support": 0.0,
+    "safety_precision": 1.0,
+    "safety_predicted_stop_support": 0.0,
+    "safety_recall": 1.0,
+    "slot_f1": 0.0,
+    "task_type_accuracy": 0.0
+  },
+  "route_ontology_counts": {
+    "missing_confirmation_required_count": 3,
+    "raw_gold_route_match_count": 3,
+    "route_enum_valid_count": 3,
+    "route_value_counts": {
+      "search_web": 3
+    },
+    "strict_final_route_accuracy": 0.0,
+    "strict_final_route_accuracy_explanation": "route_accuracy is computed only after strict Browser Task Contract validation; because all final predictions are schema-invalid, strict final-contract route_accuracy remains 0.0 even though raw prediction route values match the gold route for all train rows.",
+    "validated_output_schema_valid_count": 0
+  }
+}

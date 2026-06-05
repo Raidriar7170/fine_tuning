@@ -159,6 +159,102 @@ def test_route_task_ontology_output_repair_evidence_is_public_safe_and_bounded()
     assert "/Users/" not in serialized
 
 
+def test_a100_route_ontology_train_split_rerun_evidence_is_public_safe_and_bounded() -> None:
+    evidence_dir = Path("reports/public-sample/a100-route-ontology-train-split-rerun")
+    required_files = {
+        "predictions.jsonl",
+        "prediction_metadata.json",
+        "prompt_snapshot.json",
+        "raw_decoded_summary.jsonl",
+        "generation_trace.jsonl",
+        "train_split_gold.jsonl",
+        "metrics.json",
+        "metrics.md",
+        "schema_guard_summary.json",
+        "schema_guard_summary.md",
+        "route_ontology_diagnosis.json",
+        "route_ontology_diagnosis.md",
+        "manifest.json",
+        "report.md",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+    }
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+
+    metadata = json.loads((evidence_dir / "prediction_metadata.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    schema_guard = json.loads((evidence_dir / "schema_guard_summary.json").read_text(encoding="utf-8"))
+    diagnosis = json.loads((evidence_dir / "route_ontology_diagnosis.json").read_text(encoding="utf-8"))
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_leak_scan = json.loads((evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8")
+    metrics_markdown = (evidence_dir / "metrics.md").read_text(encoding="utf-8")
+    diagnosis_markdown = (evidence_dir / "route_ontology_diagnosis.md").read_text(encoding="utf-8")
+    serialized = (
+        json.dumps(metadata, ensure_ascii=False, sort_keys=True)
+        + json.dumps(manifest, ensure_ascii=False, sort_keys=True)
+        + json.dumps(metrics, ensure_ascii=False, sort_keys=True)
+        + json.dumps(schema_guard, ensure_ascii=False, sort_keys=True)
+        + json.dumps(diagnosis, ensure_ascii=False, sort_keys=True)
+        + report
+        + metrics_markdown
+        + diagnosis_markdown
+    )
+
+    assert metadata["prediction_status"] == "private_adapter_predictions_written"
+    assert metadata["prediction_source_kind"] == "private_a100_adapter"
+    assert metadata["prediction_count"] == 3
+    assert metadata["prediction_split"] == "train"
+    assert metadata["overfit_diagnostic"] is True
+    assert metadata["generalization_claim"] is False
+    assert metadata["prompt_constraints"]["route_execution_channel_visible"] is True
+    assert metadata["prompt_constraints"]["route_domain_values_not_route_visible"] is True
+    assert metadata["prompt_constraints"]["weather_to_search_route_example_visible"] is True
+    assert metadata["decoding_policy"]["schema_repair_applied"] is False
+    assert metadata["decoding_policy"]["schema_retry_enabled"] is True
+    assert manifest["artifact_policy"]["private_configs_copied_to_git"] is False
+    assert manifest["artifact_policy"]["checkpoints_or_adapters_copied_to_git"] is False
+    assert manifest["artifact_policy"]["raw_logs_copied_to_git"] is False
+    assert manifest["claims"]["held_out_generalization_claim"] is False
+    assert manifest["claims"]["model_quality_evidence"] is False
+    assert metrics["metadata"]["prediction_split"] == "train"
+    assert metrics["metadata"]["generalization_claim"] is False
+    assert metrics["metadata"]["strict_final_contract_metrics"] is True
+    assert metrics["metadata"]["strict_final_route_accuracy"] == 0.0
+    assert metrics["route_ontology_counts"]["route_value_counts"] == {"search_web": 3}
+    assert metrics["route_ontology_counts"]["route_enum_valid_count"] == 3
+    assert metrics["route_ontology_counts"]["raw_gold_route_match_count"] == 3
+    assert metrics["route_ontology_counts"]["missing_confirmation_required_count"] == 3
+    assert metrics["route_ontology_counts"]["validated_output_schema_valid_count"] == 0
+    assert metrics["route_ontology_counts"]["strict_final_route_accuracy_explanation"]
+    assert schema_guard["summary"]["prediction_count"] == 3
+    assert diagnosis["diagnostic_kind"] == "route_ontology_train_split_diagnosis"
+    assert diagnosis["summary"]["prediction_count"] == 3
+    assert diagnosis["summary"]["route_value_counts"] == {"search_web": 3}
+    assert diagnosis["summary"]["route_enum_valid_count"] == 3
+    assert diagnosis["summary"]["raw_gold_route_match_count"] == 3
+    assert diagnosis["summary"]["missing_confirmation_required_count"] == 3
+    assert diagnosis["summary"]["validated_output_schema_valid_count"] == 0
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_leak_scan["ok"] is True
+    assert phase_leak_scan["findings"] == []
+    assert "train-internal" in report
+    assert "no held-out generalization claim" in report
+    assert "route ontology" in report
+    assert "strict final-contract route accuracy" in report
+    assert "raw route ontology / gold-route match: `3/3`" in report
+    assert "strict final-contract route accuracy" in metrics_markdown
+    assert "raw route ontology / gold-route match: `3/3`" in metrics_markdown
+    assert "Strict final route accuracy remains `0.0000`" in diagnosis_markdown
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+
+
 def test_sft_prediction_metadata_uses_configured_max_new_tokens(tmp_path: Path) -> None:
     manifest = _write_manifest(tmp_path)
     config = _write_prediction_config(tmp_path)

@@ -1,0 +1,125 @@
+{
+  "baseline_context": {
+    "prior_evidence": "reports/public-sample/a100-constrained-output-train-split-rerun/",
+    "prior_failure": "pre-route-ontology repair evidence included an invalid domain-like route value for the weather row"
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_quality_evidence": false,
+    "production_readiness_claim": false,
+    "schema_repair_or_coercion_applied": false,
+    "strict_final_contract_metrics_separated_from_raw_route_counts": true
+  },
+  "diagnostic_kind": "route_ontology_train_split_diagnosis",
+  "generated_at": "2026-06-05T03:20:30.623668+00:00",
+  "prompt_constraints": {
+    "canonical_json_one_shot_visible": true,
+    "required_field_checklist_visible": true,
+    "required_field_skeleton_visible": true,
+    "route_domain_values_not_route_visible": true,
+    "route_enum_visible": true,
+    "route_execution_channel_visible": true,
+    "route_not_url_or_path_visible": true,
+    "slots_object_not_array_visible": true,
+    "task_type_enum_visible": true,
+    "weather_to_search_route_example_visible": true,
+    "whole_object_boundary_visible": true
+  },
+  "rows": [
+    {
+      "finish_state": "eos_observed",
+      "generated_token_count": 57,
+      "gold_route": "search_web",
+      "gold_task_type": "search",
+      "id": "seed-search-weather",
+      "prediction_schema_valid": false,
+      "raw_attempt_missing_required_fields": [
+        "confirmation_required"
+      ],
+      "raw_attempt_parse_status": "json_object",
+      "raw_attempt_schema_valid": false,
+      "raw_attempt_validation_error": "missing required fields: confirmation_required",
+      "retry_attempt_parse_status": "json_fragment_object",
+      "retry_attempt_schema_valid": false,
+      "retry_attempt_validation_error": "prediction must be a JSON object matching Browser Task Contract",
+      "route": "search_web",
+      "route_enum_valid": true,
+      "task_type": "search",
+      "task_type_enum_valid": true,
+      "validated_output_schema_valid": false,
+      "validated_output_source": "none"
+    },
+    {
+      "finish_state": "eos_observed",
+      "generated_token_count": 58,
+      "gold_route": "search_web",
+      "gold_task_type": "search",
+      "id": "seed-search-weather-aug-1",
+      "prediction_schema_valid": false,
+      "raw_attempt_missing_required_fields": [
+        "confirmation_required"
+      ],
+      "raw_attempt_parse_status": "json_object",
+      "raw_attempt_schema_valid": false,
+      "raw_attempt_validation_error": "missing required fields: confirmation_required",
+      "retry_attempt_parse_status": "json_fragment_object",
+      "retry_attempt_schema_valid": false,
+      "retry_attempt_validation_error": "prediction must be a JSON object matching Browser Task Contract",
+      "route": "search_web",
+      "route_enum_valid": true,
+      "task_type": "search",
+      "task_type_enum_valid": true,
+      "validated_output_schema_valid": false,
+      "validated_output_source": "none"
+    },
+    {
+      "finish_state": "eos_observed",
+      "generated_token_count": 57,
+      "gold_route": "search_web",
+      "gold_task_type": "search",
+      "id": "seed-search-weather-aug-2",
+      "prediction_schema_valid": false,
+      "raw_attempt_missing_required_fields": [
+        "confirmation_required"
+      ],
+      "raw_attempt_parse_status": "json_object",
+      "raw_attempt_schema_valid": false,
+      "raw_attempt_validation_error": "missing required fields: confirmation_required",
+      "retry_attempt_parse_status": "json_fragment_object",
+      "retry_attempt_schema_valid": false,
+      "retry_attempt_validation_error": "prediction must be a JSON object matching Browser Task Contract",
+      "route": "search_web",
+      "route_enum_valid": true,
+      "task_type": "search",
+      "task_type_enum_valid": true,
+      "validated_output_schema_valid": false,
+      "validated_output_source": "none"
+    }
+  ],
+  "summary": {
+    "missing_confirmation_required_count": 3,
+    "prediction_count": 3,
+    "raw_attempt_missing_required_field_counts": {
+      "confirmation_required": 3
+    },
+    "raw_gold_route_match_count": 3,
+    "raw_route_enum_valid_count": 3,
+    "retry_route_enum_valid_count": 0,
+    "route_enum_valid_count": 3,
+    "route_ontology_recovery_observed": true,
+    "route_value_counts": {
+      "search_web": 3
+    },
+    "schema_recovery_observed": false,
+    "strict_final_route_accuracy": 0.0,
+    "strict_final_route_accuracy_explanation": "route_accuracy is computed only after strict Browser Task Contract validation; because all final predictions are schema-invalid, strict final-contract route_accuracy remains 0.0 even though raw prediction route values match the gold route for all train rows.",
+    "task_type_enum_valid_count": 3,
+    "task_type_value_counts": {
+      "search": 3
+    },
+    "validated_output_schema_valid_count": 0
+  }
+}

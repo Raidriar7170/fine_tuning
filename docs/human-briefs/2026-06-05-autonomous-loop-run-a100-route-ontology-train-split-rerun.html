@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Autonomous Loop Closeout: A100 Route Ontology Rerun</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f6f7f9; color: #20242a; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 52px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel, .metric { background: #fff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: A100 route ontology train-split rerun</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>本轮已完成、Reviewer 复审通过并归档 <code>run-a100-route-ontology-train-split-rerun</code>；真实 private A100 prediction path 中 raw route/gold match 达到 <code>3/3</code>，但 strict final-contract schema-valid 仍为 <code>0/3</code>，失败集中在 <code>confirmation_required</code> 缺失。</p>
+  </section>
+  <div class="grid">
+    <div class="metric"><span>loop status</span><strong>completed</strong></div>
+    <div class="metric"><span>archived phases</span><strong>1</strong></div>
+    <div class="metric"><span>raw route/gold match</span><strong>3/3</strong></div>
+    <div class="metric"><span>strict schema-valid</span><strong>0/3</strong></div>
+  </div>
+
+  <h2>停止原因</h2>
+  <p>停止条件：当前 A100 evidence phase 已完成并归档。下一步是新的 required-field emission 行为修复候选，会改变下一阶段的 prompt/输出约束目标，应作为单独 OpenSpec change 处理，而不是混入本阶段 rerun evidence。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目目标：first-phase speech-to-contract normalization，即把中文 spoken command 或 ASR transcript 转成 schema-valid Browser Task Contract。来源：<a href="../../CONTEXT.md">CONTEXT.md</a>、<a href="../../README.md">README.md</a> 和 OpenSpec specs。</li>
+    <li>本阶段推进：确认 route ontology prompt repair 已进入真实 A100 private-adapter prediction path，并将天气/domain route symptom 消除为 raw <code>route=search_web</code> 3/3。</li>
+    <li>剩余能力差距：strict final-contract schema-valid 仍为 0/3；没有 dev/test held-out generalization、checkpoint/adapter release、production readiness、public full-corpus release 或 live-browser benchmark evidence。</li>
+    <li>下一阶段计划：新建 bounded change，聚焦 <code>confirmation_required</code> required-field emission；完成本地修复后再决定是否需要新的 A100 train-split rerun。</li>
+  </ul>
+
+  <h2>完成的阶段</h2>
+  <ul>
+    <li>OpenSpec archive：<a href="../../openspec/changes/archive/2026-06-05-run-a100-route-ontology-train-split-rerun/proposal.md">2026-06-05-run-a100-route-ontology-train-split-rerun</a>。</li>
+    <li>阶段 Human Brief：<a href="2026-06-05-run-a100-route-ontology-train-split-rerun.html">2026-06-05-run-a100-route-ontology-train-split-rerun.html</a>。</li>
+    <li>Evidence report：<a href="../../reports/public-sample/a100-route-ontology-train-split-rerun/report.md">reports/public-sample/a100-route-ontology-train-split-rerun/report.md</a>。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li>Focused evidence/prompt/source-diagnostics tests：4 passed；strengthened rerun evidence test：1 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：137 passed。</li>
+    <li><code>uv run ruff check .</code>：passed；<code>uv run mypy src</code>：16 source files passed。</li>
+    <li>Public data validate：ok true；DPO check：26 pairs checked。</li>
+    <li>Leak scan：ok true，0 findings，覆盖 evidence、phase brief、loop brief 和 archived OpenSpec artifacts。</li>
+    <li><code>git diff --check</code>：passed；<code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：4 passed，0 failed after archive。</li>
+  </ul>
+
+  <h2>Review 和集成</h2>
+  <ul>
+    <li>内部 Reviewer 第一轮 verdict：Pass with fixes；Must Fix 是 route metric/report inconsistency 和测试不变量不够严格。</li>
+    <li>Fix pass 后 Reviewer 复审：Pass，Must Fix/Should Fix 均为空。</li>
+    <li>Auto integration：pending，本报告提交前无法写入最终 commit hash；精确 commit/merge/push 状态以 Codex final response 为准。</li>
+    <li>External Pro review：未运行。本阶段风险主要是 evidence consistency、privacy boundary 和 overclaim，已由内部 Reviewer、测试和 leak scan 覆盖。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是模型恢复证明：strict final-contract schema-valid 仍为 <code>0/3</code>。</li>
+    <li>这不是 dev/test 泛化、checkpoint release、adapter release、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>raw route/gold match 3/3 是 train-split、prediction-only、private-adapter 证据，只能说明 route ontology symptom 有改善。</li>
+  </ul>
+</main>
+</body>
+</html>
