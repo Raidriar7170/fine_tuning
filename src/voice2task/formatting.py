@@ -9,14 +9,11 @@ _TASK_TYPE_ENUM = ", ".join(sorted(TASK_TYPES))
 _ROUTE_ENUM = ", ".join(sorted(ROUTES))
 CONTRACT_REQUIRED_FIELD_SKELETON = (
     "Browser Task Contract required skeleton: "
-    '{"task_type":"<one of task_type enum>","route":"<one of route enum>",'
-    '"safety":{"allow":<boolean>,"reason":"<non-empty string>"},'
-    '"confirmation_required":<boolean>,"slots":{...},'
-    '"normalized_command":"<Chinese normalized command>","language":"zh-CN","contract_version":"v1"}。'
-    "Required-field checklist: task_type, route, safety, confirmation_required, slots, "
-    "normalized_command, language, contract_version. 每次输出都必须包含全部 8 个顶层字段；"
+    '{"task_type":"<enum>","route":"<enum>","safety":{"allow":<bool>,"reason":"<text>"},'
+    '"confirmation_required":<bool>,"slots":{},"normalized_command":"<zh>",'
+    '"language":"zh-CN","contract_version":"v1"}。'
+    "Required-field checklist；每次输出都必须包含全部 8 个顶层字段；"
     "confirmation_required 必须是 boolean；低风险公开只读搜索通常为 false。"
-    "即使字段值很简单，也不能省略 safety、confirmation_required、normalized_command 或 contract_version。"
 )
 CONTRACT_CANONICAL_ONE_SHOT = canonical_contract_json(
     BrowserTaskContract(
@@ -33,22 +30,29 @@ CONTRACT_OUTPUT_BOUNDARY_RULES = (
     "不要 Markdown/code fences/prose；不要解释、不要自然语言前后缀。"
 )
 ROUTE_ONTOLOGY_RULES = (
-    "route 是 Browser Task Contract execution channel，只能表示执行通道。"
-    "route 不是 domain/topic/intent/URL/path；weather、shopping、email、media、URL host 等领域词"
-    "必须放进 task_type, slots, normalized_command，不要当作 route。"
-    '天气请求示例: task_type="search", route="search_web", confirmation_required=false, '
-    'slots={"query":"北京 明天 天气"}。'
+    "route 是 Browser Task Contract execution channel，只能表示执行通道；"
+    "route 不是 domain/topic/intent/URL/path。weather、shopping、email、media 领域词"
+    "放进 task_type, slots, normalized_command。"
+    '天气请求示例: task_type="search", route="search_web", confirmation_required=false。'
+)
+NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
+    "normalized_command 是 canonical Chinese intent phrase，不是 verbatim transcript 或 ASR text；"
+    "search 信息查询用 `搜索` + 简洁查询词；"
+    "示例 normalized_command(非样本答案): 搜索上海后天天气；打开帮助中心；填写昵称并确认；拒绝代替用户转账。"
+    "不是 evaluator normalization；"
+    "contract_exact_match 仍然 strict，不做 semantic-equivalence scoring、prediction repair 或 re-score。"
 )
 
 SYSTEM_PROMPT = (
-    "你是 Voice2Task contract normalizer。只输出一个 Browser Task Contract JSON object。"
-    "必须包含且只使用这些顶层字段：task_type, route, safety, confirmation_required, slots, "
+    "你是 Voice2Task contract normalizer。只输出一个 Browser Task Contract JSON object；"
+    "顶层字段只许 task_type, route, safety, confirmation_required, slots, "
     "normalized_command, language, contract_version。"
     f"task_type enum: {_TASK_TYPE_ENUM}。"
     f"route enum: {_ROUTE_ENUM}；route 不是 URL/path；route 必须使用上面的 enum 值。"
     f"{ROUTE_ONTOLOGY_RULES}"
-    "slots 必须是 JSON object，不是 array/list。"
-    "safety 必须包含 safety.allow 和 safety.reason；language 必须为 zh-CN；contract_version 必须为 v1。"
+    f"{NORMALIZED_COMMAND_CANONICALIZATION_POLICY}"
+    "slots 必须是 JSON object，不是 array/list；"
+    "safety 含 safety.allow/safety.reason；language=zh-CN；contract_version=v1。"
     f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
     f"Canonical valid one-shot example: {CONTRACT_CANONICAL_ONE_SHOT}。这是格式示例，不是当前用户的目标答案。"
     f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
@@ -62,6 +66,7 @@ FORMATTING_POLICY: dict[str, Any] = {
     "tokenizer_chat_template": "used_when_available_with_tokenize_false",
     "fallback": "deterministic_role_plain_text",
     "prediction_target_policy": "generation_prompt_without_gold_contract",
+    "normalized_command_policy": "canonical_chinese_intent_phrase_not_verbatim_transcript",
 }
 
 
@@ -97,6 +102,16 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         in prompt
         and "confirmation_required=false" in prompt
         and 'route="weather"' not in prompt,
+        "normalized_command_canonical_policy_visible": "normalized_command 是 canonical Chinese intent phrase" in prompt
+        and "不是 verbatim transcript 或 ASR text" in prompt,
+        "normalized_command_public_examples_visible": "搜索上海后天天气" in prompt
+        and "打开帮助中心" in prompt
+        and "填写昵称并确认" in prompt
+        and "拒绝代替用户转账" in prompt,
+        "normalized_command_no_metric_relaxation_visible": "不是 evaluator normalization" in prompt
+        and "contract_exact_match 仍然 strict" in prompt
+        and "不做 semantic-equivalence scoring" in prompt
+        and "prediction repair 或 re-score" in prompt,
     }
 
 

@@ -1,0 +1,25 @@
+{
+  "artifact_role": "normalized_command_target_writing_policy",
+  "change_name": "define-normalized-command-canonicalization-policy",
+  "created_on": "2026-06-05",
+  "evidence_kind": "local_policy_clarification",
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_changed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_improvement_claim": false,
+    "model_quality_improvement_claim": false,
+    "prediction_rerun_performed": false,
+    "predictions_repaired_or_replaced": false,
+    "predictions_rescored": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "semantic_equivalence_scoring_performed": false,
+    "training_performed": false
+  },
+  "policy_artifacts": {
+    "policy_note": "reports/public-sample/normalized-command-canonicalization-policy/normalized_command_canonicalization_policy.md"
+  }
+}

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Autonomous Loop Closeout: Normalized Command Canonicalization Policy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f6f7f9; color: #20242a; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 52px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel, .metric { background: #fff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: normalized_command canonicalization policy</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>本轮已完成、Reviewer 复审通过并归档 <code>define-normalized-command-canonicalization-policy</code>；它把 <code>normalized_command</code> gold target 写法显式化到数据/spec/prompt/docs，但没有执行 A100、训练、prediction rerun、metric change、semantic scoring、repair 或 re-score。</p>
+  </section>
+  <div class="grid">
+    <div class="metric"><span>loop status</span><strong>completed</strong></div>
+    <div class="metric"><span>archived phases</span><strong>1</strong></div>
+    <div class="metric"><span>A100 / rerun</span><strong>false</strong></div>
+    <div class="metric"><span>Reviewer verdict</span><strong>Pass</strong></div>
+  </div>
+
+  <h2>停止原因</h2>
+  <p>停止条件：本地 policy phase 已完成并归档。下一步如果要验证 prompt policy 对真实 private adapter prediction 的影响，需要新的 A100 train-split rerun；这会使用私有基础设施，按项目规则需要单独确认。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目目标：first-phase speech-to-contract normalization，即把中文 spoken command 或 ASR transcript 转成 schema-valid Browser Task Contract。来源：<a href="../../README.md">README.md</a> 和 OpenSpec specs。</li>
+    <li>本阶段推进：明确 <code>normalized_command</code> gold target 应为 canonical Chinese intent phrase，而不是 verbatim transcript 或 ASR text。</li>
+    <li>边界保持：<code>contract_exact_match</code> 仍是 strict full-contract exact match；不把 <code>搜索/查询</code> 或 <code>明天的天气/明天天气</code> 自动当作 evaluator-side equivalence。</li>
+    <li>剩余能力差距：仍无 dev/test held-out generalization、checkpoint/adapter release、production readiness、public full-corpus release、model-quality improvement 或 live-browser benchmark evidence。</li>
+  </ul>
+
+  <h2>完成的阶段</h2>
+  <ul>
+    <li>OpenSpec archive：<a href="../../openspec/changes/archive/2026-06-05-define-normalized-command-canonicalization-policy/proposal.md">2026-06-05-define-normalized-command-canonicalization-policy</a>。</li>
+    <li>阶段 Human Brief：<a href="2026-06-05-define-normalized-command-canonicalization-policy.html">2026-06-05-define-normalized-command-canonicalization-policy.html</a>。</li>
+    <li>Public policy note：<a href="../../reports/public-sample/normalized-command-canonicalization-policy/normalized_command_canonicalization_policy.md">reports/public-sample/normalized-command-canonicalization-policy/normalized_command_canonicalization_policy.md</a>。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>：146 passed。</li>
+    <li><code>uv run ruff check .</code>：passed；<code>uv run mypy src</code>：16 source files passed。</li>
+    <li>Public data validate：ok true，12 SFT rows / 26 DPO pairs；DPO check：26 pairs。</li>
+    <li>Leak scan：ok true，0 findings，覆盖 README、policy note、phase brief、loop brief 和 archived OpenSpec artifacts。</li>
+    <li><code>git diff --check</code>：passed；<code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：4 passed，0 failed after archive。</li>
+  </ul>
+
+  <h2>Review 和集成</h2>
+  <ul>
+    <li>内部 Reviewer 第一轮 verdict：Blocked；Must Fix 是 system prompt 静态示例等于 public-sample gold <code>normalized_command</code>，会泄漏 prediction prompt policy examples。</li>
+    <li>Fix pass：prompt 示例改成非样本答案，并新增 public-sample regression，确认 system prompt 不包含 public-sample gold target。</li>
+    <li>Reviewer 复审：Pass，Must Fix/Should Fix 均为空。</li>
+    <li>Auto integration：pending，本报告提交前无法写入最终 commit hash；精确 commit/push 状态以 Codex final response 为准。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是模型质量提升证明；没有训练或 prediction rerun。</li>
+    <li>这不是 semantic-equivalence metric，也不是 prediction normalization、repair 或 re-score。</li>
+    <li>prompt 长度在 public sample fake character-tokenizer cap 下只有 39 字符余量；后续新增 prompt 文案应先跑长度/label-provenance smoke。</li>
+  </ul>
+</main>
+</body>
+</html>

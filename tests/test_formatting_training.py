@@ -239,6 +239,66 @@ def test_sft_training_text_exposes_route_execution_channel_ontology() -> None:
     assert summary["weather_to_search_confirmation_false_visible"] is True
 
 
+def test_sft_prompts_expose_normalized_command_canonicalization_policy_without_gold_target() -> None:
+    row = SFTDatasetRow(
+        id="sft-weather-1",
+        split="train",
+        input_text="帮我查上海明天的天气",
+        target_contract=BrowserTaskContract(
+            task_type="search",
+            route="search_web",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"query": "gold-weather-token"},
+            normalized_command="搜索 gold-weather-token",
+        ),
+        provenance={"source_id": "seed-search-weather", "public_safe": True},
+    )
+
+    training_text = formatting.format_sft_training_text(row, tokenizer=None)
+    prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary()
+
+    for text in (training_text, prediction_prompt):
+        assert "normalized_command 是 canonical Chinese intent phrase" in text
+        assert "不是 verbatim transcript 或 ASR text" in text
+        assert "search 信息查询用 `搜索` + 简洁查询词" in text
+        assert (
+            "示例 normalized_command(非样本答案): "
+            "搜索上海后天天气；打开帮助中心；填写昵称并确认；拒绝代替用户转账"
+        ) in text
+        assert "不是 evaluator normalization" in text
+        assert "contract_exact_match 仍然 strict" in text
+        assert "不做 semantic-equivalence scoring" in text
+        assert "prediction repair 或 re-score" in text
+    assert "gold-weather-token" in training_text
+    assert "gold-weather-token" not in prediction_prompt
+    assert summary["normalized_command_canonical_policy_visible"] is True
+    assert summary["normalized_command_public_examples_visible"] is True
+    assert summary["normalized_command_no_metric_relaxation_visible"] is True
+
+
+def test_public_sample_prediction_prompt_policy_examples_do_not_include_gold_targets() -> None:
+    rows_path = Path("data/public-samples/sft_public_sample.jsonl")
+    rows = [json.loads(line) for line in rows_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+    for payload in rows:
+        row = SFTDatasetRow(
+            id=payload["id"],
+            split=payload["split"],
+            input_text=payload["input_text"],
+            target_contract=payload["target_contract"],
+            provenance=payload["provenance"],
+        )
+
+        system_prompt = formatting.format_sft_prompt_messages(row)[0]["content"]
+        prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+
+        assert row.target_contract.normalized_command not in system_prompt
+        if row.target_contract.normalized_command not in row.input_text:
+            assert row.target_contract.normalized_command not in prediction_prompt
+
+
 def test_sft_prediction_prompt_exposes_route_ontology_without_row_gold_target_or_bad_weather_route_example() -> None:
     row = SFTDatasetRow(
         id="sft-weather-1",
@@ -339,6 +399,10 @@ def test_system_prompt_exposes_contract_value_constraints() -> None:
     summary = formatting.prompt_constraint_summary()
     assert summary["confirmation_required_boolean_visible"] is True
     assert summary["weather_to_search_confirmation_false_visible"] is True
+    assert summary["normalized_command_canonical_policy_visible"] is True
+    assert formatting.FORMATTING_POLICY["normalized_command_policy"] == (
+        "canonical_chinese_intent_phrase_not_verbatim_transcript"
+    )
 
 
 def test_dpo_formatter_keeps_same_prompt_with_chosen_and_rejected_contracts() -> None:

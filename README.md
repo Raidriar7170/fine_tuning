@@ -170,6 +170,15 @@ normalize, semantically score, repair, replace, or re-score predictions, and the
 automatically mark Chinese phrase differences such as `搜索/查询` or
 `明天的天气/明天天气` as equivalent.
 
+## Normalized Command Target Policy
+
+`normalized_command` gold targets are canonical Chinese intent phrases, not verbatim
+transcripts or ASR text. First-phase public samples use concise target phrases such as
+`搜索北京明天天气`, `打开示例网站`, `填写邮箱并确认`, and `拒绝代替用户付款`; schema-preserving
+paraphrases keep the same target contract. This is target-writing guidance for SFT/DPO
+data and prompts, not evaluator-side normalization, semantic-equivalence scoring,
+prediction repair, or re-scoring.
+
 ## Scope Boundaries
 
 The first-phase model capability is speech-to-contract normalization: emit canonical browser task contract JSON from Chinese spoken commands or ASR transcripts. It does not route arbitrary skills, choose browser actions, publish a full private corpus, promise GRPO/rule-reward training, or claim live-browser benchmark improvement.

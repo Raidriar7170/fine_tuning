@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Define Normalized Command Canonicalization Policy Human Brief</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #20242a; background: #f6f7f9; }
+    main { max-width: 940px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel, .metric { background: #fff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Define normalized_command canonicalization policy</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>本阶段把 <code>normalized_command</code> 从“非空字符串”提升为明确的 gold target writing policy：它应是 canonical Chinese intent phrase，而不是 verbatim transcript 或 ASR text；同时保持 strict exact-match evaluator 不变。</p>
+  </section>
+
+  <div class="grid">
+    <div class="metric"><span>当前状态</span><strong>archived</strong></div>
+    <div class="metric"><span>A100 / rerun</span><strong>false</strong></div>
+    <div class="metric"><span>metric change</span><strong>false</strong></div>
+    <div class="metric"><span>prompt visibility</span><strong>true</strong></div>
+  </div>
+
+  <h2>本阶段变化</h2>
+  <ul>
+    <li><a href="../../README.md">README</a> 新增 <code>Normalized Command Target Policy</code>，说明 gold target 写法和非目标边界。</li>
+    <li><a href="../../src/voice2task/formatting.py">formatting.py</a> 新增 model-visible canonicalization policy，SFT training text 和 prediction prompt 都可见；prompt 示例已改为非 public-sample gold target。</li>
+    <li><a href="../../reports/public-sample/normalized-command-canonicalization-policy/normalized_command_canonicalization_policy.md">public policy note</a> 记录目标写法规则和非 claim 边界。</li>
+    <li>Focused tests 覆盖 public-sample paraphrase target stability、prompt visibility、system prompt 不泄漏 public-sample gold target、README surface。</li>
+  </ul>
+
+  <h2>关键边界</h2>
+  <ul>
+    <li>这是 target-writing guidance visibility，不是 model recovery。</li>
+    <li>不把 <code>搜索/查询</code> 或 <code>明天的天气/明天天气</code> 当作 evaluator-side equivalence。</li>
+    <li>不改 <code>contract_exact_match</code>，不 normalize/repair/re-score predictions。</li>
+    <li>本阶段不训练、不重跑 prediction、不使用 A100。</li>
+  </ul>
+
+  <h2>验证记录</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>：146 passed。</li>
+    <li><code>uv run ruff check .</code>：passed。</li>
+    <li><code>uv run mypy src</code>：passed。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>：ok，12 SFT rows / 26 DPO pairs。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>：26 pairs。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：archive 后 4 passed。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan README.md reports/public-sample/normalized-command-canonicalization-policy docs/human-briefs/2026-06-05-define-normalized-command-canonicalization-policy.html openspec/changes/archive/2026-06-05-define-normalized-command-canonicalization-policy --output reports/public-sample/normalized-command-canonicalization-policy/leak_scan_result.json</code>：ok。</li>
+    <li><code>git diff --check</code>：passed。</li>
+    <li>Reviewer 首轮 Must Fix：system prompt 静态示例泄漏 public-sample gold target；已改为非样本答案并新增回归测试。Reviewer final pass：Pass，Must Fix/Should Fix 为空。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目目标：first-phase speech-to-contract normalization；来源是 <a href="../../README.md">README</a> 和 OpenSpec specs。</li>
+    <li>本阶段推进：把下一次 prompt/rerun 前最容易摇摆的 target phrase 规则显式化，减少 strict string mismatch 的目标口径歧义。</li>
+    <li>剩余差距：prompt 长度在 public sample fake character-tokenizer cap 下仍只有 39 字符余量；仍无 dev/test held-out generalization、checkpoint/adapter release、production readiness、public full-corpus release、model-quality improvement 或 live-browser benchmark evidence。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>下一步建议单独确认是否启动 A100 train-split prediction rerun；该 rerun 会使用私有基础设施，不应自动混入本地 policy 阶段。</p>
+</main>
+</body>
+</html>

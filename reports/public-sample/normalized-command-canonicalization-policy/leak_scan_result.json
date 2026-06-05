@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-05T09:44:39.271024+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "README.md",
+    "reports/public-sample/normalized-command-canonicalization-policy",
+    "docs/human-briefs/2026-06-05-define-normalized-command-canonicalization-policy.html",
+    "docs/human-briefs/2026-06-05-autonomous-loop-define-normalized-command-canonicalization-policy.html",
+    "openspec/changes/archive/2026-06-05-define-normalized-command-canonicalization-policy"
+  ]
+}

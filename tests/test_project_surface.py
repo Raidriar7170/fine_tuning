@@ -15,6 +15,14 @@ MANIFEST_PATH = (
     / "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/"
     / "manifest.json"
 )
+CANONICAL_POLICY_PATH = (
+    REPO_ROOT
+    / "reports/public-sample/normalized-command-canonicalization-policy/"
+    / "normalized_command_canonicalization_policy.md"
+)
+CANONICAL_POLICY_MANIFEST_PATH = (
+    REPO_ROOT / "reports/public-sample/normalized-command-canonicalization-policy/manifest.json"
+)
 
 
 def _one_line(text: str) -> str:
@@ -25,6 +33,8 @@ def test_public_surfaces_clarify_strict_normalized_command_mismatch_policy() -> 
     readme = README_PATH.read_text(encoding="utf-8")
     policy = STRICT_STRING_POLICY_PATH.read_text(encoding="utf-8")
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    canonical_policy = CANONICAL_POLICY_PATH.read_text(encoding="utf-8")
+    canonical_policy_manifest = json.loads(CANONICAL_POLICY_MANIFEST_PATH.read_text(encoding="utf-8"))
     combined = f"{readme}\n{policy}"
     normalized_readme = _one_line(readme)
 
@@ -67,4 +77,25 @@ def test_public_surfaces_clarify_strict_normalized_command_mismatch_policy() -> 
     assert manifest["claims"]["model_quality_improvement_claim"] is False
     assert manifest["claims"]["live_browser_benchmark_improvement_claim"] is False
     assert "automatically mark Chinese phrase differences" in combined
-    assert scan_paths([README_PATH, STRICT_STRING_POLICY_PATH, MANIFEST_PATH]).ok is True
+    assert "Normalized Command Target Policy" in readme
+    assert "canonical Chinese intent phrases, not verbatim" in _one_line(readme)
+    assert "`搜索北京明天天气`" in readme
+    assert "`打开示例网站`" in readme
+    assert "`填写邮箱并确认`" in readme
+    assert "`拒绝代替用户付款`" in readme
+    assert "not evaluator-side normalization" in _one_line(readme)
+    assert "semantic-equivalence scoring" in readme
+    assert "canonical Chinese intent phrases, not verbatim transcripts or ASR text" in canonical_policy
+    assert "Search/information targets prefer `搜索` plus a concise query phrase" in canonical_policy
+    assert "does not normalize predictions" in canonical_policy
+    assert "mark `搜索/查询` or `明天的天气/明天天气` equivalent" in canonical_policy
+    assert canonical_policy_manifest["artifact_role"] == "normalized_command_target_writing_policy"
+    assert canonical_policy_manifest["evidence_kind"] == "local_policy_clarification"
+    assert canonical_policy_manifest["claims"]["evaluator_metric_changed"] is False
+    assert canonical_policy_manifest["claims"]["semantic_equivalence_scoring_performed"] is False
+    assert canonical_policy_manifest["claims"]["training_performed"] is False
+    assert canonical_policy_manifest["claims"]["prediction_rerun_performed"] is False
+    assert canonical_policy_manifest["claims"]["a100_execution_performed"] is False
+    assert scan_paths(
+        [README_PATH, STRICT_STRING_POLICY_PATH, MANIFEST_PATH, CANONICAL_POLICY_PATH, CANONICAL_POLICY_MANIFEST_PATH]
+    ).ok is True

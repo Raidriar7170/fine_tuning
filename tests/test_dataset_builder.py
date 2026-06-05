@@ -65,6 +65,17 @@ def test_build_public_sample_dataset_writes_manifest_sft_and_dpo(tmp_path: Path)
     assert (output_dir / "sft_public_sample.jsonl").exists()
     assert (output_dir / "dpo_public_sample.jsonl").exists()
     assert (output_dir / "manifest_public_sample.json").exists()
+    sft_rows = [
+        json.loads(line)
+        for line in (output_dir / "sft_public_sample.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    normalized_by_id = {row["id"]: row["target_contract"]["normalized_command"] for row in sft_rows}
+    assert normalized_by_id["seed-search"] == "搜索北京明天天气"
+    assert normalized_by_id["seed-search-aug-1"] == "搜索北京明天天气"
+    assert normalized_by_id["seed-search-aug-2"] == "搜索北京明天天气"
+    assert normalized_by_id["seed-form"] == "填写邮箱并确认"
+    assert normalized_by_id["seed-form-aug-1"] == "填写邮箱并确认"
 
     result = validate_dataset_artifacts(
         sft_path=output_dir / "sft_public_sample.jsonl",
