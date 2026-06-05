@@ -162,6 +162,14 @@ train-split overfit pass may support only train-internal recovery; it must keep
 - `reports/generated-local/` and `reports/private/`: gitignored local reports that may summarize private corpora.
 - `adapters/`, `checkpoints/`, `runs/`, and `logs/`: gitignored training outputs.
 
+## Metric Interpretation Boundaries
+
+`contract_exact_match` is a hard full-contract exact-match metric. `normalized_command`
+string-mismatch diagnostics are explanatory row-level evidence only: they do not relax,
+normalize, semantically score, repair, replace, or re-score predictions, and they do not
+automatically mark Chinese phrase differences such as `搜索/查询` or
+`明天的天气/明天天气` as equivalent.
+
 ## Scope Boundaries
 
 The first-phase model capability is speech-to-contract normalization: emit canonical browser task contract JSON from Chinese spoken commands or ASR transcripts. It does not route arbitrary skills, choose browser actions, publish a full private corpus, promise GRPO/rule-reward training, or claim live-browser benchmark improvement.

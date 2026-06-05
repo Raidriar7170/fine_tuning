@@ -33,7 +33,9 @@
     "normalized_command_mismatch_diagnosis": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/normalized_command_mismatch_diagnosis.json",
     "normalized_command_mismatch_report": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/normalized_command_mismatch_diagnosis.md",
     "phase_validation_leak_scan": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/phase_validation_leak_scan_result.json",
-    "post_archive_leak_scan": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/post_archive_leak_scan_result.json"
+    "post_archive_leak_scan": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/post_archive_leak_scan_result.json",
+    "strict_string_mismatch_policy": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/strict_string_mismatch_policy.md",
+    "strict_string_policy_leak_scan": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/strict_string_policy_leak_scan_result.json"
   },
   "evidence_kind": "confirmation_rerun_normalized_command_string_mismatch_diagnosis",
   "generated_at": "2026-06-05T08:20:20.593401+00:00",
@@ -50,6 +52,13 @@
     "seed-search-weather-aug-1",
     "seed-search-weather-aug-2"
   ],
+  "strict_string_policy_clarification": {
+    "artifact": "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/strict_string_mismatch_policy.md",
+    "artifact_role": "later_reader_facing_interpretation_note",
+    "change_name": "clarify-strict-string-mismatch-policy",
+    "clarified_on": "2026-06-05",
+    "not_rerun_or_metric_artifact": true
+  },
   "source_artifact_policy": {
     "a100_execution_performed": false,
     "derives_from_row_mismatch_diagnostics": true,

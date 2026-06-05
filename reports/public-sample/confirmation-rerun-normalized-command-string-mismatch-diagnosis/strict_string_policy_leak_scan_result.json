@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-05T09:01:19.565345+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "README.md",
+    "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis",
+    "docs/human-briefs/2026-06-05-clarify-strict-string-mismatch-policy.html",
+    "docs/human-briefs/2026-06-05-autonomous-loop-clarify-strict-string-mismatch-policy.html",
+    "openspec/changes/archive/2026-06-05-clarify-strict-string-mismatch-policy"
+  ]
+}

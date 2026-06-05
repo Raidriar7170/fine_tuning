@@ -2247,6 +2247,8 @@ def test_normalized_command_string_mismatch_evidence_pack_is_public_safe_and_bou
         "phase_validation_leak_scan_result.json",
         "post_archive_leak_scan_result.json",
         "final_leak_scan_result.json",
+        "strict_string_mismatch_policy.md",
+        "strict_string_policy_leak_scan_result.json",
     }
 
     assert {path.name for path in evidence_dir.iterdir()} >= expected_artifacts
@@ -2266,6 +2268,10 @@ def test_normalized_command_string_mismatch_evidence_pack_is_public_safe_and_bou
     )
     final_leak_scan = json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
     human_brief = human_brief_path.read_text(encoding="utf-8")
+    strict_string_policy = (evidence_dir / "strict_string_mismatch_policy.md").read_text(encoding="utf-8")
+    strict_string_policy_leak_scan = json.loads(
+        (evidence_dir / "strict_string_policy_leak_scan_result.json").read_text(encoding="utf-8")
+    )
 
     assert diagnosis["diagnostic_kind"] == "normalized_command_string_mismatch_diagnosis"
     assert diagnosis["summary"]["normalized_command_mismatch_count"] == 3
@@ -2317,11 +2323,27 @@ def test_normalized_command_string_mismatch_evidence_pack_is_public_safe_and_bou
         "post_archive_leak_scan_result.json"
     )
     assert manifest["diagnostic_artifacts"]["final_leak_scan"].endswith("final_leak_scan_result.json")
+    assert manifest["diagnostic_artifacts"]["strict_string_mismatch_policy"].endswith(
+        "strict_string_mismatch_policy.md"
+    )
+    assert manifest["diagnostic_artifacts"]["strict_string_policy_leak_scan"].endswith(
+        "strict_string_policy_leak_scan_result.json"
+    )
     assert manifest["source_artifacts"]["row_mismatch_diagnosis"].endswith("row_mismatch_diagnosis.json")
     assert manifest["source_artifacts"]["row_mismatch_manifest"].endswith("manifest.json")
     assert set(manifest["source_artifacts"]) == {"row_mismatch_diagnosis", "row_mismatch_manifest"}
     assert manifest["transitive_source_artifacts"]["predictions"].endswith("predictions.jsonl")
     assert manifest["transitive_source_artifacts"]["train_split_gold"].endswith("train_split_gold.jsonl")
+    assert manifest["strict_string_policy_clarification"] == {
+        "artifact": (
+            "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/"
+            "strict_string_mismatch_policy.md"
+        ),
+        "artifact_role": "later_reader_facing_interpretation_note",
+        "change_name": "clarify-strict-string-mismatch-policy",
+        "clarified_on": "2026-06-05",
+        "not_rerun_or_metric_artifact": True,
+    }
     assert manifest["source_artifact_policy"]["primary_inputs_are_row_mismatch_artifacts"] is True
     assert manifest["source_artifact_policy"]["transitive_rerun_artifacts_are_linked_for_traceability_only"] is True
     assert manifest["metrics_preserved"]["contract_exact_match"] == 0.0
@@ -2338,8 +2360,17 @@ def test_normalized_command_string_mismatch_evidence_pack_is_public_safe_and_bou
     assert post_archive_leak_scan["findings"] == []
     assert final_leak_scan["ok"] is True
     assert final_leak_scan["findings"] == []
+    assert strict_string_policy_leak_scan["ok"] is True
+    assert strict_string_policy_leak_scan["findings"] == []
+    assert "README.md" in strict_string_policy_leak_scan["scanned_paths"]
+    archived_change_path = "openspec/changes/archive/2026-06-05-clarify-strict-string-mismatch-policy"
+    assert archived_change_path in strict_string_policy_leak_scan["scanned_paths"]
     assert "local evidence-only analysis" in report
     assert "does not normalize or semantically score" in report
+    assert "`contract_exact_match` remains a hard full-contract exact-match metric" in strict_string_policy
+    assert "explanatory row-level evidence only" in strict_string_policy
+    assert "not automatically marked equivalent" in strict_string_policy
+    assert "No A100 execution was performed" in strict_string_policy
     assert "本地 evidence-only" in human_brief
     assert "不改 strict evaluator metrics" in human_brief
 
@@ -2351,7 +2382,9 @@ def test_normalized_command_string_mismatch_evidence_pack_is_public_safe_and_bou
             json.dumps(phase_validation_leak_scan, ensure_ascii=False, sort_keys=True),
             json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True),
             json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(strict_string_policy_leak_scan, ensure_ascii=False, sort_keys=True),
             report,
+            strict_string_policy,
             human_brief,
         ]
     )

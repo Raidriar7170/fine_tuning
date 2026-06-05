@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Clarify Strict String Mismatch Policy Human Brief</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #20242a; background: #f6f7f9; }
+    main { max-width: 940px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel, .metric { background: #fff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Clarify strict string mismatch policy</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>本阶段把 <code>normalized_command</code> strict string mismatch 的解释边界放到 README 和公开 evidence note：<code>contract_exact_match</code> 仍是硬 exact-match metric，字符串差异只是解释性 row-level evidence，不是语义等价评分或重评。</p>
+  </section>
+
+  <div class="grid">
+    <div class="metric"><span>当前状态</span><strong>archived</strong></div>
+    <div class="metric"><span>A100 / rerun</span><strong>false</strong></div>
+    <div class="metric"><span>metric change</span><strong>false</strong></div>
+    <div class="metric"><span>semantic scoring</span><strong>false</strong></div>
+  </div>
+
+  <h2>本阶段变化</h2>
+  <ul>
+    <li><a href="../../README.md">README</a> 新增 <code>Metric Interpretation Boundaries</code>，说明 <code>contract_exact_match</code> 是 hard full-contract exact-match。</li>
+    <li>新增 <a href="../../reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/strict_string_mismatch_policy.md">strict_string_mismatch_policy.md</a>，把证据目录里的 reader-facing policy 单独列出。</li>
+    <li>更新 evidence <a href="../../reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/manifest.json">manifest.json</a>，让 policy note 可发现。</li>
+    <li>新增 <a href="../../tests/test_project_surface.py">tests/test_project_surface.py</a>，并扩展 normalized-command evidence-pack 测试，锁住 no semantic-equivalence、no metric-change 和 public-safe 边界。</li>
+  </ul>
+
+  <h2>关键边界</h2>
+  <ul>
+    <li>不把 <code>搜索/查询</code> 或 <code>明天的天气/明天天气</code> 自动判成等价。</li>
+    <li>不 relax、normalize、semantically score、repair、replace 或 re-score predictions。</li>
+    <li>任何未来 semantic-equivalence 或 normalized-string metric 都需要新的 OpenSpec scope 和用户确认。</li>
+  </ul>
+
+  <h2>权威源与证据</h2>
+  <ul>
+    <li><a href="../../openspec/changes/archive/2026-06-05-clarify-strict-string-mismatch-policy/proposal.md">OpenSpec proposal</a>、<a href="../../openspec/changes/archive/2026-06-05-clarify-strict-string-mismatch-policy/design.md">design</a>、<a href="../../openspec/changes/archive/2026-06-05-clarify-strict-string-mismatch-policy/specs/contract-evaluation/spec.md">spec delta</a>、<a href="../../openspec/changes/archive/2026-06-05-clarify-strict-string-mismatch-policy/tasks.md">tasks</a></li>
+    <li><a href="../../reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/normalized_command_mismatch_diagnosis.md">上阶段 normalized-command diagnosis report</a></li>
+    <li><a href="../../reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/strict_string_mismatch_policy.md">本阶段 strict string mismatch policy note</a></li>
+  </ul>
+
+  <h2>验证记录</h2>
+  <ul>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate clarify-strict-string-mismatch-policy --strict</code>：passed。</li>
+    <li><code>PYTHONPATH=src pytest -q tests/test_project_surface.py tests/test_a100_sft_prediction_smoke.py::test_normalized_command_string_mismatch_evidence_pack_is_public_safe_and_bounded tests/test_a100_sft_prediction_smoke.py::test_a100_confirmation_required_train_split_rerun_evidence_is_public_safe_and_bounded tests/test_evaluator_reports.py::test_normalized_command_string_mismatch_diagnosis_preserves_strict_boundaries</code>：4 passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：144 passed。</li>
+    <li><code>uv run ruff check .</code>：All checks passed。</li>
+    <li><code>uv run mypy src</code>：Success，16 source files。</li>
+    <li>Public data validation：ok true，12 SFT rows，26 DPO pairs；DPO check：26 pairs checked。</li>
+    <li>Strict string policy leak scan：ok true，0 findings，覆盖 README、evidence 目录、Human Brief 和 archived OpenSpec change。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：archive 前 5 passed，0 failed；archive 后 4 passed，0 failed。</li>
+    <li><code>git diff --check</code>：passed。</li>
+    <li>Reviewer verdict：Pass with fixes；Must Fix 是补齐 Human Brief 与 4.1 验证记录一致性，本版已修。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目目标：first-phase speech-to-contract normalization；来源是 <a href="../../README.md">README</a> 和 OpenSpec specs。</li>
+    <li>本阶段推进：把 strict string mismatch 解释从上阶段报告内部提升到项目入口和 evidence manifest，降低 reviewer 误读风险。</li>
+    <li>剩余差距：仍无 dev/test held-out generalization、checkpoint/adapter release、production readiness、public full-corpus release、model-quality improvement 或 live-browser benchmark evidence。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 A100 新运行、训练、prediction rerun、prompt/training/decoding/schema/parser/retry/evaluator metric change。</li>
+    <li>这不是 semantic-equivalence scoring 或模型恢复证据。</li>
+    <li>Human Brief 只是阅读伴侣；权威来源仍是 OpenSpec、README、tests 和 evidence artifacts。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>完成本阶段后建议停在用户确认点：如果下一步要改变 prompt、training target 或 evaluator metric 口径，需要新的 OpenSpec scope 和明确确认；如果只继续做展示说明，可以再开一个很小的 docs-only 阶段。</p>
+</main>
+</body>
+</html>

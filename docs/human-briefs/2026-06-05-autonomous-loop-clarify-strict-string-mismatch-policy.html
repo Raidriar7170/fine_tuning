@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Autonomous Loop Closeout: Strict String Mismatch Policy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f6f7f9; color: #20242a; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 52px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel, .metric { background: #fff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: clarify strict string mismatch policy</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>本轮已完成并归档一个小型解释边界阶段：把 <code>normalized_command</code> strict string mismatch 的 reader-facing 口径写入 README、evidence note、manifest、spec 和 tests，同时保持 <code>contract_exact_match</code> 为 hard full-contract exact-match metric。</p>
+  </section>
+
+  <div class="grid">
+    <div class="metric"><span>loop status</span><strong>completed</strong></div>
+    <div class="metric"><span>archived phases</span><strong>1</strong></div>
+    <div class="metric"><span>A100 / rerun</span><strong>false</strong></div>
+    <div class="metric"><span>metric change</span><strong>false</strong></div>
+  </div>
+
+  <h2>停止原因</h2>
+  <p>停止条件：当前 bounded OpenSpec phase 已完成实现、Reviewer 复审、archive、post-archive validation、Human Brief 和 loop closeout。推荐的下一步如果涉及 prompt、training target、evaluator metric、semantic-equivalence scoring 或 A100 rerun，会改变 scope/success criteria 或需要私有基础设施，因此需要用户确认。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目目标：first-phase speech-to-contract normalization，即把中文 spoken command 或 ASR transcript 转成 schema-valid Browser Task Contract。来源：<a href="../../README.md">README</a> 和 OpenSpec specs。</li>
+    <li>本阶段推进：把上阶段 normalized-command 诊断从报告内部提升到 README、evidence manifest 和主 <code>contract-evaluation</code> spec，降低 reviewer 将 strict exact-match failure 误读为语义判定或全字段失败的风险。</li>
+    <li>剩余差距：仍无 dev/test held-out generalization、checkpoint/adapter release、production readiness、public full-corpus release、model-quality improvement 或 live-browser benchmark evidence。</li>
+    <li>下一阶段计划：先由用户决定是否只做 docs-only 展示说明，或另开需要确认的 prompt/training/metric/A100 阶段。</li>
+  </ul>
+
+  <h2>完成的阶段</h2>
+  <ul>
+    <li>OpenSpec archive：<a href="../../openspec/changes/archive/2026-06-05-clarify-strict-string-mismatch-policy/proposal.md">2026-06-05-clarify-strict-string-mismatch-policy</a>。</li>
+    <li>阶段 Human Brief：<a href="2026-06-05-clarify-strict-string-mismatch-policy.html">2026-06-05-clarify-strict-string-mismatch-policy.html</a>。</li>
+    <li>Evidence policy note：<a href="../../reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/strict_string_mismatch_policy.md">strict_string_mismatch_policy.md</a>。</li>
+    <li>Synced spec：<a href="../../openspec/specs/contract-evaluation/spec.md">contract-evaluation</a> 新增 strict normalized-command string-mismatch interpretation requirement。</li>
+  </ul>
+
+  <h2>关键结果</h2>
+  <ul>
+    <li><code>contract_exact_match</code> 继续是 hard full-contract exact-match metric。</li>
+    <li><code>normalized_command</code> string-mismatch diagnostics 只是 explanatory row-level evidence。</li>
+    <li>不把 <code>搜索/查询</code> 或 <code>明天的天气/明天天气</code> 自动判成等价。</li>
+    <li>新增 manifest provenance：policy note 是 later reader-facing interpretation note，不是 rerun 或 metric artifact。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>：144 passed。</li>
+    <li><code>uv run ruff check .</code>：All checks passed。</li>
+    <li><code>uv run mypy src</code>：Success，16 source files。</li>
+    <li>Public data validation：ok true，12 SFT rows，26 DPO pairs。</li>
+    <li>DPO check：26 pairs checked。</li>
+    <li>Strict string policy leak scan：ok true，0 findings，覆盖 README、evidence 目录、Human Brief 和 archived OpenSpec change。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：archive 前 5 passed；archive 后 4 passed，0 failed。</li>
+    <li><code>git diff --check</code>：passed。</li>
+  </ul>
+
+  <h2>Review 和集成</h2>
+  <ul>
+    <li>Explorer：只读确认最小落点为 README、evidence note/report surface、tests 和 <code>contract-evaluation</code> spec。</li>
+    <li>Reviewer 第一轮：Pass with fixes；Must Fix 为 Human Brief 验证记录不完整，Should Fix 为测试非夸大断言和 manifest provenance。</li>
+    <li>Reviewer 复审：Pass；Must Fix、Should Fix、Nice to Have 均无；Re-plan Needed：No。</li>
+    <li>External Pro review：未运行。本阶段是小型本地解释边界阶段，风险由 Reviewer、tests、OpenSpec strict 和 leak scan 覆盖。</li>
+    <li>Auto integration：等待最终 guarded stage/commit；commit hash 和 push 状态以 Codex final response 为准。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是 A100 新运行、训练、prediction rerun、prompt/training/decoding/schema/parser/retry/evaluator metric change。</li>
+    <li>这不是 semantic-equivalence scoring、模型恢复证据、held-out generalization、checkpoint release、adapter release、production readiness、public full-corpus release、model-quality improvement 或 live-browser benchmark improvement evidence。</li>
+    <li>Human Brief 和 loop report 只是阅读伴侣；权威来源仍是 OpenSpec、README、tests、validation output 和 evidence artifacts。</li>
+  </ul>
+</main>
+</body>
+</html>

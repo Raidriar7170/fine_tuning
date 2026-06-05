@@ -1,0 +1,70 @@
+import json
+from pathlib import Path
+
+from voice2task.leak_scan import scan_paths
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+README_PATH = REPO_ROOT / "README.md"
+STRICT_STRING_POLICY_PATH = (
+    REPO_ROOT
+    / "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/"
+    / "strict_string_mismatch_policy.md"
+)
+MANIFEST_PATH = (
+    REPO_ROOT
+    / "reports/public-sample/confirmation-rerun-normalized-command-string-mismatch-diagnosis/"
+    / "manifest.json"
+)
+
+
+def _one_line(text: str) -> str:
+    return " ".join(text.split())
+
+
+def test_public_surfaces_clarify_strict_normalized_command_mismatch_policy() -> None:
+    readme = README_PATH.read_text(encoding="utf-8")
+    policy = STRICT_STRING_POLICY_PATH.read_text(encoding="utf-8")
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    combined = f"{readme}\n{policy}"
+    normalized_readme = _one_line(readme)
+
+    assert "Metric Interpretation Boundaries" in readme
+    assert "`contract_exact_match` is a hard full-contract exact-match metric" in normalized_readme
+    assert (
+        "`normalized_command` string-mismatch diagnostics are explanatory row-level evidence only"
+        in normalized_readme
+    )
+    assert "do not relax" in normalized_readme
+    assert "semantically score" in normalized_readme
+    assert "re-score predictions" in normalized_readme
+    assert "`搜索/查询`" in readme
+    assert "`明天的天气/明天天气`" in readme
+
+    assert "not a new metric or a rerun result" in policy
+    assert "Any future semantic-equivalence or normalized-string metric" in policy
+    assert "separately scoped OpenSpec change" in policy
+    assert "No A100 execution was performed" in policy
+    assert "No training, prediction rerun, prompt change" in policy
+    assert "evaluator metric change" in policy
+    assert (
+        "This note does not claim checkpoint release, adapter release, held-out generalization, "
+        "production readiness, public full-corpus release, model-quality improvement, or "
+        "live-browser benchmark improvement."
+    ) in policy
+
+    clarification = manifest["strict_string_policy_clarification"]
+    assert clarification["artifact_role"] == "later_reader_facing_interpretation_note"
+    assert clarification["change_name"] == "clarify-strict-string-mismatch-policy"
+    assert clarification["not_rerun_or_metric_artifact"] is True
+    assert manifest["claims"]["a100_execution_performed"] is False
+    assert manifest["claims"]["training_or_prediction_rerun_performed"] is False
+    assert manifest["claims"]["semantic_equivalence_scoring_performed"] is False
+    assert manifest["claims"]["checkpoint_release"] is False
+    assert manifest["claims"]["adapter_release"] is False
+    assert manifest["claims"]["held_out_generalization_claim"] is False
+    assert manifest["claims"]["production_readiness_claim"] is False
+    assert manifest["claims"]["public_full_corpus_release_claim"] is False
+    assert manifest["claims"]["model_quality_improvement_claim"] is False
+    assert manifest["claims"]["live_browser_benchmark_improvement_claim"] is False
+    assert "automatically mark Chinese phrase differences" in combined
+    assert scan_paths([README_PATH, STRICT_STRING_POLICY_PATH, MANIFEST_PATH]).ok is True
