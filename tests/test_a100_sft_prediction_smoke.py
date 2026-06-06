@@ -1500,6 +1500,127 @@ def test_schema_retry_wrapper_boundary_policy_pack_is_public_safe_and_bounded() 
     assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
 
 
+def test_tighten_retry_json_only_output_boundary_pack_is_public_safe_and_bounded() -> None:
+    prior_dir = Path("reports/public-sample/a100-generation-stop-reason-boundary-rerun")
+    evidence_dir = Path("reports/public-sample/tighten-retry-json-only-output-boundary")
+    human_brief_path = Path("docs/human-briefs/2026-06-06-tighten-retry-json-only-output-boundary.html")
+    archive_dir = Path("openspec/changes/archive/2026-06-06-tighten-retry-json-only-output-boundary")
+    change_dirs = [
+        Path("openspec/changes/tighten-retry-json-only-output-boundary"),
+        archive_dir,
+    ]
+    required_files = {
+        "manifest.json",
+        "retry_json_only_boundary_summary.json",
+        "retry_json_only_boundary_summary.md",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+    }
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+    if archive_dir.exists():
+        assert {"post_archive_leak_scan_result.json", "final_leak_scan_result.json"} <= {
+            path.name for path in evidence_dir.iterdir()
+        }
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    summary = json.loads((evidence_dir / "retry_json_only_boundary_summary.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "retry_json_only_boundary_summary.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    post_archive_leak_scan = (
+        json.loads((evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8"))
+        if (evidence_dir / "post_archive_leak_scan_result.json").exists()
+        else {"ok": True, "findings": []}
+    )
+    final_leak_scan = (
+        json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
+        if (evidence_dir / "final_leak_scan_result.json").exists()
+        else {"ok": True, "findings": []}
+    )
+    prior_manifest = json.loads((prior_dir / "manifest.json").read_text(encoding="utf-8"))
+    prior_metrics = json.loads((prior_dir / "metrics.json").read_text(encoding="utf-8"))
+    serialized = "\n".join(
+        [
+            json.dumps(summary, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(phase_validation_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True),
+            report,
+            human_brief,
+        ]
+    )
+
+    assert summary["evidence_kind"] == "tighten_retry_json_only_output_boundary_local"
+    assert manifest["evidence_kind"] == summary["evidence_kind"]
+    assert summary["source_prior_phase"] == prior_dir.as_posix()
+    assert manifest["prior_a100_stop_boundary_rerun"]["evidence_dir"] == prior_dir.as_posix()
+    assert manifest["prior_a100_stop_boundary_rerun"]["manifest"] == (prior_dir / "manifest.json").as_posix()
+    assert manifest["prior_a100_stop_boundary_rerun"]["metrics"] == (prior_dir / "metrics.json").as_posix()
+    assert summary["prior_a100_context"]["evidence_kind"] == prior_manifest["evidence_kind"]
+    assert summary["prior_a100_context"]["strict_final_json_valid_rate"] == (
+        prior_metrics["metrics"]["json_valid_rate"]
+    ) == 0.0
+    assert summary["prior_a100_context"]["strict_final_contract_exact_match"] == (
+        prior_metrics["metrics"]["contract_exact_match"]
+    ) == 0.0
+    assert summary["prior_a100_context"]["row_count"] == 3
+
+    constraints = summary["retry_prompt_constraints"]
+    assert constraints["exact_json_only_output_visible"] is True
+    assert constraints["no_text_outside_root_json_object_visible"] is True
+    assert constraints["no_natural_language_wrapper_or_preamble_visible"] is True
+    assert constraints["machine_readable_only_retry_response_visible"] is True
+    assert constraints["no_markdown_prose_visible"] is True
+    assert constraints["no_prefix_suffix_text_visible"] is True
+    assert constraints["no_second_json_object_visible"] is True
+    assert constraints["strict_parser_rejection_warning_visible"] is True
+    assert manifest["retry_prompt_constraints"] == constraints
+
+    assert summary["claims"]["local_retry_prompt_boundary_hardening_only"] is True
+    assert summary["claims"]["a100_execution_performed"] is False
+    assert summary["claims"]["training_performed"] is False
+    assert summary["claims"]["parser_relaxation_performed"] is False
+    assert summary["claims"]["evaluator_metric_change_performed"] is False
+    assert summary["claims"]["prediction_repair_performed"] is False
+    assert summary["claims"]["prediction_rescore_performed"] is False
+    assert summary["claims"]["model_recovery_claim"] is False
+    assert summary["claims"]["model_quality_claim"] is False
+    assert summary["claims"]["held_out_generalization_claim"] is False
+    assert manifest["claims"] == summary["claims"]
+    assert manifest["diagnostic_artifacts"]["summary_json"].endswith("retry_json_only_boundary_summary.json")
+    assert manifest["diagnostic_artifacts"]["summary_markdown"].endswith("retry_json_only_boundary_summary.md")
+    assert manifest["diagnostic_artifacts"]["human_brief"] == human_brief_path.as_posix()
+
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    assert post_archive_leak_scan["ok"] is True
+    assert post_archive_leak_scan["findings"] == []
+    assert final_leak_scan["ok"] is True
+    assert final_leak_scan["findings"] == []
+    assert "no A100 execution" in report
+    assert "no parser relaxation" in report
+    assert "no model recovery or quality claim" in report
+    assert "A100 执行：没有" in human_brief
+    assert "不证明模型恢复" in human_brief
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert "private-overrides" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
+
+
 def test_a100_schema_retry_wrapper_boundary_rerun_evidence_is_public_safe_and_bounded() -> None:
     prior_dir = Path("reports/public-sample/a100-output-boundary-retry-policy-train-split-rerun")
     local_repair_dir = Path("reports/public-sample/schema-retry-wrapper-boundary-policy")
@@ -2980,6 +3101,10 @@ def test_sft_prediction_fixture_mode_writes_sidecars_and_metadata_links(tmp_path
     assert metadata["retry_prompt_constraints"]["no_here_is_visible"] is True
     assert metadata["retry_prompt_constraints"]["no_trailing_analysis_visible"] is True
     assert metadata["retry_prompt_constraints"]["no_second_json_object_visible"] is True
+    assert metadata["retry_prompt_constraints"]["exact_json_only_output_visible"] is True
+    assert metadata["retry_prompt_constraints"]["no_text_outside_root_json_object_visible"] is True
+    assert metadata["retry_prompt_constraints"]["no_natural_language_wrapper_or_preamble_visible"] is True
+    assert metadata["retry_prompt_constraints"]["machine_readable_only_retry_response_visible"] is True
     assert metadata["retry_prompt_constraints"]["strict_parser_rejection_warning_visible"] is True
 
     prompt_payload = json.loads(prompt_snapshot.read_text(encoding="utf-8"))
@@ -3579,7 +3704,17 @@ def test_schema_retry_prompt_declares_canonical_json_only_contract_shape() -> No
     assert "不要使用 Here is" in prompt
     assert "不要在 JSON 后添加解释、分析或用户输入复述" in prompt
     assert "不要输出第二个 JSON object" in prompt
+    assert "Retry response must be exactly one JSON object and nothing else" in prompt
+    assert "No text outside the root JSON object" in prompt
+    assert "不要使用自然语言 wrapper/preamble" in prompt
+    assert "machine-readable only retry response" in prompt
     assert "否则 strict parser 会拒绝 retry attempt" in prompt
+
+    constraints = training.schema_retry_prompt_constraint_summary(prompt)
+    assert constraints["exact_json_only_output_visible"] is True
+    assert constraints["no_text_outside_root_json_object_visible"] is True
+    assert constraints["no_natural_language_wrapper_or_preamble_visible"] is True
+    assert constraints["machine_readable_only_retry_response_visible"] is True
 
 
 def test_real_sft_prediction_rejects_markdown_wrapped_retry_even_when_fragment_is_valid(

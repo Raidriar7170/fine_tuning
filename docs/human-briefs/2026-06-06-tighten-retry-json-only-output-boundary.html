@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tighten retry JSON-only output boundary</title>
+  <style>
+    :root { --ink: #1f2933; --muted: #52606d; --line: #d9e2ec; --paper: #ffffff; --soft: #f5f7fa; --accent: #0f766e; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--soft); }
+    main { max-width: 900px; margin: 0 auto; padding: 32px 20px 48px; }
+    header, section { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 20px 22px; margin-bottom: 14px; }
+    h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.2; letter-spacing: 0; }
+    h2 { margin: 0 0 10px; font-size: 18px; letter-spacing: 0; }
+    p, li { line-height: 1.65; }
+    .status { display: inline-block; margin-top: 10px; padding: 4px 9px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
+    .metric { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Tighten retry JSON-only output boundary</h1>
+    <p><strong>一句话结论：</strong>本阶段只在本地补强 retry prompt 的 JSON-only / machine-readable 边界，并把新布尔信号暴露到 metadata 和 prompt snapshot；不证明模型恢复。</p>
+    <span class="status">当前状态：archived，验证通过</span>
+  </header>
+
+  <section>
+    <h2>这阶段改了什么</h2>
+    <ul>
+      <li>要求 retry response 必须是 exactly one JSON object and nothing else。</li>
+      <li>明确禁止 root JSON object 外的文字、自然语言 wrapper/preamble、Markdown/code fence、JSON 后分析和第二个 JSON object。</li>
+      <li>新增机器可读布尔信号：<code>exact_json_only_output_visible</code>、<code>no_text_outside_root_json_object_visible</code>、<code>no_natural_language_wrapper_or_preamble_visible</code>、<code>machine_readable_only_retry_response_visible</code>。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>关键边界</h2>
+    <div class="grid">
+      <div class="metric"><b>没有</b>A100 执行：没有</div>
+      <div class="metric"><b>没有</b>训练或 adapter 发布</div>
+      <div class="metric"><b>没有</b>parser relaxation</div>
+      <div class="metric"><b>没有</b>prediction repair/re-score</div>
+    </div>
+    <p>本阶段也没有 evaluator metric change、slot normalization、semantic-equivalence scoring、模型质量提升或 live-browser benchmark 改善声明。</p>
+  </section>
+
+  <section>
+    <h2>证据链接</h2>
+    <ul>
+      <li><a href="../../reports/public-sample/tighten-retry-json-only-output-boundary/retry_json_only_boundary_summary.md">retry_json_only_boundary_summary.md</a></li>
+      <li><a href="../../reports/public-sample/tighten-retry-json-only-output-boundary/manifest.json">manifest.json</a></li>
+      <li><a href="../../reports/public-sample/a100-generation-stop-reason-boundary-rerun/manifest.json">prior A100 stop-boundary manifest</a></li>
+      <li><a href="../../openspec/changes/archive/2026-06-06-tighten-retry-json-only-output-boundary/tasks.md">OpenSpec archived tasks.md</a></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>验证</h2>
+    <p>RED：focused tests 先失败，失败点为缺少新 prompt clause、缺少新 summary boolean、缺少本地 evidence pack。GREEN：focused selection 通过（3 passed），strict wrapped-retry rejection test 通过，full pytest 通过（166 passed），ruff/mypy/public data/DPO/leak-scan/git diff/OpenSpec strict validation 均通过；post-archive/final leak scans 也为 <code>ok=true</code>。</p>
+  </section>
+
+  <section>
+    <h2>推荐下一步</h2>
+    <p>如果要证明 trained adapter 输出行为改变，下一阶段应单独做很小的 prediction-only A100 rerun；在 rerun 前不要把本地 prompt-policy hardening 表述成模型恢复或质量提升。</p>
+  </section>
+</main>
+</body>
+</html>

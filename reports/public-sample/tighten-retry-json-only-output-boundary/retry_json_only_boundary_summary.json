@@ -1,0 +1,75 @@
+{
+  "change_name": "tighten-retry-json-only-output-boundary",
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_change_performed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_improvement_claim": false,
+    "local_retry_prompt_boundary_hardening_only": true,
+    "model_quality_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_performed": false,
+    "prediction_rescore_performed": false,
+    "private_prediction_rerun_performed": false,
+    "production_readiness_claim": false,
+    "schema_repair_or_coercion_applied": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "training_performed": false
+  },
+  "evidence_kind": "tighten_retry_json_only_output_boundary_local",
+  "generated_at": "2026-06-06T08:33:00+00:00",
+  "prior_a100_context": {
+    "evidence_kind": "a100_generation_stop_reason_boundary_train_split_rerun",
+    "evidence_source": "reports/public-sample/a100-generation-stop-reason-boundary-rerun",
+    "row_count": 3,
+    "strict_final_contract_exact_match": 0.0,
+    "strict_final_json_valid_rate": 0.0,
+    "train_split_only": true
+  },
+  "retry_prompt_constraints": {
+    "exact_json_only_output_visible": true,
+    "first_last_brace_visible": true,
+    "machine_readable_only_retry_response_visible": true,
+    "minified_json_only_visible": true,
+    "no_here_is_visible": true,
+    "no_markdown_prose_visible": true,
+    "no_natural_language_wrapper_or_preamble_visible": true,
+    "no_prefix_suffix_text_visible": true,
+    "no_second_json_object_visible": true,
+    "no_text_outside_root_json_object_visible": true,
+    "no_trailing_analysis_visible": true,
+    "no_zh_this_following_prefix_visible": true,
+    "single_root_json_object_visible": true,
+    "strict_parser_rejection_warning_visible": true,
+    "task_type_search_not_search_web_visible": true
+  },
+  "source_prior_phase": "reports/public-sample/a100-generation-stop-reason-boundary-rerun",
+  "strict_parser_boundary": {
+    "parser_relaxation_performed": false,
+    "wrapped_valid_json_fragments_still_rejected": true,
+    "embedded_contract_extraction_performed": false,
+    "prediction_repair_or_rescore_performed": false
+  },
+  "tdd_evidence": {
+    "red_test_observed": true,
+    "red_test_focus": "missing stricter retry JSON-only prompt clauses, summary booleans, and local pack artifacts",
+    "green_test_observed": true,
+    "green_test_focus": "schema retry prompt contract and metadata/prompt snapshot propagation"
+  },
+  "validation_commands": [
+    "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py -k \"schema_retry_prompt or fixture_mode_writes_sidecars or tighten_retry_json_only\"",
+    "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_rejects_markdown_wrapped_retry_even_when_fragment_is_valid",
+    "PYTHONPATH=src pytest -q",
+    "uv run ruff check .",
+    "uv run mypy src",
+    "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
+    "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
+    "PYTHONPATH=src python -m voice2task.cli.report leak-scan reports/public-sample/tighten-retry-json-only-output-boundary docs/human-briefs/2026-06-06-tighten-retry-json-only-output-boundary.html openspec/changes/tighten-retry-json-only-output-boundary --output reports/public-sample/tighten-retry-json-only-output-boundary/phase_validation_leak_scan_result.json",
+    "git diff --check",
+    "OPENSPEC_TELEMETRY=0 openspec validate --all --strict"
+  ]
+}

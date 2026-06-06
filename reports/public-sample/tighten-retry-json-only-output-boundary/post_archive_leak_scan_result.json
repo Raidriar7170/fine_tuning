@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-06T08:38:57.949204+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/tighten-retry-json-only-output-boundary",
+    "docs/human-briefs/2026-06-06-tighten-retry-json-only-output-boundary.html",
+    "openspec/changes/archive/2026-06-06-tighten-retry-json-only-output-boundary",
+    "openspec/specs/contract-evaluation/spec.md",
+    "openspec/specs/supervised-contract-tuning/spec.md"
+  ]
+}
