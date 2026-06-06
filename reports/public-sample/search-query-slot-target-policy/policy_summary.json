@@ -1,0 +1,114 @@
+{
+  "change_name": "define-search-query-slot-target-policy",
+  "claims": {
+    "a100_execution_performed": false,
+    "checkpoint_or_adapter_release": false,
+    "evaluator_or_parser_changed": false,
+    "held_out_generalization_claim": false,
+    "model_quality_improvement_claim": false,
+    "prediction_repair_or_rescore_performed": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "training_or_prediction_rerun_performed": false
+  },
+  "dpo_search_pairs": {
+    "chosen_city_date_slot_count": 0,
+    "chosen_compact_query_count": 6,
+    "count": 6,
+    "pair_ids": [
+      "seed-search-weather-wrong_route",
+      "seed-search-weather-unsafe_allowance",
+      "seed-search-weather-missing_slot",
+      "seed-search-weather-wrong_slot",
+      "seed-search-weather-underspecified_request",
+      "seed-search-weather-malformed_schema"
+    ],
+    "rejected_city_date_slot_count": 0
+  },
+  "evidence_kind": "search_query_slot_target_policy",
+  "generated_at": "2026-06-06T10:54:10.086817+00:00",
+  "policy": {
+    "canonical_normalized_command": "搜索<compact_query>",
+    "canonical_slots_shape": {
+      "query": "<compact_query>"
+    },
+    "compact_query_example": "北京明天天气",
+    "no_city_date_slot_splitting": true,
+    "strict_target_alignment_not_metric_relaxation": true
+  },
+  "prompt_constraints": {
+    "canonical_json_one_shot_visible": true,
+    "compact_search_query_slot_policy_visible": true,
+    "confirmation_required_boolean_visible": true,
+    "no_premature_root_close_visible": true,
+    "normalized_command_canonical_policy_visible": true,
+    "normalized_command_no_metric_relaxation_visible": true,
+    "normalized_command_public_examples_visible": true,
+    "public_readonly_safety_reason_visible": true,
+    "public_readonly_search_policy_visible": true,
+    "public_readonly_task_type_search_not_search_web_visible": true,
+    "required_field_checklist_visible": true,
+    "required_field_skeleton_visible": true,
+    "route_domain_values_not_route_visible": true,
+    "route_enum_visible": true,
+    "route_execution_channel_visible": true,
+    "route_not_url_or_path_visible": true,
+    "search_query_no_city_date_split_visible": true,
+    "search_query_slot_guidance_visible": true,
+    "single_root_json_object_visible": true,
+    "slots_object_not_array_visible": true,
+    "task_type_enum_visible": true,
+    "task_type_not_route_enum_visible": true,
+    "weather_to_search_confirmation_false_visible": true,
+    "weather_to_search_route_example_visible": true,
+    "whole_object_boundary_visible": true
+  },
+  "public_sample_search_rows": {
+    "city_date_slot_count": 0,
+    "compact_query_count": 3,
+    "count": 3,
+    "normalized_commands": [
+      "搜索北京明天天气"
+    ],
+    "query_values": [
+      "北京明天天气"
+    ],
+    "row_ids": [
+      "seed-search-weather",
+      "seed-search-weather-aug-1",
+      "seed-search-weather-aug-2"
+    ],
+    "spaced_query_count": 0
+  },
+  "source_artifacts": {
+    "dataset_builder_source": "src/voice2task/dataset.py",
+    "openspec_change": "openspec/changes/archive/2026-06-06-define-search-query-slot-target-policy",
+    "prior_slot_diagnosis": "reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis/slot_exact_match_mismatch_diagnosis.json",
+    "prior_slot_report": "reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis/slot_exact_match_mismatch_diagnosis.md",
+    "prompt_policy_source": "src/voice2task/formatting.py",
+    "public_dpo": "data/public-samples/dpo_public_sample.jsonl",
+    "public_manifest": "data/public-samples/manifest_public_sample.json",
+    "public_seed": "data/public-samples/seed_traces.jsonl",
+    "public_sft": "data/public-samples/sft_public_sample.jsonl"
+  },
+  "source_prior_phase": "reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis",
+  "validation_commands": [
+    "PYTHONPATH=src pytest tests/test_formatting_training.py::test_sft_prompts_expose_public_readonly_search_contract_policy_without_gold_target tests/test_dataset_builder.py::test_build_public_sample_dataset_writes_manifest_sft_and_dpo tests/test_a100_sft_prediction_smoke.py::test_search_query_slot_target_policy_pack_is_public_safe_and_bounded -q",
+    "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
+    "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
+    "OPENSPEC_TELEMETRY=0 openspec validate --all --strict"
+  ],
+  "validation_results": {
+    "dpo_check": "26 pairs",
+    "final_leak_scan": "ok true, 0 findings",
+    "focused_prompt_data_evidence_tests": "3 passed",
+    "full_pytest": "174 passed",
+    "git_diff_check": "passed after archive EOF cleanup",
+    "mypy_src": "passed, 16 source files",
+    "openspec_validate_all_strict": "5 passed pre-archive; 4 passed post-archive",
+    "phase_leak_scan": "ok true, 0 findings",
+    "public_data_validate": "ok true, 12 SFT rows, 26 DPO pairs",
+    "ruff": "passed"
+  }
+}

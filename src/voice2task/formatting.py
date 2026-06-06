@@ -5,11 +5,11 @@ from typing import Any
 
 from voice2task.schemas import ROUTES, TASK_TYPES, BrowserTaskContract, DPOPair, SFTDatasetRow, canonical_contract_json
 
-_TASK_TYPE_ENUM = ", ".join(sorted(TASK_TYPES))
-_ROUTE_ENUM = ", ".join(sorted(ROUTES))
+_TASK_TYPE_ENUM = ",".join(sorted(TASK_TYPES))
+_ROUTE_ENUM = ",".join(sorted(ROUTES))
 CONTRACT_REQUIRED_FIELD_SKELETON = (
-    "Browser Task Contract required skeleton: "
-    '"task_type","route","safety":{"allow","reason"},"confirmation_required",'
+    "Browser Task Contract required skeleton:"
+    '"task_type","route","safety","allow","reason","confirmation_required",'
     '"slots","normalized_command","language","contract_version"。'
     "Required-field checklist；每次输出都必须包含全部 8 个顶层字段；"
     "confirmation_required 必须是 boolean；低风险公开只读搜索通常为 false。"
@@ -38,11 +38,14 @@ ROUTE_ONTOLOGY_RULES = (
 )
 PUBLIC_READONLY_SEARCH_CONTRACT_POLICY = (
     "public-readonly search contract policy: "
-    'task_type="search"; route="search_web"; '
+    'task_type="search";route="search_web";'
+    "safety.allow=true;"
+    'safety.reason="public_readonly";confirmation_required=false；'
     "task_type 必须是 search，不能是 search_web；"
-    "safety.allow=true; "
-    'safety.reason="public_readonly"; confirmation_required=false；'
-    "slots.query=简洁查询词；"
+    "slots.query 使用紧凑查询短语：北京明天天气；"
+    "不要拆成 city/date/topic；"
+    "中文勿人工空格；"
+    "不是 slot normalization；"
     "task_type 不能复用 route enum 值，search_web 不是 task_type。"
 )
 NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
@@ -54,17 +57,17 @@ NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
 )
 
 SYSTEM_PROMPT = (
-    "Voice2Task contract normalizer。"
-    f"task_type enum: {_TASK_TYPE_ENUM}。"
-    f"route enum: {_ROUTE_ENUM}；route 不是 URL/path；route 必须使用上面的 enum 值。"
+    "V2T。"
+    f"task_type enum:{_TASK_TYPE_ENUM}。"
+    f"route enum:{_ROUTE_ENUM}；route 不是 URL/path；route 必须使用上面的 enum 值。"
     f"{ROUTE_ONTOLOGY_RULES}"
     f"{PUBLIC_READONLY_SEARCH_CONTRACT_POLICY}"
     f"{NORMALIZED_COMMAND_CANONICALIZATION_POLICY}"
     "slots 必须是 JSON object，不是 array/list；"
     f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
-    f"Canonical valid one-shot example: {CONTRACT_CANONICAL_ONE_SHOT}。"
+    f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。"
     f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
-    "不要生成 GUI 动作。"
+    "禁 GUI 动作。"
 )
 
 FORMATTING_POLICY: dict[str, Any] = {
@@ -137,6 +140,11 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         and 'safety.reason="public_readonly"' in prompt,
         "search_query_slot_guidance_visible": "slots.query" in prompt
         and "简洁查询词" in prompt,
+        "compact_search_query_slot_policy_visible": "slots.query 使用紧凑查询短语" in prompt
+        and "北京明天天气" in prompt
+        and "不是 slot normalization" in prompt,
+        "search_query_no_city_date_split_visible": "不要拆成 city/date/topic" in prompt
+        and all(slot_key in prompt for slot_key in ("city", "date", "topic")),
         "task_type_not_route_enum_visible": "task_type 不能复用 route enum 值" in prompt
         and "search_web 不是 task_type" in prompt,
         "public_readonly_task_type_search_not_search_web_visible": "task_type 必须是 search，不能是 search_web"

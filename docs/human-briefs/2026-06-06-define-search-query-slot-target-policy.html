@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Search Query Slot Target Policy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.6; color: #1f2933; }
+    main { max-width: 920px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; }
+    .status { display: inline-block; padding: 4px 8px; border: 1px solid #9aa6b2; border-radius: 6px; font-size: 13px; }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+    a { color: #075985; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="status">archived</p>
+  <h1>define-search-query-slot-target-policy</h1>
+  <p><strong>结论：</strong>本阶段把 public-readonly search/weather 的目标格式收窄为 compact <code>slots.query</code>，不运行 A100，不做 slot normalization，也不重算历史预测。</p>
+
+  <h2>本阶段变化</h2>
+  <ul>
+    <li>Prompt 明确要求 <code>slots.query</code> 使用紧凑查询短语，并且不要拆成 <code>city/date/topic</code>。</li>
+    <li>Public sample seed/SFT/DPO 的 search target 对齐到 <code>{"query":"北京明天天气"}</code> 和 <code>搜索北京明天天气</code>。</li>
+    <li>新增本地 policy evidence pack，证明 target/prompt policy 已对齐。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/search-query-slot-target-policy/policy_summary.md">policy_summary.md</a></li>
+    <li><a href="../../reports/public-sample/search-query-slot-target-policy/policy_summary.json">policy_summary.json</a></li>
+    <li><a href="../../data/public-samples/sft_public_sample.jsonl">sft_public_sample.jsonl</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-06-define-search-query-slot-target-policy/tasks.md">OpenSpec tasks.md</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li>Focused prompt/data/evidence tests: 3 passed。</li>
+    <li>Full pytest: 174 passed；ruff 和 mypy src passed。</li>
+    <li>Public data validate、DPO check、phase leak scan、git diff --check、OpenSpec strict validate 均已通过。</li>
+  </ul>
+
+  <h2>边界</h2>
+  <ul>
+    <li>不运行 A100；不训练、不预测、不 rerun。</li>
+    <li>不做 slot normalization、semantic-equivalence scoring、prediction repair 或 re-score。</li>
+    <li>上一阶段 A100 prediction 仍是历史证据，不能解释为 exact-match 已恢复。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>完成本地验证和归档后，再单独开 A100 prediction-only rerun 阶段，检验 compact target policy 是否实际改善 search slot exact match。</p>
+</main>
+</body>
+</html>

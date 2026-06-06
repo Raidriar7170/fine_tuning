@@ -38,7 +38,45 @@ def _read_seed_rows(seed_path: Path) -> list[dict[str, Any]]:
     return raw_rows
 
 
+def _compact_query_phrase(value: str) -> str:
+    return "".join(value.split())
+
+
+def _canonical_public_search_target(contract: BrowserTaskContract | dict[str, Any]) -> BrowserTaskContract:
+    target = as_contract(contract)
+    if not (
+        target.task_type == "search"
+        and target.route == "search_web"
+        and bool(target.safety.get("allow")) is True
+        and target.safety.get("reason") == "public_readonly"
+        and target.confirmation_required is False
+    ):
+        return target
+
+    normalized_suffix = ""
+    if target.normalized_command.startswith("搜索"):
+        normalized_suffix = _compact_query_phrase(target.normalized_command.removeprefix("搜索"))
+    query_value = target.slots.get("query")
+    if normalized_suffix:
+        compact_query = normalized_suffix
+    elif isinstance(query_value, str):
+        compact_query = _compact_query_phrase(query_value)
+    else:
+        compact_query = ""
+    if not compact_query:
+        return target
+
+    return _replace_contract(
+        target,
+        slots={"query": compact_query},
+        normalized_command=f"搜索{compact_query}",
+    )
+
+
 def _base_row(seed: dict[str, Any], public_safe: bool) -> SFTDatasetRow:
+    target_contract = seed["target_contract"]
+    if public_safe:
+        target_contract = _canonical_public_search_target(target_contract)
     provenance = {
         "source_id": seed["id"],
         "source_mode": "sanitized_seed",
@@ -49,7 +87,7 @@ def _base_row(seed: dict[str, Any], public_safe: bool) -> SFTDatasetRow:
         id=seed["id"],
         split=seed["split"],
         input_text=seed["input_text"],
-        target_contract=seed["target_contract"],
+        target_contract=target_contract,
         provenance=provenance,
     )
 

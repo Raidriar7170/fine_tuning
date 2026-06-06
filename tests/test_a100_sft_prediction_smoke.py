@@ -3331,6 +3331,111 @@ def test_retry_template_slot_exact_match_mismatch_diagnosis_pack_is_public_safe_
     assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
 
 
+def test_search_query_slot_target_policy_pack_is_public_safe_and_bounded() -> None:
+    source_dir = Path("reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis")
+    evidence_dir = Path("reports/public-sample/search-query-slot-target-policy")
+    human_brief_path = Path("docs/human-briefs/2026-06-06-define-search-query-slot-target-policy.html")
+    archive_dir = Path("openspec/changes/archive/2026-06-06-define-search-query-slot-target-policy")
+    change_dirs = [
+        Path("openspec/changes/define-search-query-slot-target-policy"),
+        archive_dir,
+    ]
+    required_files = {
+        "policy_summary.json",
+        "policy_summary.md",
+        "manifest.json",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+    }
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+    if archive_dir.exists():
+        assert {"post_archive_leak_scan_result.json", "final_leak_scan_result.json"} <= {
+            path.name for path in evidence_dir.iterdir()
+        }
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    summary = json.loads((evidence_dir / "policy_summary.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "policy_summary.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    post_archive_leak_scan = None
+    final_leak_scan = None
+    if archive_dir.exists():
+        post_archive_leak_scan = json.loads(
+            (evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8")
+        )
+        final_leak_scan = json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
+    serialized = "\n".join(
+        [
+            json.dumps(summary, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(phase_validation_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True)
+            if post_archive_leak_scan is not None
+            else "",
+            json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True) if final_leak_scan is not None else "",
+            report,
+            human_brief,
+        ]
+    )
+
+    assert summary["evidence_kind"] == "search_query_slot_target_policy"
+    assert summary["source_prior_phase"] == source_dir.as_posix()
+    assert summary["prompt_constraints"]["compact_search_query_slot_policy_visible"] is True
+    assert summary["prompt_constraints"]["search_query_no_city_date_split_visible"] is True
+    assert summary["public_sample_search_rows"]["count"] == 3
+    assert summary["public_sample_search_rows"]["compact_query_count"] == 3
+    assert summary["public_sample_search_rows"]["city_date_slot_count"] == 0
+    assert summary["public_sample_search_rows"]["spaced_query_count"] == 0
+    assert summary["public_sample_search_rows"]["query_values"] == ["北京明天天气"]
+    assert summary["dpo_search_pairs"]["chosen_compact_query_count"] == summary["dpo_search_pairs"]["count"]
+    assert summary["dpo_search_pairs"]["chosen_city_date_slot_count"] == 0
+    assert summary["claims"]["a100_execution_performed"] is False
+    assert summary["claims"]["training_or_prediction_rerun_performed"] is False
+    assert summary["claims"]["slot_normalization_performed"] is False
+    assert summary["claims"]["semantic_equivalence_scoring_performed"] is False
+    assert summary["claims"]["prediction_repair_or_rescore_performed"] is False
+    assert summary["claims"]["model_quality_improvement_claim"] is False
+
+    assert manifest["evidence_kind"] == "search_query_slot_target_policy"
+    assert manifest["diagnostic_artifacts"]["policy_summary"].endswith("policy_summary.json")
+    assert manifest["diagnostic_artifacts"]["policy_report"].endswith("policy_summary.md")
+    assert manifest["source_artifacts"]["prior_slot_diagnosis"].endswith(
+        "slot_exact_match_mismatch_diagnosis.json"
+    )
+    assert manifest["claims"] == summary["claims"]
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    if archive_dir.exists():
+        assert post_archive_leak_scan is not None
+        assert post_archive_leak_scan["ok"] is True
+        assert post_archive_leak_scan["findings"] == []
+        assert final_leak_scan is not None
+        assert final_leak_scan["ok"] is True
+        assert final_leak_scan["findings"] == []
+    assert "compact slots.query" in report
+    assert "no city/date slot splitting" in report
+    assert "不运行 A100" in human_brief
+    assert "不做 slot normalization" in human_brief
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert "private-overrides" not in serialized
+    assert "private-configs" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
+
+
 def test_retry_decoding_stop_boundary_diagnosis_pack_is_public_safe_and_bounded() -> None:
     source_dir = Path("reports/public-sample/a100-schema-retry-wrapper-boundary-rerun")
     evidence_dir = Path("reports/public-sample/retry-decoding-stop-boundary-diagnosis")

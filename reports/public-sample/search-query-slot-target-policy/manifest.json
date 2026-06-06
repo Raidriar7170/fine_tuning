@@ -1,0 +1,54 @@
+{
+  "change_name": "define-search-query-slot-target-policy",
+  "claims": {
+    "a100_execution_performed": false,
+    "checkpoint_or_adapter_release": false,
+    "evaluator_or_parser_changed": false,
+    "held_out_generalization_claim": false,
+    "model_quality_improvement_claim": false,
+    "prediction_repair_or_rescore_performed": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "training_or_prediction_rerun_performed": false
+  },
+  "counts": {
+    "dpo_search_pairs": 6,
+    "public_sample_search_rows": 3
+  },
+  "diagnostic_artifacts": {
+    "final_leak_scan": "reports/public-sample/search-query-slot-target-policy/final_leak_scan_result.json",
+    "leak_scan": "reports/public-sample/search-query-slot-target-policy/leak_scan_result.json",
+    "manifest": "reports/public-sample/search-query-slot-target-policy/manifest.json",
+    "phase_validation_leak_scan": "reports/public-sample/search-query-slot-target-policy/phase_validation_leak_scan_result.json",
+    "policy_report": "reports/public-sample/search-query-slot-target-policy/policy_summary.md",
+    "policy_summary": "reports/public-sample/search-query-slot-target-policy/policy_summary.json",
+    "post_archive_leak_scan": "reports/public-sample/search-query-slot-target-policy/post_archive_leak_scan_result.json"
+  },
+  "evidence_kind": "search_query_slot_target_policy",
+  "generated_at": "2026-06-06T10:54:10.086817+00:00",
+  "source_artifacts": {
+    "dataset_builder_source": "src/voice2task/dataset.py",
+    "openspec_change": "openspec/changes/archive/2026-06-06-define-search-query-slot-target-policy",
+    "prior_slot_diagnosis": "reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis/slot_exact_match_mismatch_diagnosis.json",
+    "prior_slot_report": "reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis/slot_exact_match_mismatch_diagnosis.md",
+    "prompt_policy_source": "src/voice2task/formatting.py",
+    "public_dpo": "data/public-samples/dpo_public_sample.jsonl",
+    "public_manifest": "data/public-samples/manifest_public_sample.json",
+    "public_seed": "data/public-samples/seed_traces.jsonl",
+    "public_sft": "data/public-samples/sft_public_sample.jsonl"
+  },
+  "source_prior_phase": "reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis",
+  "validation_results": {
+    "dpo_check": "26 pairs",
+    "final_leak_scan": "ok true, 0 findings",
+    "focused_prompt_data_evidence_tests": "3 passed",
+    "full_pytest": "174 passed",
+    "git_diff_check": "passed after archive EOF cleanup",
+    "mypy_src": "passed, 16 source files",
+    "openspec_validate_all_strict": "5 passed pre-archive; 4 passed post-archive",
+    "phase_leak_scan": "ok true, 0 findings",
+    "public_data_validate": "ok true, 12 SFT rows, 26 DPO pairs",
+    "ruff": "passed"
+  }
+}

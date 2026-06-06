@@ -312,6 +312,11 @@ def test_sft_prompts_expose_public_readonly_search_contract_policy_without_gold_
         assert "全部 8 个顶层字段必须都在同一个 root object 内" in text
         assert "不要在 normalized_command 之前提前关闭 root object" in text
         assert "task_type 必须是 search，不能是 search_web" in text
+        assert "slots.query 使用紧凑查询短语" in text
+        assert "不要拆成 city/date/topic" in text
+        assert "北京明天天气" in text
+        assert "北京 明天 天气" not in text
+        assert "不是 slot normalization" in text
     assert "gold-weather-token" in training_text
     assert "gold-weather-token" not in prediction_prompt
     assert summary["public_readonly_search_policy_visible"] is True
@@ -321,6 +326,8 @@ def test_sft_prompts_expose_public_readonly_search_contract_policy_without_gold_
     assert summary["single_root_json_object_visible"] is True
     assert summary["no_premature_root_close_visible"] is True
     assert summary["public_readonly_task_type_search_not_search_web_visible"] is True
+    assert summary["compact_search_query_slot_policy_visible"] is True
+    assert summary["search_query_no_city_date_split_visible"] is True
 
 
 def test_public_sample_sft_training_text_stays_within_runtime_sequence_budget() -> None:

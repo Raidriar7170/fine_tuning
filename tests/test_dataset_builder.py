@@ -71,9 +71,13 @@ def test_build_public_sample_dataset_writes_manifest_sft_and_dpo(tmp_path: Path)
         if line.strip()
     ]
     normalized_by_id = {row["id"]: row["target_contract"]["normalized_command"] for row in sft_rows}
+    slots_by_id = {row["id"]: row["target_contract"]["slots"] for row in sft_rows}
     assert normalized_by_id["seed-search"] == "搜索北京明天天气"
     assert normalized_by_id["seed-search-aug-1"] == "搜索北京明天天气"
     assert normalized_by_id["seed-search-aug-2"] == "搜索北京明天天气"
+    assert slots_by_id["seed-search"] == {"query": "北京明天天气"}
+    assert slots_by_id["seed-search-aug-1"] == {"query": "北京明天天气"}
+    assert slots_by_id["seed-search-aug-2"] == {"query": "北京明天天气"}
     assert normalized_by_id["seed-form"] == "填写邮箱并确认"
     assert normalized_by_id["seed-form-aug-1"] == "填写邮箱并确认"
 

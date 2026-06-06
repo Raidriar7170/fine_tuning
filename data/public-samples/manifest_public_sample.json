@@ -19,8 +19,8 @@
     "seed": "data/public-samples/seed_traces.jsonl",
     "sft": "data/public-samples/sft_public_sample.jsonl"
   },
-  "generated_at": "2026-06-01T16:23:13.364205+00:00",
-  "manifest_id": "public-sample-20260601T162313Z",
+  "generated_at": "2026-06-06T10:42:18.368634+00:00",
+  "manifest_id": "public-sample-20260606T104218Z",
   "mode": "public_sample",
   "public_safe": true,
   "source_summary": {
