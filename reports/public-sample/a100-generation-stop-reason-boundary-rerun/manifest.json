@@ -1,0 +1,250 @@
+{
+  "artifact_policy": {
+    "a100_execution_performed": true,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "host_details_copied_to_git": false,
+    "prediction_rerun_performed": true,
+    "private_configs_copied_to_git": false,
+    "raw_logs_copied_to_git": false,
+    "remote_paths_copied_to_git": false,
+    "train_split_only": true,
+    "training_performed": false
+  },
+  "artifacts": {
+    "constrained_decoding_diagnosis": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/constrained_decoding_diagnosis.json",
+    "constrained_decoding_diagnosis_markdown": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/constrained_decoding_diagnosis.md",
+    "diagnosis": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/generation_stop_boundary_diagnosis.json",
+    "diagnosis_markdown": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/generation_stop_boundary_diagnosis.md",
+    "final_leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/final_leak_scan_result.json",
+    "generation_trace": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/generation_trace.jsonl",
+    "leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/leak_scan_result.json",
+    "metrics_json": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/metrics.json",
+    "metrics_markdown": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/metrics.md",
+    "phase_validation_leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/post_archive_leak_scan_result.json",
+    "prediction_metadata": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/prediction_metadata.json",
+    "predictions": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/predictions.jsonl",
+    "prompt_snapshot": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/prompt_snapshot.json",
+    "raw_decoded_summary": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/raw_decoded_summary.jsonl",
+    "schema_diagnostics": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/schema_diagnostics.json",
+    "schema_diagnostics_markdown": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/schema_diagnostics.md",
+    "schema_guard_summary": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/schema_guard_summary.json",
+    "schema_guard_summary_markdown": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/schema_guard_summary.md",
+    "train_split_gold": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/train_split_gold.jsonl"
+  },
+  "change_name": "run-a100-generation-stop-reason-boundary-rerun",
+  "claims": {
+    "a100_execution_performed": true,
+    "actual_stop_reason_recorded_by_current_code": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "decoding_behavior_change_performed": false,
+    "evaluator_metric_change_performed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "prediction_rerun_performed": true,
+    "production_readiness_claim": false,
+    "retry_prompt_change_performed": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "stop_reason_instrumentation_observed": true,
+    "strict_final_contract_metrics": true,
+    "train_split_only": true,
+    "training_performed": false
+  },
+  "diagnostic_artifacts": {
+    "final_leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/final_leak_scan_result.json",
+    "generation_stop_boundary_diagnosis": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/generation_stop_boundary_diagnosis.json",
+    "leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/leak_scan_result.json",
+    "phase_validation_leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/post_archive_leak_scan_result.json",
+    "schema_guard_summary": "reports/public-sample/a100-generation-stop-reason-boundary-rerun/schema_guard_summary.json"
+  },
+  "evidence_kind": "a100_generation_stop_reason_boundary_train_split_rerun",
+  "generalization_claim": false,
+  "generated_at": "2026-06-06T07:52:28.508632+00:00",
+  "observed_result": {
+    "actual_generation_stop_reason_recorded": false,
+    "actual_generation_stop_reason_recorded_count": 0,
+    "max_token_truncation_claim_proven": false,
+    "model_recovery_observed": false,
+    "new_stop_boundary_fields_observed": true,
+    "prediction_count": 3,
+    "prediction_source_kind": "private_a100_adapter",
+    "prediction_split": "train",
+    "raw_json_object_count": 3,
+    "raw_missing_task_type_count": 3,
+    "retry_json_fragment_object_count": 3,
+    "retry_prose_markdown_wrapper_count": 3,
+    "retry_stop_reason_claim_proven": false,
+    "schema_recovery_observed": false,
+    "stop_reason_evidence_values": [
+      "not_recorded_below_max_without_tokenizer_eos",
+      "tokenizer_eos_observed"
+    ],
+    "strict_final_contract_exact_match": 0.0,
+    "strict_final_json_valid_rate": 0.0,
+    "strict_metrics_preserved": true,
+    "trace_summary": {
+      "actual_stop_reason_recorded_count": 0,
+      "actual_stop_reason_recorded_counts": {
+        "raw_attempt": {
+          "False": 3
+        },
+        "retry_attempt": {
+          "False": 3
+        }
+      },
+      "attempt_counts": {
+        "raw_attempt": 3,
+        "retry_attempt": 3
+      },
+      "eos_seen_counts": {
+        "raw_attempt": {
+          "True": 3
+        },
+        "retry_attempt": {
+          "False": 3
+        }
+      },
+      "finish_state_basis_counts": {
+        "raw_attempt": {
+          "tokenizer_eos_membership": 3
+        },
+        "retry_attempt": {
+          "tokenizer_eos_membership": 3
+        }
+      },
+      "finish_state_counts": {
+        "raw_attempt": {
+          "eos_observed": 3
+        },
+        "retry_attempt": {
+          "no_eos_observed": 3
+        }
+      },
+      "generated_token_counts": {
+        "raw_attempt": {
+          "count": 3,
+          "max": 54,
+          "min": 52,
+          "values": [
+            54,
+            54,
+            52
+          ]
+        },
+        "retry_attempt": {
+          "count": 3,
+          "max": 165,
+          "min": 146,
+          "values": [
+            165,
+            155,
+            146
+          ]
+        }
+      },
+      "max_new_tokens_hit_count": 0,
+      "max_new_tokens_hit_counts": {
+        "raw_attempt": {
+          "False": 3
+        },
+        "retry_attempt": {
+          "False": 3
+        }
+      },
+      "new_trace_fields": [
+        "max_new_tokens_hit",
+        "finish_state_basis",
+        "stop_reason_evidence",
+        "actual_stop_reason_recorded",
+        "actual_stop_reason"
+      ],
+      "new_trace_fields_present_on_all_rows": true,
+      "prior_retry_attempt_trace_rows": 3,
+      "prior_trace_row_count": 6,
+      "raw_tokenizer_eos_observed_count": 3,
+      "retry_no_eos_below_max_count": 3,
+      "row_count_with_raw_attempt_trace": 3,
+      "row_count_with_retry_attempt_trace": 3,
+      "stop_reason_evidence_counts": {
+        "raw_attempt": {
+          "tokenizer_eos_observed": 3
+        },
+        "retry_attempt": {
+          "not_recorded_below_max_without_tokenizer_eos": 3
+        }
+      },
+      "trace_row_count": 6
+    },
+    "training_rows_used": 3,
+    "validated_output_schema_valid_count": 0
+  },
+  "overfit_diagnostic": true,
+  "prediction_count": 3,
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_split": "train",
+  "prior_context": {
+    "local_instrumentation_a100_execution_performed": false,
+    "local_instrumentation_phase": "reports/public-sample/generation-stop-reason-boundary-instrumentation",
+    "prior_actual_stop_reason_recorded_count": 0,
+    "prior_retry_phase": "reports/public-sample/a100-retry-generation-trace-rerun",
+    "prior_strict_final_contract_exact_match": 0.0,
+    "prior_strict_final_json_valid_rate": 0.0
+  },
+  "prompt_constraints": {
+    "canonical_json_one_shot_visible": true,
+    "confirmation_required_boolean_visible": true,
+    "no_premature_root_close_visible": true,
+    "normalized_command_canonical_policy_visible": true,
+    "normalized_command_no_metric_relaxation_visible": true,
+    "normalized_command_public_examples_visible": true,
+    "public_readonly_safety_reason_visible": true,
+    "public_readonly_search_policy_visible": true,
+    "public_readonly_task_type_search_not_search_web_visible": true,
+    "required_field_checklist_visible": true,
+    "required_field_skeleton_visible": true,
+    "route_domain_values_not_route_visible": true,
+    "route_enum_visible": true,
+    "route_execution_channel_visible": true,
+    "route_not_url_or_path_visible": true,
+    "search_query_slot_guidance_visible": true,
+    "single_root_json_object_visible": true,
+    "slots_object_not_array_visible": true,
+    "task_type_enum_visible": true,
+    "task_type_not_route_enum_visible": true,
+    "weather_to_search_confirmation_false_visible": true,
+    "weather_to_search_route_example_visible": true,
+    "whole_object_boundary_visible": true
+  },
+  "recommended_next_step": {
+    "label": "decide whether to change retry decoding or add deeper generation-stop instrumentation",
+    "reason": "The A100 rerun proves trace-field coverage for this 3-row train-split rerun but not model recovery; changing retry decoding/prompt policy or generation stopping instrumentation would change the next phase scope.",
+    "requires_user_confirmation": true
+  },
+  "release_status": "not_released",
+  "retry_prompt_constraints": {
+    "first_last_brace_visible": true,
+    "minified_json_only_visible": true,
+    "no_here_is_visible": true,
+    "no_markdown_prose_visible": true,
+    "no_prefix_suffix_text_visible": true,
+    "no_second_json_object_visible": true,
+    "no_trailing_analysis_visible": true,
+    "no_zh_this_following_prefix_visible": true,
+    "single_root_json_object_visible": true,
+    "strict_parser_rejection_warning_visible": true,
+    "task_type_search_not_search_web_visible": true
+  },
+  "training_row_ids": [
+    "seed-search-weather",
+    "seed-search-weather-aug-1",
+    "seed-search-weather-aug-2"
+  ],
+  "training_rows_used": 3
+}

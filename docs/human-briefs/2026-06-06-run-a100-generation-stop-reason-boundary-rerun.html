@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A100 Generation Stop-Reason Boundary Rerun</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5b6670;
+      --line: #d9e1e8;
+      --paper: #ffffff;
+      --band: #f6f8fa;
+      --ok: #0b6b42;
+      --warn: #91620d;
+      --accent: #245f73;
+    }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+    }
+    p { margin: 8px 0; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.94em;
+    }
+    a { color: var(--accent); }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; }
+    .summary {
+      max-width: 850px;
+      font-size: 18px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--band);
+      padding: 12px;
+    }
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 2px;
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .note {
+      margin: 14px 0;
+      padding: 10px 12px;
+      border-left: 4px solid var(--accent);
+      background: var(--band);
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>A100 Generation Stop-Reason Boundary Rerun</h1>
+    <p class="summary">结论：A100 prediction-only rerun 证明新 stop-boundary trace 字段已经覆盖 raw/retry 两类 attempt；但 strict final contract 仍是 <code>0/3</code>，actual stop reason 仍未被真实记录，不是模型质量改善。</p>
+  </header>
+
+  <section>
+    <h2>Current Status</h2>
+    <p><strong class="ok">archived</strong>：OpenSpec change <code>run-a100-generation-stop-reason-boundary-rerun</code> 已归档；A100 预测已完成，公开安全 evidence pack 已生成并通过验证。</p>
+  </section>
+
+  <section>
+    <h2>What Changed</h2>
+    <div class="grid">
+      <div class="metric"><strong>3</strong><span>train predictions</span></div>
+      <div class="metric"><strong>6</strong><span>generation trace rows</span></div>
+      <div class="metric"><strong>5</strong><span>new stop-boundary fields observed</span></div>
+      <div class="metric"><strong>0/3</strong><span>strict final contract matches</span></div>
+    </div>
+    <ul>
+      <li>使用既有 private A100 adapter 做 train-split prediction-only rerun；不训练、不 release adapter/checkpoint。</li>
+      <li><code>generation_trace.jsonl</code> 每行都包含 <code>max_new_tokens_hit</code>、<code>finish_state_basis</code>、<code>stop_reason_evidence</code>、<code>actual_stop_reason_recorded</code>、<code>actual_stop_reason</code>。</li>
+      <li>raw attempt 仍是 JSON object 但缺 <code>task_type</code>；retry attempt 仍是 prose/markdown wrapper fragment。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Evidence</h2>
+    <ul>
+      <li><a href="../../reports/public-sample/a100-generation-stop-reason-boundary-rerun/report.md">report.md</a></li>
+      <li><a href="../../reports/public-sample/a100-generation-stop-reason-boundary-rerun/generation_stop_boundary_diagnosis.json">generation_stop_boundary_diagnosis.json</a></li>
+      <li><a href="../../reports/public-sample/a100-generation-stop-reason-boundary-rerun/schema_guard_summary.json">schema_guard_summary.json</a></li>
+      <li><a href="../../reports/public-sample/a100-generation-stop-reason-boundary-rerun/generation_trace.jsonl">generation_trace.jsonl</a></li>
+      <li><a href="../../openspec/changes/archive/2026-06-06-run-a100-generation-stop-reason-boundary-rerun/tasks.md">OpenSpec archived tasks.md</a></li>
+    </ul>
+    <div class="note">raw attempts show tokenizer EOS evidence; retry attempts show below-max-token/no-tokenizer-EOS evidence. Both are boundary signals only，不能过度解释成真实 model API stop reason。</div>
+  </section>
+
+  <section>
+    <h2>Verification</h2>
+    <ul>
+      <li>Focused evidence-pack test: <code>1 passed</code>。</li>
+      <li>Full tests: <code>PYTHONPATH=src pytest -q</code>，<code>165 passed</code>。</li>
+      <li>Lint/type: <code>uv run ruff check .</code> passed；<code>uv run mypy src</code> passed。</li>
+      <li>Public data/DPO: validate <code>ok=true</code>，<code>sft_rows=12</code>、<code>dpo_pairs=26</code>；DPO check <code>total_pairs=26</code>。</li>
+      <li>Safety gates: initial/phase/post-archive/final leak scans <code>ok=true</code>，<code>git diff --check</code> passed，OpenSpec strict validate pre-archive <code>5 passed, 0 failed</code>、post-archive <code>4 passed, 0 failed</code>。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Boundaries</h2>
+    <ul>
+      <li>不改变 decoding behavior、retry prompt、strict parser、schema guard source selection 或 evaluator metric。</li>
+      <li>不做 prediction repair/re-score、semantic-equivalence scoring、slot normalization。</li>
+      <li>不复制 raw logs、private configs、remote paths、host details、checkpoints、adapters、tokens 或 private corpus rows。</li>
+      <li>不宣称 model recovery、model-quality improvement、held-out generalization、production readiness 或 live-browser benchmark improvement。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Recommended Next Step</h2>
+    <p>归档本阶段后，建议停在一个确认点：下一步如果要改 retry decoding/prompt 或更深的 generation stopping instrumentation，会改变阶段范围，应先明确 OpenSpec scope。</p>
+  </section>
+</main>
+</body>
+</html>
