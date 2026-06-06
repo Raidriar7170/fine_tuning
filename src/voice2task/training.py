@@ -853,6 +853,7 @@ def _token_list(value: Any) -> list[Any]:
 def _generation_trace_row(
     *,
     row_id: str,
+    attempt: str,
     prediction_source_kind: str,
     generated_tokens: Any,
     max_new_tokens: int,
@@ -864,6 +865,7 @@ def _generation_trace_row(
     resolved_finish_state = finish_state or ("eos_observed" if eos_seen else "no_eos_observed")
     return {
         "id": row_id,
+        "attempt": attempt,
         "prediction_source_kind": prediction_source_kind,
         "strategy": "greedy",
         "do_sample": False,
@@ -894,6 +896,7 @@ def _write_fixture_sidecars(
         trace_rows.append(
             _generation_trace_row(
                 row_id=row.id,
+                attempt="raw_attempt",
                 prediction_source_kind="public_sample_contract_fixture",
                 generated_tokens=[],
                 max_new_tokens=max_new_tokens,
@@ -1206,11 +1209,12 @@ def _run_real_sft_prediction(
             retry_status: dict[str, Any] | None = None
             retry_prediction: Any = None
             retry_decoded: str | None = None
+            retry_new_tokens: Any = None
             retry_attempted = False
             if schema_retry_enabled and not raw_status["schema_valid"]:
                 retry_attempted = True
                 retry_prompt = _schema_retry_prompt(row, raw_prediction, raw_status)
-                retry_decoded, _, _ = _decode_prediction_attempt(
+                retry_decoded, retry_new_tokens, _ = _decode_prediction_attempt(
                     model=model,
                     tokenizer=tokenizer,
                     prompt=retry_prompt,
@@ -1239,12 +1243,24 @@ def _run_real_sft_prediction(
             trace_rows.append(
                 _generation_trace_row(
                     row_id=row.id,
+                    attempt="raw_attempt",
                     prediction_source_kind="private_a100_adapter",
                     generated_tokens=new_tokens,
                     max_new_tokens=max_new_tokens,
                     eos_token_id=getattr(tokenizer, "eos_token_id", None),
                 )
             )
+            if retry_attempted:
+                trace_rows.append(
+                    _generation_trace_row(
+                        row_id=row.id,
+                        attempt="retry_attempt",
+                        prediction_source_kind="private_a100_adapter",
+                        generated_tokens=retry_new_tokens,
+                        max_new_tokens=max_new_tokens,
+                        eos_token_id=getattr(tokenizer, "eos_token_id", None),
+                    )
+                )
             record = {
                 "id": row.id,
                 "prediction": final_prediction,

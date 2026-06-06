@@ -1838,6 +1838,130 @@ def test_retry_decoding_stop_boundary_diagnosis_pack_is_public_safe_and_bounded(
     assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
 
 
+def test_retry_generation_trace_instrumentation_pack_is_public_safe_and_bounded() -> None:
+    evidence_dir = Path("reports/public-sample/retry-generation-trace-instrumentation")
+    human_brief_path = Path("docs/human-briefs/2026-06-06-instrument-retry-generation-trace.html")
+    change_dirs = [
+        Path("openspec/changes/instrument-retry-generation-trace"),
+        Path("openspec/changes/archive/2026-06-06-instrument-retry-generation-trace"),
+    ]
+    required_files = {
+        "instrumentation_summary.json",
+        "instrumentation_summary.md",
+        "manifest.json",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+        "post_archive_leak_scan_result.json",
+        "final_leak_scan_result.json",
+    }
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    summary = json.loads((evidence_dir / "instrumentation_summary.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "instrumentation_summary.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    post_archive_leak_scan = json.loads(
+        (evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    final_leak_scan = json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
+    serialized = "\n".join(
+        [
+            json.dumps(summary, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(phase_validation_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True),
+            report,
+            human_brief,
+        ]
+    )
+
+    assert summary["evidence_kind"] == "retry_generation_trace_instrumentation_local"
+    assert summary["instrumentation_kind"] == "retry_attempt_generation_trace_sidecar"
+    assert summary["project_stage_target"] == "first-phase speech-to-contract normalization"
+    assert summary["source_artifacts"]["prior_retry_stop_boundary_diagnosis"].endswith(
+        "decoding_stop_boundary_diagnosis.json"
+    )
+    assert summary["source_artifacts"]["prior_a100_generation_trace"].endswith("generation_trace.jsonl")
+    assert summary["source_artifacts"]["training_code"] == "src/voice2task/training.py"
+    assert summary["code_change"]["generation_trace_attempt_field_added"] is True
+    assert summary["code_change"]["raw_attempt_trace_rows_labelled"] is True
+    assert summary["code_change"]["retry_attempt_trace_rows_added_when_retry_attempted"] is True
+    assert summary["code_change"]["trace_sidecar_path_unchanged"] == "generation_trace.jsonl"
+    assert summary["code_change"]["new_trace_row_field"] == "attempt"
+    assert summary["code_change"]["allowed_attempt_values"] == ["raw_attempt", "retry_attempt"]
+    assert "generated_token_count" in summary["code_change"]["trace_row_fields_preserved"]
+    assert "finish_state" in summary["code_change"]["trace_row_fields_preserved"]
+    assert summary["tdd_evidence"]["red_test_observed"] is True
+    assert summary["tdd_evidence"]["green_test_observed"] is True
+    assert summary["tdd_evidence"]["adjacent_retry_sidecar_tests_passed"] is True
+    assert summary["historical_boundary"]["prior_a100_trace_rewritten"] is False
+    assert summary["historical_boundary"]["prior_a100_retry_trace_available_after_this_phase"] is False
+    assert summary["historical_boundary"][
+        "future_a100_or_private_adapter_rerun_required_to_observe_real_retry_stop_boundary"
+    ] is True
+    assert summary["historical_boundary"]["historical_a100_metrics_reinterpreted"] is False
+    assert summary["preservation"]["retry_prompt_text_changed"] is False
+    assert summary["preservation"]["decoding_parameters_changed"] is False
+    assert summary["preservation"]["strict_parser_semantics_changed"] is False
+    assert summary["preservation"]["schema_guard_source_selection_changed"] is False
+    assert summary["preservation"]["final_prediction_selection_changed"] is False
+    assert summary["preservation"]["evaluator_metrics_changed"] is False
+
+    assert manifest["evidence_kind"] == summary["evidence_kind"]
+    assert manifest["counts"] == {
+        "allowed_attempt_values": 2,
+        "focused_tests_added": 1,
+        "new_trace_row_fields": 1,
+    }
+    assert manifest["historical_boundary"] == summary["historical_boundary"]
+    assert manifest["claims"] == summary["claims"]
+    assert summary["claims"]["local_instrumentation_only"] is True
+    assert summary["claims"]["a100_execution_performed"] is False
+    assert summary["claims"]["private_prediction_rerun_performed"] is False
+    assert summary["claims"]["training_or_prediction_rerun_performed"] is False
+    assert summary["claims"]["decoding_change_performed"] is False
+    assert summary["claims"]["retry_prompt_changed"] is False
+    assert summary["claims"]["parser_relaxation_performed"] is False
+    assert summary["claims"]["evaluator_metric_change_performed"] is False
+    assert summary["claims"]["prediction_repair_or_rescore_performed"] is False
+    assert summary["claims"]["semantic_equivalence_scoring_performed"] is False
+    assert summary["claims"]["slot_normalization_performed"] is False
+    assert summary["claims"]["checkpoint_release"] is False
+    assert summary["claims"]["adapter_release"] is False
+    assert summary["claims"]["model_recovery_claim"] is False
+    assert summary["claims"]["model_quality_improvement_claim"] is False
+    assert summary["claims"]["live_browser_benchmark_improvement_claim"] is False
+
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    assert post_archive_leak_scan["ok"] is True
+    assert post_archive_leak_scan["findings"] == []
+    assert final_leak_scan["ok"] is True
+    assert final_leak_scan["findings"] == []
+    assert "attempt-level `generation_trace.jsonl` rows" in report
+    assert "历史 A100" in human_brief
+    assert "不会被 retroactively 改写" in human_brief
+    assert "first-phase speech-to-contract normalization" in human_brief
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert "private-overrides" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
+
+
 def test_confirmation_rerun_row_mismatch_diagnosis_pack_is_public_safe_and_bounded() -> None:
     prior_dir = Path("reports/public-sample/a100-confirmation-required-train-split-rerun")
     evidence_dir = Path("reports/public-sample/confirmation-rerun-row-mismatch-diagnosis")
@@ -2392,6 +2516,72 @@ def test_real_sft_prediction_sidecars_summarize_sanitized_decoded_and_generation
     assert trace_rows[0]["finish_state"] == "no_eos_observed"
     assert prompt_payload["rows"][0]["id"] == "sft-test-1"
     assert "/mnt/data/" not in json.dumps(raw_rows + trace_rows + prompt_payload["rows"], ensure_ascii=False)
+
+
+def test_real_sft_prediction_generation_trace_records_retry_attempt(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "trained_predictions.jsonl"
+    tokenizer = _FakeRetryTokenizer()
+    row = SFTDatasetRow(
+        id="sft-test-1",
+        split="test",
+        input_text="帮我搜索机票",
+        target_contract=_contract("机票"),
+        provenance={"source_id": "sft-test-1", "public_safe": True},
+    )
+    torch_module = types.ModuleType("torch")
+    torch_module.float16 = "float16"
+    torch_module.float32 = "float32"
+    torch_module.cuda = types.SimpleNamespace(is_available=lambda: False)
+    torch_module.no_grad = lambda: _FakeNoGrad()
+    peft_module = types.ModuleType("peft")
+    peft_module.PeftModel = types.SimpleNamespace(from_pretrained=lambda model, adapter_path: model)
+    transformers_module = types.ModuleType("transformers")
+    transformers_module.AutoTokenizer = types.SimpleNamespace(from_pretrained=lambda *args, **kwargs: tokenizer)
+    transformers_module.AutoModelForCausalLM = types.SimpleNamespace(
+        from_pretrained=lambda *args, **kwargs: _FakeModel()
+    )
+    monkeypatch.setitem(sys.modules, "torch", torch_module)
+    monkeypatch.setitem(sys.modules, "peft", peft_module)
+    monkeypatch.setitem(sys.modules, "transformers", transformers_module)
+
+    count = training._run_real_sft_prediction(
+        {
+            "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+            "adapter_path": (tmp_path / "adapter").as_posix(),
+            "schema_retry_enabled": True,
+        },
+        [row],
+        output,
+        sidecar_paths={
+            "prompt_snapshot": tmp_path / "prompt_snapshot.json",
+            "raw_decoded_summary": tmp_path / "raw_decoded_summary.jsonl",
+            "generation_trace": tmp_path / "generation_trace.jsonl",
+        },
+    )
+
+    record = json.loads(output.read_text(encoding="utf-8"))
+    trace_rows = [
+        json.loads(line)
+        for line in (tmp_path / "generation_trace.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert count == 1
+    assert record["schema_guard"]["retry_attempted"] is True
+    assert record["schema_guard"]["validated_output_source"] == "retry_attempt"
+    assert [row["attempt"] for row in trace_rows] == ["raw_attempt", "retry_attempt"]
+    assert [row["id"] for row in trace_rows] == ["sft-test-1", "sft-test-1"]
+    assert all(row["prediction_source_kind"] == "private_a100_adapter" for row in trace_rows)
+    assert all(row["strategy"] == "greedy" for row in trace_rows)
+    assert all(row["do_sample"] is False for row in trace_rows)
+    assert all(row["max_new_tokens"] == 256 for row in trace_rows)
+    assert all(row["generated_token_count"] == 2 for row in trace_rows)
+    assert all(row["eos_token_id_available"] is True for row in trace_rows)
+    assert all(row["eos_token_seen"] is False for row in trace_rows)
+    assert all(row["finish_state"] == "no_eos_observed" for row in trace_rows)
+    assert scan_paths([tmp_path / "generation_trace.jsonl"]).ok is True
 
 
 def test_real_sft_prediction_sanitizes_private_paths_inside_json_output(

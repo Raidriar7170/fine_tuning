@@ -1,0 +1,50 @@
+{
+  "evidence_kind": "retry_generation_trace_instrumentation_local",
+  "generated_at": "2026-06-06T00:00:00+00:00",
+  "source_artifacts": {
+    "prior_retry_stop_boundary_diagnosis": "reports/public-sample/retry-decoding-stop-boundary-diagnosis/decoding_stop_boundary_diagnosis.json",
+    "prior_a100_generation_trace": "reports/public-sample/a100-schema-retry-wrapper-boundary-rerun/generation_trace.jsonl",
+    "training_code": "src/voice2task/training.py",
+    "focused_test": "tests/test_a100_sft_prediction_smoke.py::test_real_sft_prediction_generation_trace_records_retry_attempt"
+  },
+  "diagnostic_artifacts": {
+    "summary": "reports/public-sample/retry-generation-trace-instrumentation/instrumentation_summary.json",
+    "report": "reports/public-sample/retry-generation-trace-instrumentation/instrumentation_summary.md",
+    "manifest": "reports/public-sample/retry-generation-trace-instrumentation/manifest.json",
+    "leak_scan": "reports/public-sample/retry-generation-trace-instrumentation/leak_scan_result.json",
+    "phase_validation_leak_scan": "reports/public-sample/retry-generation-trace-instrumentation/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/retry-generation-trace-instrumentation/post_archive_leak_scan_result.json",
+    "final_leak_scan": "reports/public-sample/retry-generation-trace-instrumentation/final_leak_scan_result.json",
+    "human_brief": "docs/human-briefs/2026-06-06-instrument-retry-generation-trace.html"
+  },
+  "counts": {
+    "new_trace_row_fields": 1,
+    "allowed_attempt_values": 2,
+    "focused_tests_added": 1
+  },
+  "historical_boundary": {
+    "prior_a100_trace_rewritten": false,
+    "prior_a100_retry_trace_available_after_this_phase": false,
+    "future_a100_or_private_adapter_rerun_required_to_observe_real_retry_stop_boundary": true,
+    "historical_a100_metrics_reinterpreted": false
+  },
+  "claims": {
+    "local_instrumentation_only": true,
+    "a100_execution_performed": false,
+    "private_prediction_rerun_performed": false,
+    "training_or_prediction_rerun_performed": false,
+    "decoding_change_performed": false,
+    "retry_prompt_changed": false,
+    "parser_relaxation_performed": false,
+    "evaluator_metric_change_performed": false,
+    "schema_repair_or_coercion_applied": false,
+    "prediction_repair_or_rescore_performed": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "checkpoint_release": false,
+    "adapter_release": false,
+    "model_recovery_claim": false,
+    "model_quality_improvement_claim": false,
+    "live_browser_benchmark_improvement_claim": false
+  }
+}
