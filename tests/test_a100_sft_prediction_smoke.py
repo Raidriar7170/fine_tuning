@@ -1916,6 +1916,174 @@ def test_a100_retry_generation_trace_rerun_evidence_is_public_safe_and_bounded()
     assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
 
 
+def test_retry_trace_finish_state_boundary_diagnosis_pack_is_public_safe_and_bounded() -> None:
+    source_dir = Path("reports/public-sample/a100-retry-generation-trace-rerun")
+    evidence_dir = Path("reports/public-sample/retry-trace-finish-state-boundary-diagnosis")
+    human_brief_path = Path(
+        "docs/human-briefs/2026-06-06-diagnose-retry-trace-finish-state-boundary.html"
+    )
+    archive_dir = Path("openspec/changes/archive/2026-06-06-diagnose-retry-trace-finish-state-boundary")
+    change_dirs = [
+        Path("openspec/changes/diagnose-retry-trace-finish-state-boundary"),
+        archive_dir,
+    ]
+    required_files = {
+        "finish_state_boundary_diagnosis.json",
+        "finish_state_boundary_diagnosis.md",
+        "manifest.json",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+    }
+    expected_row_ids = ["seed-search-weather", "seed-search-weather-aug-1", "seed-search-weather-aug-2"]
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+    if archive_dir.exists():
+        assert {"post_archive_leak_scan_result.json", "final_leak_scan_result.json"} <= {
+            path.name for path in evidence_dir.iterdir()
+        }
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    diagnosis = json.loads((evidence_dir / "finish_state_boundary_diagnosis.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "finish_state_boundary_diagnosis.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_leak_scan = json.loads((evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8"))
+    post_archive_leak_scan = (
+        json.loads((evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8"))
+        if (evidence_dir / "post_archive_leak_scan_result.json").exists()
+        else {"ok": True, "findings": []}
+    )
+    final_leak_scan = (
+        json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
+        if (evidence_dir / "final_leak_scan_result.json").exists()
+        else {"ok": True, "findings": []}
+    )
+    source_diagnosis = json.loads((source_dir / "retry_trace_diagnosis.json").read_text(encoding="utf-8"))
+    source_trace_rows = [
+        json.loads(line) for line in (source_dir / "generation_trace.jsonl").read_text().splitlines()
+    ]
+    source_retry_trace_rows = [row for row in source_trace_rows if row["attempt"] == "retry_attempt"]
+    serialized = "\n".join(
+        [
+            json.dumps(diagnosis, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(phase_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True),
+            report,
+            human_brief,
+        ]
+    )
+
+    assert diagnosis["evidence_kind"] == "retry_trace_finish_state_boundary_diagnosis_local"
+    assert diagnosis["diagnostic_kind"] == "retry_trace_finish_state_boundary_diagnosis"
+    assert diagnosis["source_artifacts"]["a100_generation_trace"].endswith("generation_trace.jsonl")
+    assert diagnosis["source_artifacts"]["trace_writer_source"] == "src/voice2task/training.py"
+    assert diagnosis["source_artifact_policy"]["uses_prior_public_sample_artifacts_only"] is True
+    assert diagnosis["source_artifact_policy"]["a100_execution_performed"] is False
+    assert diagnosis["source_artifact_policy"]["prediction_rerun_performed"] is False
+    assert diagnosis["source_artifact_policy"]["private_raw_logs_or_adapters_read"] is False
+
+    summary = diagnosis["summary"]
+    assert summary["source_prior_phase"] == source_dir.as_posix()
+    assert summary["prediction_count"] == 3
+    assert summary["retry_trace_row_count"] == 3
+    assert summary["raw_trace_row_count"] == 3
+    assert summary["retry_finish_state_counts"] == {"no_eos_observed": 3}
+    assert summary["retry_eos_seen_counts"] == {"False": 3}
+    assert summary["retry_generated_token_count_min"] == 146
+    assert summary["retry_generated_token_count_max"] == 165
+    assert summary["retry_max_new_tokens"] == [256]
+    assert summary["retry_max_new_tokens_hit_count"] == 0
+    assert summary["retry_no_eos_below_max_count"] == 3
+    assert summary["strict_final_json_valid_rate"] == (
+        source_diagnosis["summary"]["strict_final_json_valid_rate"]
+    ) == 0.0
+    assert summary["finish_state_algorithm"] == "tokenizer_eos_membership_only"
+    assert summary["model_generate_explicit_eos_token_id_passed"] is False
+    assert summary["model_generate_pad_token_id_uses_tokenizer_eos"] is True
+    assert summary["model_generation_config_stop_reason_recorded"] is False
+    assert summary["actual_generation_stop_reason_recorded"] is False
+    assert summary["retry_stop_reason_claim_proven"] is False
+    assert summary["max_token_truncation_claim_proven"] is False
+
+    assert [row["row_id"] for row in diagnosis["rows"]] == expected_row_ids
+    assert all(row["retry_generation"]["trace_available"] is True for row in diagnosis["rows"])
+    assert all(row["retry_generation"]["finish_state"] == "no_eos_observed" for row in diagnosis["rows"])
+    assert all(row["retry_generation"]["tokenizer_eos_seen"] is False for row in diagnosis["rows"])
+    assert all(row["retry_generation"]["max_new_tokens"] == 256 for row in diagnosis["rows"])
+    assert all(row["retry_generation"]["max_new_tokens_hit"] is False for row in diagnosis["rows"])
+    assert all(row["retry_generation"]["actual_stop_reason_recorded"] is False for row in diagnosis["rows"])
+    assert all(row["retry_generation"]["stop_reason_claim_proven"] is False for row in diagnosis["rows"])
+    assert all(row["interpretation"]["actual_stop_reason_unknown"] is True for row in diagnosis["rows"])
+    assert all(row["generated_token_count"] < row["max_new_tokens"] for row in source_retry_trace_rows)
+
+    assert diagnosis["evidence_gaps"]["actual_model_generate_stop_reason_missing"] is True
+    assert diagnosis["evidence_gaps"]["model_generation_config_eos_id_not_recorded"] is True
+    assert diagnosis["evidence_gaps"]["stopping_criteria_status_not_recorded"] is True
+    assert diagnosis["evidence_gaps"]["tokenizer_eos_visibility_must_not_be_overstated_as_stop_reason"] is True
+    assert diagnosis["recommended_next_step"]["requires_user_confirmation"] is True
+
+    assert manifest["evidence_kind"] == "retry_trace_finish_state_boundary_diagnosis_local"
+    assert manifest["source_prior_phase"] == source_dir.as_posix()
+    assert manifest["counts"]["rows"] == 3
+    assert manifest["counts"]["retry_trace_rows"] == 3
+    assert manifest["counts"]["retry_no_eos_below_max_count"] == 3
+    assert manifest["counts"]["retry_max_new_tokens_hit_count"] == 0
+    for artifact_path in manifest["diagnostic_artifacts"].values():
+        assert Path(artifact_path).exists()
+    if archive_dir.exists():
+        assert manifest["diagnostic_artifacts"]["post_archive_leak_scan"].endswith(
+            "post_archive_leak_scan_result.json"
+        )
+        assert manifest["diagnostic_artifacts"]["final_leak_scan"].endswith("final_leak_scan_result.json")
+    else:
+        assert "post_archive_leak_scan" not in manifest["diagnostic_artifacts"]
+        assert "final_leak_scan" not in manifest["diagnostic_artifacts"]
+    assert manifest["claims"]["local_evidence_only_analysis"] is True
+    assert manifest["claims"]["a100_execution_performed"] is False
+    assert manifest["claims"]["prediction_rerun_performed"] is False
+    assert manifest["claims"]["training_performed"] is False
+    assert manifest["claims"]["decoding_behavior_change_performed"] is False
+    assert manifest["claims"]["retry_prompt_change_performed"] is False
+    assert manifest["claims"]["parser_relaxation_performed"] is False
+    assert manifest["claims"]["evaluator_metric_change_performed"] is False
+    assert manifest["claims"]["prediction_repair_or_rescore_performed"] is False
+    assert manifest["claims"]["semantic_equivalence_scoring_performed"] is False
+    assert manifest["claims"]["slot_normalization_performed"] is False
+    assert manifest["claims"]["stop_reason_instrumentation_change_performed"] is False
+    assert manifest["claims"]["model_recovery_claim"] is False
+    assert manifest["claims"]["model_quality_improvement_claim"] is False
+    assert manifest["claims"]["public_full_corpus_release"] is False
+    assert manifest["claims"]["live_browser_benchmark_improvement_claim"] is False
+
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_leak_scan["ok"] is True
+    assert phase_leak_scan["findings"] == []
+    assert post_archive_leak_scan["ok"] is True
+    assert post_archive_leak_scan["findings"] == []
+    assert final_leak_scan["ok"] is True
+    assert final_leak_scan["findings"] == []
+    assert "actual stop reason remains unknown" in report
+    assert "No A100 execution or prediction rerun" in report
+    assert "162 passed" in human_brief
+    assert "OpenSpec strict validate" in human_brief
+    assert "不能证明真实 stop reason" in human_brief
+    assert "不使用 A100" in human_brief
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert "private-overrides" not in serialized
+    assert "private-configs" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
+
+
 def test_retry_decoding_stop_boundary_diagnosis_pack_is_public_safe_and_bounded() -> None:
     source_dir = Path("reports/public-sample/a100-schema-retry-wrapper-boundary-rerun")
     evidence_dir = Path("reports/public-sample/retry-decoding-stop-boundary-diagnosis")

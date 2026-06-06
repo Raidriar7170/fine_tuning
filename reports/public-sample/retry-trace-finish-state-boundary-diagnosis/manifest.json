@@ -1,0 +1,47 @@
+{
+  "change_name": "diagnose-retry-trace-finish-state-boundary",
+  "claims": {
+    "a100_execution_performed": false,
+    "decoding_behavior_change_performed": false,
+    "evaluator_metric_change_performed": false,
+    "live_browser_benchmark_improvement_claim": false,
+    "local_evidence_only_analysis": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "prediction_rerun_performed": false,
+    "public_full_corpus_release": false,
+    "retry_prompt_change_performed": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "stop_reason_instrumentation_change_performed": false,
+    "training_performed": false,
+    "uses_committed_public_artifacts_only": true
+  },
+  "counts": {
+    "retry_max_new_tokens_hit_count": 0,
+    "retry_no_eos_below_max_count": 3,
+    "retry_trace_rows": 3,
+    "rows": 3
+  },
+  "diagnostic_artifacts": {
+    "diagnosis": "reports/public-sample/retry-trace-finish-state-boundary-diagnosis/finish_state_boundary_diagnosis.json",
+    "final_leak_scan": "reports/public-sample/retry-trace-finish-state-boundary-diagnosis/final_leak_scan_result.json",
+    "human_brief": "docs/human-briefs/2026-06-06-diagnose-retry-trace-finish-state-boundary.html",
+    "leak_scan": "reports/public-sample/retry-trace-finish-state-boundary-diagnosis/leak_scan_result.json",
+    "manifest": "reports/public-sample/retry-trace-finish-state-boundary-diagnosis/manifest.json",
+    "phase_validation_leak_scan": "reports/public-sample/retry-trace-finish-state-boundary-diagnosis/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/retry-trace-finish-state-boundary-diagnosis/post_archive_leak_scan_result.json",
+    "report": "reports/public-sample/retry-trace-finish-state-boundary-diagnosis/finish_state_boundary_diagnosis.md"
+  },
+  "evidence_kind": "retry_trace_finish_state_boundary_diagnosis_local",
+  "generated_at": "2026-06-06T07:06:40.658549+00:00",
+  "source_artifacts": {
+    "a100_generation_trace": "reports/public-sample/a100-retry-generation-trace-rerun/generation_trace.jsonl",
+    "a100_retry_trace_diagnosis": "reports/public-sample/a100-retry-generation-trace-rerun/retry_trace_diagnosis.json",
+    "a100_retry_trace_rerun_manifest": "reports/public-sample/a100-retry-generation-trace-rerun/manifest.json",
+    "trace_writer_source": "src/voice2task/training.py"
+  },
+  "source_prior_phase": "reports/public-sample/a100-retry-generation-trace-rerun"
+}

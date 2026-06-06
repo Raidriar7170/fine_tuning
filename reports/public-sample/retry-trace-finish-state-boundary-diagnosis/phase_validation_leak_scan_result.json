@@ -1,0 +1,11 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-06T07:11:30.583902+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/retry-trace-finish-state-boundary-diagnosis",
+    "docs/human-briefs/2026-06-06-diagnose-retry-trace-finish-state-boundary.html",
+    "openspec/changes/diagnose-retry-trace-finish-state-boundary"
+  ]
+}

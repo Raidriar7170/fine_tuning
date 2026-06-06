@@ -1,0 +1,157 @@
+{
+  "claims": {
+    "a100_execution_performed": false,
+    "decoding_behavior_change_performed": false,
+    "evaluator_metric_change_performed": false,
+    "live_browser_benchmark_improvement_claim": false,
+    "local_evidence_only_analysis": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "prediction_rerun_performed": false,
+    "public_full_corpus_release": false,
+    "retry_prompt_change_performed": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "stop_reason_instrumentation_change_performed": false,
+    "training_performed": false,
+    "uses_committed_public_artifacts_only": true
+  },
+  "diagnostic_kind": "retry_trace_finish_state_boundary_diagnosis",
+  "evidence_gaps": {
+    "actual_model_generate_stop_reason_missing": true,
+    "model_generation_config_eos_id_not_recorded": true,
+    "stopping_criteria_status_not_recorded": true,
+    "tokenizer_eos_visibility_must_not_be_overstated_as_stop_reason": true
+  },
+  "evidence_kind": "retry_trace_finish_state_boundary_diagnosis_local",
+  "generated_at": "2026-06-06T07:06:40.658549+00:00",
+  "recommended_next_step": {
+    "candidate": "decide whether to instrument model/generation-config stop reason in a future OpenSpec change",
+    "reason": "Any next phase that changes generation tracing, decoding parameters, or retry prompt semantics would change instrumentation or behavior rather than local diagnosis.",
+    "requires_user_confirmation": true
+  },
+  "rows": [
+    {
+      "interpretation": {
+        "actual_stop_reason_unknown": true,
+        "max_token_truncation_proven": false,
+        "no_eos_observed_means_tokenizer_eos_not_seen": true
+      },
+      "raw_generation": {
+        "finish_state": "eos_observed",
+        "generated_token_count": 54,
+        "max_new_tokens": 256,
+        "max_new_tokens_hit": false,
+        "tokenizer_eos_seen": true,
+        "trace_available": true
+      },
+      "retry_generation": {
+        "actual_stop_reason_recorded": false,
+        "finish_state": "no_eos_observed",
+        "generated_token_count": 165,
+        "max_new_tokens": 256,
+        "max_new_tokens_hit": false,
+        "stop_reason_claim_proven": false,
+        "tokenizer_eos_seen": false,
+        "trace_available": true
+      },
+      "row_id": "seed-search-weather"
+    },
+    {
+      "interpretation": {
+        "actual_stop_reason_unknown": true,
+        "max_token_truncation_proven": false,
+        "no_eos_observed_means_tokenizer_eos_not_seen": true
+      },
+      "raw_generation": {
+        "finish_state": "eos_observed",
+        "generated_token_count": 54,
+        "max_new_tokens": 256,
+        "max_new_tokens_hit": false,
+        "tokenizer_eos_seen": true,
+        "trace_available": true
+      },
+      "retry_generation": {
+        "actual_stop_reason_recorded": false,
+        "finish_state": "no_eos_observed",
+        "generated_token_count": 155,
+        "max_new_tokens": 256,
+        "max_new_tokens_hit": false,
+        "stop_reason_claim_proven": false,
+        "tokenizer_eos_seen": false,
+        "trace_available": true
+      },
+      "row_id": "seed-search-weather-aug-1"
+    },
+    {
+      "interpretation": {
+        "actual_stop_reason_unknown": true,
+        "max_token_truncation_proven": false,
+        "no_eos_observed_means_tokenizer_eos_not_seen": true
+      },
+      "raw_generation": {
+        "finish_state": "eos_observed",
+        "generated_token_count": 52,
+        "max_new_tokens": 256,
+        "max_new_tokens_hit": false,
+        "tokenizer_eos_seen": true,
+        "trace_available": true
+      },
+      "retry_generation": {
+        "actual_stop_reason_recorded": false,
+        "finish_state": "no_eos_observed",
+        "generated_token_count": 146,
+        "max_new_tokens": 256,
+        "max_new_tokens_hit": false,
+        "stop_reason_claim_proven": false,
+        "tokenizer_eos_seen": false,
+        "trace_available": true
+      },
+      "row_id": "seed-search-weather-aug-2"
+    }
+  ],
+  "source_artifact_policy": {
+    "a100_execution_performed": false,
+    "prediction_rerun_performed": false,
+    "private_raw_logs_or_adapters_read": false,
+    "source_metrics_preserved": true,
+    "source_predictions_preserved": true,
+    "uses_prior_public_sample_artifacts_only": true
+  },
+  "source_artifacts": {
+    "a100_generation_trace": "reports/public-sample/a100-retry-generation-trace-rerun/generation_trace.jsonl",
+    "a100_retry_trace_diagnosis": "reports/public-sample/a100-retry-generation-trace-rerun/retry_trace_diagnosis.json",
+    "a100_retry_trace_rerun_manifest": "reports/public-sample/a100-retry-generation-trace-rerun/manifest.json",
+    "trace_writer_source": "src/voice2task/training.py"
+  },
+  "summary": {
+    "actual_generation_stop_reason_recorded": false,
+    "finish_state_algorithm": "tokenizer_eos_membership_only",
+    "max_token_truncation_claim_proven": false,
+    "model_generate_explicit_eos_token_id_passed": false,
+    "model_generate_pad_token_id_uses_tokenizer_eos": true,
+    "model_generation_config_stop_reason_recorded": false,
+    "prediction_count": 3,
+    "raw_trace_row_count": 3,
+    "retry_eos_seen_counts": {
+      "False": 3
+    },
+    "retry_finish_state_counts": {
+      "no_eos_observed": 3
+    },
+    "retry_generated_token_count_max": 165,
+    "retry_generated_token_count_min": 146,
+    "retry_max_new_tokens": [
+      256
+    ],
+    "retry_max_new_tokens_hit_count": 0,
+    "retry_no_eos_below_max_count": 3,
+    "retry_stop_reason_claim_proven": false,
+    "retry_trace_row_count": 3,
+    "source_prior_phase": "reports/public-sample/a100-retry-generation-trace-rerun",
+    "strict_final_contract_exact_match": 0.0,
+    "strict_final_json_valid_rate": 0.0
+  }
+}
