@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop Closeout - retry JSON-only boundary</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f6f7f9; color: #1f2937; }
+    main { max-width: 1040px; margin: 0 auto; padding: 32px 20px 56px; }
+    h1 { font-size: 28px; margin: 0 0 10px; }
+    h2 { font-size: 18px; margin-top: 28px; }
+    p, li { line-height: 1.65; }
+    a { color: #0b5cad; }
+    code { background: #eef2f7; border-radius: 4px; padding: 1px 5px; }
+    .lede { font-size: 18px; color: #344054; }
+    .band { background: #fff; border: 1px solid #d8dee8; border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+    .warn { border-left: 4px solid #f59e0b; background: #fff7ed; padding: 10px 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .metric { background: #fff; border: 1px solid #d8dee8; border-radius: 8px; padding: 14px; }
+    .metric strong { display: block; font-size: 23px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop Closeout: retry JSON-only boundary</h1>
+  <p class="lede">结论：本轮完成了本地 retry JSON-only prompt hardening 和一次 A100 prediction-only rerun；A100 结果确认约束可见但模型仍 wrapper 输出，strict metrics 仍为 0，因此下一步需要人工选择是否改变 decoding/template/training 边界。</p>
+
+  <section class="band">
+    <h2>Loop 状态</h2>
+    <p>Stopped by hard stop：下一步不再是同类证据补充，而是会改变行为边界或训练/解码策略，需要用户确认。</p>
+  </section>
+
+  <section>
+    <h2>本轮完成阶段</h2>
+    <ol>
+      <li><strong>tighten-retry-json-only-output-boundary</strong>：本地 prompt-policy hardening，归档并提交 <code>126f195</code>。</li>
+      <li><strong>run-a100-retry-json-only-boundary-rerun</strong>：A100 prediction-only train-split rerun，归档并提交 <code>0d05e1e</code>。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>A100 结果</h2>
+    <div class="grid">
+      <div class="metric"><strong>3</strong><span>train predictions</span></div>
+      <div class="metric"><strong>0.0000</strong><span>strict json_valid_rate</span></div>
+      <div class="metric"><strong>3/3</strong><span>retry wrapper/fragments</span></div>
+      <div class="metric"><strong>0/3</strong><span>final schema-valid</span></div>
+    </div>
+    <p class="warn">这不是模型质量改善，也不是 schema/model recovery。不要把 embedded JSON fragment 描述成有效预测。</p>
+  </section>
+
+  <section>
+    <h2>项目阶段进度</h2>
+    <ul>
+      <li>Current project-stage target：not explicitly defined。</li>
+      <li>Source：当前 repo OpenSpec/Human Brief 链路只定义了 evidence-driven contract tuning 诊断阶段，没有写明 MVP/v1/release 目标。</li>
+      <li>Phase contribution：把 retry failure 从“可能是 prompt 可见性问题”缩小为“prompt constraint 已可见但 adapter 仍 wrapper 输出”。</li>
+      <li>Remaining gaps：capability 上仍不能产出 strict Browser Task Contract；evidence 上仍只覆盖 train split；validation 上 strict final metrics 仍为 0；documentation 上需继续保持 no-recovery 边界；user decision 上需要选择下一类行为改变。</li>
+      <li>Next-stage plan：用户确认后，开一个新的小 OpenSpec 阶段，在更强 retry decoding/template boundary、受约束 decoding 库、或 retry-only supervised adjustment 中选一条。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>关键文件</h2>
+    <ul>
+      <li><a href="../../reports/public-sample/a100-retry-json-only-boundary-rerun/report.md">A100 rerun report</a></li>
+      <li><a href="../../reports/public-sample/a100-retry-json-only-boundary-rerun/retry_json_only_boundary_diagnosis.json">retry_json_only_boundary_diagnosis.json</a></li>
+      <li><a href="2026-06-06-tighten-retry-json-only-output-boundary.html">local hardening Human Brief</a></li>
+      <li><a href="2026-06-06-run-a100-retry-json-only-boundary-rerun.html">A100 rerun Human Brief</a></li>
+      <li><a href="../../openspec/changes/archive/2026-06-06-run-a100-retry-json-only-boundary-rerun/tasks.md">archived OpenSpec tasks</a></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>验证结果</h2>
+    <ul>
+      <li><code>PYTHONPATH=src pytest -q</code>：167 passed。</li>
+      <li><code>uv run ruff check .</code>：passed。</li>
+      <li><code>uv run mypy src</code>：no issues in 16 source files。</li>
+      <li><code>openspec validate --all --strict</code>：4 passed, 0 failed after archive。</li>
+      <li><code>git diff --check</code>：passed after EOF cleanup。</li>
+      <li><code>voice2task.cli.data validate</code>：ok true, 12 SFT rows, 26 DPO pairs。</li>
+      <li><code>voice2task.cli.data dpo-check</code>：26 total pairs。</li>
+      <li><code>voice2task.cli.report leak-scan</code>：phase/post-archive/final scans ok true, findings empty。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Auto Integration</h2>
+    <p>阶段证据已提交到 <code>main</code>：<code>0d05e1e Archive retry JSON-only A100 rerun</code>。本 closeout report 将作为单独提交。未 push：repo 当前没有配置 remote/upstream。</p>
+  </section>
+
+  <section>
+    <h2>External Review</h2>
+    <p>未调用外部 ChatGPT Pro review。使用本地 Reviewer subagent，两轮 verdict：第一轮 Must Fix evidence shape；fix 后 Final Verdict Pass。</p>
+  </section>
+
+  <section>
+    <h2>不要过度声称</h2>
+    <p>不得声称训练成功、checkpoint/adapter release、held-out generalization、production readiness、live-browser benchmark improvement、parser relaxation、evaluator metric change、prediction repair/re-score、semantic equivalence、slot normalization、model recovery 或 model-quality improvement。</p>
+  </section>
+
+  <section>
+    <h2>推荐手动决策</h2>
+    <p>推荐停止自动推进，等用户选择下一阶段：我建议优先开很小的 <code>retry-template-decoding-boundary</code> 诊断/实验阶段，先验证是否能让 retry prompt 进入更强的 machine-only template 或 decode stop boundary；若要引入 constrained decoding 或 retry-only training，则需要新的 OpenSpec scope。</p>
+  </section>
+
+  <footer><p>Generated at 2026-06-06T09:03:32.095696+00:00.</p></footer>
+</main>
+</body>
+</html>
