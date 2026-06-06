@@ -348,7 +348,7 @@ def _schema_guard_rows_by_id(schema_guard_summary: dict[str, Any] | None) -> dic
     for row in rows:
         if not isinstance(row, dict):
             continue
-        row_id = row.get("id")
+        row_id = row.get("id") or row.get("row_id")
         if isinstance(row_id, str):
             guard_rows[_sanitize_id(row_id)] = row
     return guard_rows
@@ -751,6 +751,127 @@ def diagnose_normalized_command_string_mismatches(
             "predictions_repaired_or_replaced": False,
             "predictions_rescored": False,
             "search_query_terms_marked_equivalent": False,
+        },
+    }
+
+
+def _retry_template_slot_family(gold_slots: Any, predicted_slots: Any) -> str:
+    if not isinstance(gold_slots, dict) or not isinstance(predicted_slots, dict):
+        return "slot_type_or_shape_mismatch"
+    gold_keys = set(gold_slots)
+    predicted_keys = set(predicted_slots)
+    if gold_keys == {"query"} and {"city", "date"} <= predicted_keys and "query" not in predicted_keys:
+        return "city_date_slots_instead_of_query"
+    if "query" in gold_slots and "query" in predicted_slots and gold_slots["query"] != predicted_slots["query"]:
+        return "query_slot_strict_string_mismatch"
+    if gold_slots != predicted_slots:
+        return "other_slot_exact_match_mismatch"
+    return "slot_matches"
+
+
+def diagnose_retry_template_slot_exact_match_mismatches(
+    rows: list[SFTDatasetRow],
+    predictions: dict[str, Any],
+    *,
+    metrics: dict[str, Any] | None = None,
+    schema_guard_summary: dict[str, Any] | None = None,
+    source_artifacts: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    alignment = diagnose_alignment_mismatches(rows, predictions)
+    guard_rows = _schema_guard_rows_by_id(schema_guard_summary)
+    alignment_rows = {row["row_id"]: row for row in alignment.get("rows", [])}
+    slot_family_counts: dict[str, int] = {}
+    diagnostic_rows: list[dict[str, Any]] = []
+
+    for row in rows:
+        row_id = _sanitize_id(row.id)
+        raw_prediction = predictions.get(row.id)
+        parsed_prediction = _parse_prediction_object(raw_prediction)
+        prediction_object = parsed_prediction if isinstance(parsed_prediction, dict) else {}
+        gold_contract = as_contract(row.target_contract).to_dict()
+        slot_family = _retry_template_slot_family(
+            gold_contract.get("slots"),
+            prediction_object.get("slots"),
+        )
+        if slot_family != "slot_matches":
+            _increment_count(slot_family_counts, slot_family)
+        alignment_row = alignment_rows.get(row_id, {"row_id": row_id, "mismatches": []})
+        mismatches = alignment_row["mismatches"]
+        mismatch_paths = {
+            str(mismatch.get("field_path"))
+            for mismatch in mismatches
+            if isinstance(mismatch, dict) and isinstance(mismatch.get("field_path"), str)
+        }
+        schema_guard = guard_rows.get(row_id, {})
+        diagnostic_rows.append(
+            {
+                "row_id": row_id,
+                "primary_slot_mismatch_family": slot_family,
+                "normalized_command_mismatch_present": "normalized_command" in mismatch_paths,
+                "source_prediction_status": {
+                    "schema_valid_prediction": _prediction_to_contract(raw_prediction) is not None,
+                    "validated_output_schema_valid": schema_guard.get("validated_output_schema_valid"),
+                    "validated_output_source": schema_guard.get("validated_output_source"),
+                    "raw_attempt_missing_required_fields": schema_guard.get(
+                        "raw_attempt_missing_required_fields", []
+                    ),
+                    "raw_attempt_validation_error": schema_guard.get("raw_attempt_validation_error"),
+                },
+                "mismatches": mismatches,
+            }
+        )
+
+    metric_values = _metrics_payload(metrics)
+    schema_summary = (
+        schema_guard_summary.get("summary", {}) if isinstance(schema_guard_summary, dict) else {}
+    )
+    if not isinstance(schema_summary, dict):
+        schema_summary = {}
+    field_counts = alignment["summary"].get("field_mismatch_counts", {})
+    normalized_command_mismatch_count = (
+        field_counts.get("normalized_command", 0) if isinstance(field_counts, dict) else 0
+    )
+    safe_source_artifacts = {
+        str(key): _sanitize_public_summary(str(value)) for key, value in (source_artifacts or {}).items()
+    }
+    return {
+        "diagnostic_kind": "retry_template_slot_exact_match_mismatch_diagnosis",
+        "summary": {
+            **alignment["summary"],
+            "slot_family_counts": dict(sorted(slot_family_counts.items())),
+            "normalized_command_mismatch_count": normalized_command_mismatch_count,
+            "validated_output_schema_valid_count": schema_summary.get("validated_output_schema_valid_count"),
+            "strict_final_json_valid_rate": metric_values.get("json_valid_rate"),
+            "strict_final_task_type_accuracy": metric_values.get("task_type_accuracy"),
+            "strict_final_route_accuracy": metric_values.get("route_accuracy"),
+            "strict_final_confirmation_accuracy": metric_values.get("confirmation_accuracy"),
+            "strict_final_slot_f1": metric_values.get("slot_f1"),
+            "strict_final_contract_exact_match": metric_values.get("contract_exact_match"),
+            "metrics_preserved_from_source": bool(metric_values),
+        },
+        "rows": diagnostic_rows,
+        "source_artifacts": safe_source_artifacts,
+        "source_artifact_policy": {
+            "uses_prior_public_sample_artifacts_only": True,
+            "a100_execution_performed": False,
+            "prediction_rerun_performed": False,
+            "training_or_decoding_changed": False,
+            "prompt_changed": False,
+            "schema_or_parser_changed": False,
+            "retry_changed": False,
+            "evaluator_metrics_changed": False,
+            "slot_normalization_performed": False,
+            "normalization_or_semantic_equivalence_added": False,
+        },
+        "claims": {
+            **_confirmation_rerun_claims(),
+            "slot_normalization_performed": False,
+            "normalized_command_normalization_performed": False,
+            "semantic_equivalence_scoring_performed": False,
+            "prediction_repair_or_rescore_performed": False,
+            "predictions_repaired_or_replaced": False,
+            "predictions_rescored": False,
+            "model_quality_improvement_claim": False,
         },
     }
 

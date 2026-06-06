@@ -878,6 +878,136 @@ def test_normalized_command_string_mismatch_diagnosis_preserves_strict_boundarie
     assert "Strict final contract_exact_match remains `0.0`" in report
 
 
+def test_retry_template_slot_exact_match_mismatch_diagnosis_classifies_slot_shapes(
+    tmp_path: Path,
+) -> None:
+    rows = [
+        SFTDatasetRow(
+            id=row_id,
+            split="train",
+            input_text=input_text,
+            target_contract=BrowserTaskContract(
+                task_type="search",
+                route="search_web",
+                safety={"allow": True, "reason": "public_readonly"},
+                confirmation_required=False,
+                slots={"query": "北京 明天 天气"},
+                normalized_command="搜索北京明天天气",
+            ),
+            provenance={"source_id": "seed-search-weather", "public_safe": True},
+        )
+        for row_id, input_text in (
+            ("seed-search-weather", "帮我搜索北京明天的天气"),
+            ("seed-search-weather-aug-1", "查一下北京明天天气"),
+            ("seed-search-weather-aug-2", "搜北京明天的天气"),
+        )
+    ]
+    predictions = {
+        "seed-search-weather": {
+            **rows[0].target_contract.to_dict(),
+            "normalized_command": "帮我搜索北京明天的天气",
+            "slots": {"city": "北京", "date": "明天"},
+        },
+        "seed-search-weather-aug-1": {
+            **rows[1].target_contract.to_dict(),
+            "slots": {"city": "北京", "date": "明天"},
+        },
+        "seed-search-weather-aug-2": {
+            **rows[2].target_contract.to_dict(),
+            "slots": {"query": "北京明天天气"},
+        },
+    }
+    schema_guard_summary = {
+        "summary": {"validated_output_schema_valid_count": 3},
+        "rows": [
+            {
+                "row_id": "seed-search-weather",
+                "validated_output_schema_valid": True,
+                "validated_output_source": "retry_attempt",
+            },
+            {
+                "row_id": "seed-search-weather-aug-1",
+                "validated_output_schema_valid": True,
+                "validated_output_source": "raw_attempt",
+            },
+            {
+                "row_id": "seed-search-weather-aug-2",
+                "validated_output_schema_valid": True,
+                "validated_output_source": "retry_attempt",
+            },
+        ],
+    }
+    metrics = {
+        "metrics": {
+            "json_valid_rate": 1.0,
+            "task_type_accuracy": 1.0,
+            "route_accuracy": 1.0,
+            "confirmation_accuracy": 1.0,
+            "slot_f1": 0.0,
+            "contract_exact_match": 0.0,
+        }
+    }
+
+    diagnosis = evaluation.diagnose_retry_template_slot_exact_match_mismatches(
+        rows,
+        predictions,
+        metrics=metrics,
+        schema_guard_summary=schema_guard_summary,
+        source_artifacts={
+            "predictions": "reports/public-sample/a100-retry-template-boundary-rerun/predictions.jsonl",
+            "train_split_gold": "reports/public-sample/a100-retry-template-boundary-rerun/train_split_gold.jsonl",
+        },
+    )
+
+    assert diagnosis["diagnostic_kind"] == "retry_template_slot_exact_match_mismatch_diagnosis"
+    summary = diagnosis["summary"]
+    assert summary["gold_row_count"] == 3
+    assert summary["prediction_count"] == 3
+    assert summary["row_mismatch_count"] == 3
+    assert summary["schema_invalid_prediction_count"] == 0
+    assert summary["validated_output_schema_valid_count"] == 3
+    assert summary["field_mismatch_counts"] == {"normalized_command": 1, "slots": 3}
+    assert summary["slot_family_counts"] == {
+        "city_date_slots_instead_of_query": 2,
+        "query_slot_strict_string_mismatch": 1,
+    }
+    assert summary["normalized_command_mismatch_count"] == 1
+    assert summary["strict_final_json_valid_rate"] == 1.0
+    assert summary["strict_final_slot_f1"] == 0.0
+    assert summary["strict_final_contract_exact_match"] == 0.0
+
+    row_families = {row["row_id"]: row["primary_slot_mismatch_family"] for row in diagnosis["rows"]}
+    assert row_families == {
+        "seed-search-weather": "city_date_slots_instead_of_query",
+        "seed-search-weather-aug-1": "city_date_slots_instead_of_query",
+        "seed-search-weather-aug-2": "query_slot_strict_string_mismatch",
+    }
+    row_statuses = {row["row_id"]: row["source_prediction_status"] for row in diagnosis["rows"]}
+    assert row_statuses["seed-search-weather"]["validated_output_source"] == "retry_attempt"
+    assert row_statuses["seed-search-weather-aug-1"]["validated_output_source"] == "raw_attempt"
+    assert row_statuses["seed-search-weather-aug-2"]["validated_output_source"] == "retry_attempt"
+    assert all(status["validated_output_schema_valid"] is True for status in row_statuses.values())
+    assert diagnosis["source_artifact_policy"]["uses_prior_public_sample_artifacts_only"] is True
+    assert diagnosis["source_artifact_policy"]["a100_execution_performed"] is False
+    assert diagnosis["source_artifact_policy"]["prediction_rerun_performed"] is False
+    assert diagnosis["source_artifact_policy"]["slot_normalization_performed"] is False
+    assert diagnosis["claims"]["local_evidence_only_analysis"] is True
+    assert diagnosis["claims"]["slot_normalization_performed"] is False
+    assert diagnosis["claims"]["semantic_equivalence_scoring_performed"] is False
+    assert diagnosis["claims"]["prediction_repair_or_rescore_performed"] is False
+    assert diagnosis["claims"]["model_quality_improvement_claim"] is False
+
+    paths = reports.write_retry_template_slot_exact_match_mismatch_report(diagnosis, output_dir=tmp_path)
+    report = paths["markdown"].read_text(encoding="utf-8")
+    assert paths["json"].name == "slot_exact_match_mismatch_diagnosis.json"
+    assert paths["markdown"].name == "slot_exact_match_mismatch_diagnosis.md"
+    assert "local evidence-only analysis" in report
+    assert "No A100 execution was performed in this phase" in report
+    assert "city_date_slots_instead_of_query" in report
+    assert "query_slot_strict_string_mismatch" in report
+    assert "slot normalization" in report
+
+
 def test_diagnose_alignment_cli_writes_public_safe_json_and_markdown(tmp_path: Path) -> None:
     row = _row("gold-1", "search_web", "天气")
     gold = tmp_path / "gold.jsonl"

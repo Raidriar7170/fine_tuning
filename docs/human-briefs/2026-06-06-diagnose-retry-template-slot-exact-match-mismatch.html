@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retry template slot exact-match mismatch diagnosis</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f7f8fb;color:#20242a}
+    main{max-width:960px;margin:0 auto;padding:32px 20px 52px}
+    h1{font-size:28px;margin:0 0 8px}
+    h2{font-size:18px;margin:28px 0 10px}
+    p,li{line-height:1.65}
+    .panel,.metric{background:#fff;border:1px solid #d8dde6;border-radius:8px;padding:16px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0 20px}
+    .metric strong{display:block;font-size:22px}
+    code{background:#eceff3;padding:1px 5px;border-radius:4px}
+    a{color:#1957a6}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Retry template slot exact-match mismatch diagnosis</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>schema-valid 3/3 但 exact match 0/3 的剩余失败来自严格 slot exact-match：两行输出 <code>city/date</code> 而 gold 是 <code>query</code>，一行 <code>query</code> 字符串缺少空格；本阶段不使用 A100，不做 slot normalization，不改 strict evaluator metrics。</p>
+  </section>
+  <div class="grid">
+    <div class="metric"><span>phase status</span><strong>archived</strong></div>
+    <div class="metric"><span>rows diagnosed</span><strong>3</strong></div>
+    <div class="metric"><span>schema-valid</span><strong>3/3</strong></div>
+    <div class="metric"><span>slot F1</span><strong>0.0</strong></div>
+  </div>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li>新增 public-safe evidence pack：<a href="../../reports/public-sample/retry-template-slot-exact-match-mismatch-diagnosis/slot_exact_match_mismatch_diagnosis.md">slot_exact_match_mismatch_diagnosis.md</a>。</li>
+    <li>新增 focused tests，锁定 slot family counts、source strict metrics preserved 和 no normalization/no repair claims。</li>
+    <li>OpenSpec archive：<a href="../../openspec/changes/archive/2026-06-06-diagnose-retry-template-slot-exact-match-mismatch/proposal.md">2026-06-06-diagnose-retry-template-slot-exact-match-mismatch</a>。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li>source prior phase：<a href="../../reports/public-sample/a100-retry-template-boundary-rerun/report.md">a100-retry-template-boundary-rerun</a>。</li>
+    <li>strict source metrics 保持：<code>json_valid_rate=1.0</code>、<code>contract_exact_match=0.0</code>、<code>slot_f1=0.0</code>。</li>
+    <li><code>task_type</code>、<code>route</code>、<code>confirmation_required</code> 与 safety 指标都已匹配；失败集中在 <code>slots</code>。</li>
+  </ul>
+
+  <h2>行级诊断</h2>
+  <ul>
+    <li><code>seed-search-weather</code>：<code>city_date_slots_instead_of_query</code>，并伴随 normalized-command exact-string mismatch。</li>
+    <li><code>seed-search-weather-aug-1</code>：<code>city_date_slots_instead_of_query</code>。</li>
+    <li><code>seed-search-weather-aug-2</code>：<code>query_slot_strict_string_mismatch</code>。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是新的 A100 run、训练、prediction rerun、prompt/decoder/schema/parser/retry/evaluator 改动或 metric relaxation。</li>
+    <li>这不是 semantic-equivalence scoring；不会把 <code>city/date</code> 自动等价为 <code>query</code>。</li>
+    <li>这不是 held-out/generalization、model-quality improvement、production readiness、checkpoint/adapter release 或 live-browser benchmark improvement 证据。</li>
+  </ul>
+</main>
+</body>
+</html>
