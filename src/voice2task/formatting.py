@@ -77,6 +77,12 @@ FORMATTING_POLICY: dict[str, Any] = {
     "normalized_command_policy": "canonical_chinese_intent_phrase_not_verbatim_transcript",
 }
 
+RETRY_TEMPLATE_SYSTEM_PROMPT = (
+    "Voice2Task machine-only schema retry normalizer. "
+    "This is not a conversational assistant answer. "
+    "The assistant output channel is the assistant JSON payload only."
+)
+
 
 def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
     prompt_lower = prompt.lower()
@@ -202,6 +208,37 @@ def format_sft_training_text(row: SFTDatasetRow, *, tokenizer: Any | None = None
 
 def format_sft_prediction_prompt(row: SFTDatasetRow, *, tokenizer: Any | None = None) -> str:
     return _chat_template_text(format_sft_prompt_messages(row), tokenizer=tokenizer, add_generation_prompt=True)
+
+
+def format_schema_retry_prompt_text(retry_instruction: str, *, tokenizer: Any | None = None) -> str:
+    messages = [
+        {"role": "system", "content": RETRY_TEMPLATE_SYSTEM_PROMPT},
+        {"role": "user", "content": retry_instruction},
+    ]
+    return _chat_template_text(messages, tokenizer=tokenizer, add_generation_prompt=True)
+
+
+def schema_retry_template_boundary_summary(prompt: str | None = None) -> dict[str, bool]:
+    if prompt is None:
+        prompt = "\n".join(
+            [
+                RETRY_TEMPLATE_SYSTEM_PROMPT,
+                "Retry template mode: machine_contract_regeneration.",
+                "Treat this as a machine-only retry turn, not a conversational assistant answer.",
+                "Assistant output boundary: assistant JSON payload only.",
+                "Strict whole-object parser boundary: wrapped fragments remain invalid.",
+            ]
+        )
+    return {
+        "retry_template_mode_visible": "Retry template mode: machine_contract_regeneration" in prompt,
+        "machine_only_contract_regeneration_visible": "machine-only retry turn" in prompt
+        or "machine-only schema retry normalizer" in prompt,
+        "no_conversational_answer_mode_visible": "not a conversational assistant answer" in prompt,
+        "assistant_json_payload_only_visible": "assistant JSON payload only" in prompt,
+        "strict_whole_object_parser_boundary_visible": "Strict whole-object parser boundary" in prompt
+        and "wrapped fragments remain invalid" in prompt,
+        "retry_prompt_uses_chat_template_boundary": True,
+    }
 
 
 def format_dpo_pair(pair: DPOPair) -> dict[str, Any]:

@@ -15,9 +15,11 @@ from typing import Any, cast
 from voice2task.formatting import (
     FORMATTING_POLICY,
     format_dpo_pair,
+    format_schema_retry_prompt_text,
     format_sft_prediction_prompt,
     format_sft_training_text,
     prompt_constraint_summary,
+    schema_retry_template_boundary_summary,
 )
 from voice2task.io import read_json, read_jsonl, write_json
 from voice2task.schemas import (
@@ -697,6 +699,7 @@ def _prediction_metadata_common(
         "formatting_policy": dict(FORMATTING_POLICY),
         "prompt_constraints": prompt_constraint_summary(),
         "retry_prompt_constraints": schema_retry_prompt_constraint_summary(),
+        "retry_template_boundary": schema_retry_template_boundary_summary(),
         "decoding_policy": _decoding_policy(config),
         "sidecars": _public_sidecar_paths(sidecar_paths),
         "diagnostic_artifacts": _diagnostic_artifact_paths(
@@ -768,6 +771,7 @@ def _write_prompt_snapshot(rows: list[dict[str, Any]], path: Path, *, prediction
             "formatting_policy": dict(FORMATTING_POLICY),
             "prompt_constraints": prompt_constraint_summary(),
             "retry_prompt_constraints": schema_retry_prompt_constraint_summary(),
+            "retry_template_boundary": schema_retry_template_boundary_summary(),
             "rows": rows,
             "claims": {
                 "prompt_snapshot_only": True,
@@ -1050,6 +1054,10 @@ def _schema_retry_prompt(row: SFTDatasetRow, raw_prediction: Any, guard_status: 
             "Retry response must be exactly one JSON object and nothing else.",
             "No text outside the root JSON object; no preamble, wrapper, suffix, or trailing analysis.",
             "Return a machine-readable only retry response; do not include human-facing commentary.",
+            "Retry template mode: machine_contract_regeneration.",
+            "Treat this as a machine-only retry turn, not a conversational assistant answer.",
+            "Assistant output boundary: assistant JSON payload only.",
+            "Strict whole-object parser boundary: wrapped fragments remain invalid.",
             "不要在 normalized_command 之前提前关闭 root object。",
             "第一个非空字符必须是 `{`；最后一个非空字符必须是 `}`。",
             "不要 Markdown/code fences/prose；不要解释、不要自然语言前后缀。",
@@ -1236,7 +1244,8 @@ def _run_real_sft_prediction(
             retry_attempted = False
             if schema_retry_enabled and not raw_status["schema_valid"]:
                 retry_attempted = True
-                retry_prompt = _schema_retry_prompt(row, raw_prediction, raw_status)
+                retry_instruction = _schema_retry_prompt(row, raw_prediction, raw_status)
+                retry_prompt = format_schema_retry_prompt_text(retry_instruction, tokenizer=tokenizer)
                 retry_decoded, retry_new_tokens, _ = _decode_prediction_attempt(
                     model=model,
                     tokenizer=tokenizer,

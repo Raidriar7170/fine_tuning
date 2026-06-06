@@ -1,0 +1,90 @@
+{
+  "change_name": "retry-template-decoding-boundary",
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_change_performed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_improvement_claim": false,
+    "local_retry_template_boundary_hardening_only": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "private_prediction_rerun_performed": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "schema_repair_or_coercion_applied": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "training_performed": false
+  },
+  "evidence_kind": "retry_template_decoding_boundary_local",
+  "generated_at": "2026-06-06T09:22:02.291816+00:00",
+  "implementation_evidence": {
+    "metadata_exposes_retry_template_boundary": true,
+    "prompt_snapshot_exposes_retry_template_boundary": true,
+    "retry_decode_uses_chat_template_boundary": true,
+    "strict_parser_behavior_changed": false,
+    "strict_wrapped_retry_rejection_preserved": true
+  },
+  "prior_a100_context": {
+    "retry_prose_markdown_wrapper_count": 3,
+    "strict_final_contract_exact_match": 0.0,
+    "strict_final_json_valid_rate": 0.0,
+    "train_split_only": true,
+    "validated_output_schema_valid_count": 0
+  },
+  "retry_prompt_constraints": {
+    "exact_json_only_output_visible": true,
+    "first_last_brace_visible": true,
+    "machine_readable_only_retry_response_visible": true,
+    "minified_json_only_visible": true,
+    "no_here_is_visible": true,
+    "no_markdown_prose_visible": true,
+    "no_natural_language_wrapper_or_preamble_visible": true,
+    "no_prefix_suffix_text_visible": true,
+    "no_second_json_object_visible": true,
+    "no_text_outside_root_json_object_visible": true,
+    "no_trailing_analysis_visible": true,
+    "no_zh_this_following_prefix_visible": true,
+    "single_root_json_object_visible": true,
+    "strict_parser_rejection_warning_visible": true,
+    "task_type_search_not_search_web_visible": true
+  },
+  "retry_template_boundary": {
+    "assistant_json_payload_only_visible": true,
+    "machine_only_contract_regeneration_visible": true,
+    "no_conversational_answer_mode_visible": true,
+    "retry_prompt_uses_chat_template_boundary": true,
+    "retry_template_mode_visible": true,
+    "strict_whole_object_parser_boundary_visible": true
+  },
+  "source_artifacts": {
+    "a100_retry_json_only_manifest": "reports/public-sample/a100-retry-json-only-boundary-rerun/manifest.json",
+    "a100_retry_json_only_rerun": "reports/public-sample/a100-retry-json-only-boundary-rerun",
+    "local_retry_json_only_hardening": "reports/public-sample/tighten-retry-json-only-output-boundary",
+    "local_retry_json_only_summary": "reports/public-sample/tighten-retry-json-only-output-boundary/retry_json_only_boundary_summary.json"
+  },
+  "tdd_evidence": {
+    "green_test_focus": "retry template boundary summary plus real retry prompt chat-template rendering while wrapped retry fragments remain invalid",
+    "green_test_observed": true,
+    "red_test_focus": "missing machine-only retry template clauses, chat-template retry boundary, metadata/snapshot boundary, and local evidence pack",
+    "red_test_observed": true
+  },
+  "validation_commands": [
+    "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py -k \"schema_retry_prompt_declares or machine_only_chat_template or retries_schema_invalid_missing_required_fields or markdown_wrapped_retry\"",
+    "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py::test_retry_template_decoding_boundary_pack_is_public_safe_and_bounded",
+    "PYTHONPATH=src pytest -q",
+    "uv run ruff check .",
+    "uv run mypy src",
+    "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
+    "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
+    "PYTHONPATH=src python -m voice2task.cli.report leak-scan --paths reports/public-sample/retry-template-decoding-boundary docs/human-briefs/2026-06-06-retry-template-decoding-boundary.html openspec/changes/archive/2026-06-06-retry-template-decoding-boundary --output reports/public-sample/retry-template-decoding-boundary/phase_validation_leak_scan_result.json",
+    "PYTHONPATH=src python -m voice2task.cli.report leak-scan --paths reports/public-sample/retry-template-decoding-boundary docs/human-briefs/2026-06-06-retry-template-decoding-boundary.html openspec/changes/archive/2026-06-06-retry-template-decoding-boundary --output reports/public-sample/retry-template-decoding-boundary/post_archive_leak_scan_result.json",
+    "PYTHONPATH=src python -m voice2task.cli.report leak-scan --paths reports/public-sample/retry-template-decoding-boundary docs/human-briefs/2026-06-06-retry-template-decoding-boundary.html openspec/changes/archive/2026-06-06-retry-template-decoding-boundary openspec/specs/contract-evaluation/spec.md openspec/specs/supervised-contract-tuning/spec.md --output reports/public-sample/retry-template-decoding-boundary/final_leak_scan_result.json",
+    "git diff --check",
+    "OPENSPEC_TELEMETRY=0 openspec validate --all --strict"
+  ]
+}

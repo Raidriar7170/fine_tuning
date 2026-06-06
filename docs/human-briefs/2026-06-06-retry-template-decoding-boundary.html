@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retry template decoding boundary</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #1d2433; background: #f7f8fa; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin-top: 28px; }
+    p, li { line-height: 1.65; }
+    .lede { font-size: 18px; color: #344054; }
+    .box { background: #fff; border: 1px solid #d8dee8; border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+    .warn { background: #fff7ed; border-left: 4px solid #f59e0b; padding: 10px 14px; }
+    code { background: #eef2f7; border-radius: 4px; padding: 1px 5px; }
+    a { color: #0b5cad; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Retry template decoding boundary</h1>
+  <p class="lede">结论：本地 retry template boundary 已接入，retry 解码现在走 machine-only chat-template/fallback 边界；这不证明 A100 行为改变。</p>
+
+  <section class="box">
+    <h2>当前状态</h2>
+    <p>Archived：本地实现、evidence pack、OpenSpec 归档、post-archive/final leak scan 与验证已完成；guarded auto integration 状态见最终阶段回复。</p>
+  </section>
+
+  <section>
+    <h2>做了什么</h2>
+    <ul>
+      <li>给 schema retry 增加 <code>machine_contract_regeneration</code> template boundary。</li>
+      <li>retry 解码走 chat-template/fallback assistant generation prompt，而不是裸 retry instruction。</li>
+      <li>metadata 和 prompt snapshot 暴露 <code>retry_template_boundary</code>。</li>
+      <li>保留 strict whole-object parser：wrapped fragment 仍无效。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>证据</h2>
+    <ul>
+      <li><a href="../../reports/public-sample/retry-template-decoding-boundary/retry_template_boundary_summary.json">retry_template_boundary_summary.json</a></li>
+      <li><a href="../../reports/public-sample/retry-template-decoding-boundary/retry_template_boundary_summary.md">retry_template_boundary_summary.md</a></li>
+      <li><a href="../../reports/public-sample/retry-template-decoding-boundary/manifest.json">manifest.json</a></li>
+      <li><a href="../../reports/public-sample/retry-template-decoding-boundary/post_archive_leak_scan_result.json">post_archive_leak_scan_result.json</a></li>
+      <li><a href="../../reports/public-sample/retry-template-decoding-boundary/final_leak_scan_result.json">final_leak_scan_result.json</a></li>
+      <li><a href="../../reports/public-sample/a100-retry-json-only-boundary-rerun/report.md">prior A100 retry JSON-only rerun</a></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>不要过度声称</h2>
+    <p class="warn">没有 A100 执行、没有训练、没有 parser relaxation、没有 evaluator metric change、没有 prediction repair/re-score、没有模型恢复或模型质量改善声明。</p>
+  </section>
+
+  <section>
+    <h2>验证</h2>
+    <ul>
+      <li><code>PYTHONPATH=src pytest -q</code>：169 passed。</li>
+      <li><code>uv run ruff check .</code>：All checks passed。</li>
+      <li><code>uv run mypy src</code>：Success。</li>
+      <li><code>openspec validate --all --strict</code>：4 passed。</li>
+      <li>public data validate、DPO check、phase/post/final leak scan 均通过。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>推荐下一步</h2>
+    <p>下一阶段推荐小 A100 prediction-only rerun，用相同 train split rows 验证 machine-only retry template boundary 是否改变真实 adapter 输出；否则不要声称本地 template boundary 改变了 adapter 输出。</p>
+  </section>
+</main>
+</body>
+</html>

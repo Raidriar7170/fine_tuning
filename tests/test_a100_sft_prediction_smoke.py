@@ -1618,6 +1618,126 @@ def test_tighten_retry_json_only_output_boundary_pack_is_public_safe_and_bounded
     assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
 
 
+def test_retry_template_decoding_boundary_pack_is_public_safe_and_bounded() -> None:
+    local_hardening_dir = Path("reports/public-sample/tighten-retry-json-only-output-boundary")
+    prior_a100_dir = Path("reports/public-sample/a100-retry-json-only-boundary-rerun")
+    evidence_dir = Path("reports/public-sample/retry-template-decoding-boundary")
+    human_brief_path = Path("docs/human-briefs/2026-06-06-retry-template-decoding-boundary.html")
+    archive_dir = Path("openspec/changes/archive/2026-06-06-retry-template-decoding-boundary")
+    change_dirs = [
+        Path("openspec/changes/retry-template-decoding-boundary"),
+        archive_dir,
+    ]
+    required_files = {
+        "manifest.json",
+        "retry_template_boundary_summary.json",
+        "retry_template_boundary_summary.md",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+    }
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+    if archive_dir.exists():
+        assert {"post_archive_leak_scan_result.json", "final_leak_scan_result.json"} <= {
+            path.name for path in evidence_dir.iterdir()
+        }
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    summary = json.loads((evidence_dir / "retry_template_boundary_summary.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "retry_template_boundary_summary.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    post_archive_leak_scan = None
+    final_leak_scan = None
+    if archive_dir.exists():
+        post_archive_leak_scan = json.loads(
+            (evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8")
+        )
+        final_leak_scan = json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
+    local_summary = json.loads(
+        (local_hardening_dir / "retry_json_only_boundary_summary.json").read_text(encoding="utf-8")
+    )
+    prior_manifest = json.loads((prior_a100_dir / "manifest.json").read_text(encoding="utf-8"))
+    serialized = "\n".join(
+        [
+            json.dumps(summary, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(phase_validation_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True)
+            if post_archive_leak_scan is not None
+            else "",
+            json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True) if final_leak_scan is not None else "",
+            report,
+            human_brief,
+        ]
+    )
+
+    assert summary["evidence_kind"] == "retry_template_decoding_boundary_local"
+    assert manifest["evidence_kind"] == summary["evidence_kind"]
+    assert summary["source_artifacts"]["local_retry_json_only_hardening"] == local_hardening_dir.as_posix()
+    assert summary["source_artifacts"]["a100_retry_json_only_rerun"] == prior_a100_dir.as_posix()
+    assert local_summary["claims"]["local_retry_prompt_boundary_hardening_only"] is True
+    assert prior_manifest["observed_result"]["retry_prose_markdown_wrapper_count"] == 3
+    assert prior_manifest["observed_result"]["strict_final_json_valid_rate"] == 0.0
+
+    boundary = summary["retry_template_boundary"]
+    assert boundary["retry_prompt_uses_chat_template_boundary"] is True
+    assert boundary["retry_template_mode_visible"] is True
+    assert boundary["machine_only_contract_regeneration_visible"] is True
+    assert boundary["no_conversational_answer_mode_visible"] is True
+    assert boundary["assistant_json_payload_only_visible"] is True
+    assert boundary["strict_whole_object_parser_boundary_visible"] is True
+    assert manifest["retry_template_boundary"] == boundary
+    assert summary["retry_prompt_constraints"]["strict_parser_rejection_warning_visible"] is True
+    assert summary["tdd_evidence"]["red_test_observed"] is True
+    assert summary["tdd_evidence"]["green_test_observed"] is True
+
+    assert summary["claims"]["local_retry_template_boundary_hardening_only"] is True
+    assert summary["claims"]["a100_execution_performed"] is False
+    assert summary["claims"]["training_performed"] is False
+    assert summary["claims"]["private_prediction_rerun_performed"] is False
+    assert summary["claims"]["parser_relaxation_performed"] is False
+    assert summary["claims"]["evaluator_metric_change_performed"] is False
+    assert summary["claims"]["schema_repair_or_coercion_applied"] is False
+    assert summary["claims"]["prediction_repair_or_rescore_performed"] is False
+    assert summary["claims"]["semantic_equivalence_scoring_performed"] is False
+    assert summary["claims"]["slot_normalization_performed"] is False
+    assert summary["claims"]["model_recovery_claim"] is False
+    assert summary["claims"]["model_quality_improvement_claim"] is False
+    assert manifest["claims"] == summary["claims"]
+
+    for artifact_path in manifest["diagnostic_artifacts"].values():
+        assert Path(artifact_path).exists()
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    if archive_dir.exists():
+        assert post_archive_leak_scan is not None
+        assert post_archive_leak_scan["ok"] is True
+        assert post_archive_leak_scan["findings"] == []
+        assert final_leak_scan is not None
+        assert final_leak_scan["ok"] is True
+        assert final_leak_scan["findings"] == []
+    assert "local retry template/decoding-boundary hardening only" in report
+    assert "does not prove trained-adapter output behavior changed" in report
+    assert "本地 retry template boundary 已接入" in human_brief
+    assert "不证明 A100 行为改变" in human_brief
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert "private-overrides" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
+
+
 def test_a100_schema_retry_wrapper_boundary_rerun_evidence_is_public_safe_and_bounded() -> None:
     prior_dir = Path("reports/public-sample/a100-output-boundary-retry-policy-train-split-rerun")
     local_repair_dir = Path("reports/public-sample/schema-retry-wrapper-boundary-policy")
@@ -3464,6 +3584,18 @@ class _FakeRetryTokenizer(_FakeTokenizer):
         self.prompts: list[str] = []
         self.decode_calls = 0
 
+    def apply_chat_template(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tokenize: bool,
+        add_generation_prompt: bool,
+    ) -> str:
+        rendered = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        if add_generation_prompt:
+            rendered += "\nassistant:"
+        return rendered
+
     def __call__(self, prompt: str, *, return_tensors: str) -> _FakeInputs:
         self.prompts.append(prompt)
         return _FakeInputs({"input_ids": _FakeInputIds()})
@@ -3482,6 +3614,31 @@ class _FakeRetryTokenizer(_FakeTokenizer):
                 ensure_ascii=False,
             )
         return json.dumps(_contract("机票"), ensure_ascii=False)
+
+
+class _FakeRetryTemplateTokenizer(_FakeRetryTokenizer):
+    def __init__(self) -> None:
+        super().__init__()
+        self.template_calls: list[dict[str, Any]] = []
+
+    def apply_chat_template(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tokenize: bool,
+        add_generation_prompt: bool,
+    ) -> str:
+        self.template_calls.append(
+            {
+                "messages": messages,
+                "tokenize": tokenize,
+                "add_generation_prompt": add_generation_prompt,
+            }
+        )
+        rendered = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        if add_generation_prompt:
+            rendered += "\nassistant:"
+        return rendered
 
 
 class _FakeMarkdownRetryTokenizer(_FakeTokenizer):
@@ -3950,6 +4107,9 @@ def test_schema_retry_prompt_declares_canonical_json_only_contract_shape() -> No
     assert "No text outside the root JSON object" in prompt
     assert "不要使用自然语言 wrapper/preamble" in prompt
     assert "machine-readable only retry response" in prompt
+    assert "Retry template mode: machine_contract_regeneration" in prompt
+    assert "not a conversational assistant answer" in prompt
+    assert "assistant JSON payload only" in prompt
     assert "否则 strict parser 会拒绝 retry attempt" in prompt
 
     constraints = training.schema_retry_prompt_constraint_summary(prompt)
@@ -3957,6 +4117,79 @@ def test_schema_retry_prompt_declares_canonical_json_only_contract_shape() -> No
     assert constraints["no_text_outside_root_json_object_visible"] is True
     assert constraints["no_natural_language_wrapper_or_preamble_visible"] is True
     assert constraints["machine_readable_only_retry_response_visible"] is True
+    template_boundary = training.schema_retry_template_boundary_summary(prompt)
+    assert template_boundary["retry_template_mode_visible"] is True
+    assert template_boundary["machine_only_contract_regeneration_visible"] is True
+    assert template_boundary["no_conversational_answer_mode_visible"] is True
+    assert template_boundary["assistant_json_payload_only_visible"] is True
+    assert template_boundary["strict_whole_object_parser_boundary_visible"] is True
+
+
+def test_real_sft_prediction_uses_machine_only_chat_template_for_retry_prompt(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "trained_predictions.jsonl"
+    tokenizer = _FakeRetryTemplateTokenizer()
+    row = SFTDatasetRow(
+        id="sft-test-1",
+        split="test",
+        input_text="帮我搜索机票",
+        target_contract=_contract("机票"),
+        provenance={"source_id": "sft-test-1", "public_safe": True},
+    )
+    torch_module = types.ModuleType("torch")
+    torch_module.float16 = "float16"
+    torch_module.float32 = "float32"
+    torch_module.cuda = types.SimpleNamespace(is_available=lambda: False)
+    torch_module.no_grad = lambda: _FakeNoGrad()
+    peft_module = types.ModuleType("peft")
+    peft_module.PeftModel = types.SimpleNamespace(from_pretrained=lambda model, adapter_path: model)
+    transformers_module = types.ModuleType("transformers")
+    transformers_module.AutoTokenizer = types.SimpleNamespace(from_pretrained=lambda *args, **kwargs: tokenizer)
+    transformers_module.AutoModelForCausalLM = types.SimpleNamespace(
+        from_pretrained=lambda *args, **kwargs: _FakeModel()
+    )
+    monkeypatch.setitem(sys.modules, "torch", torch_module)
+    monkeypatch.setitem(sys.modules, "peft", peft_module)
+    monkeypatch.setitem(sys.modules, "transformers", transformers_module)
+
+    count = training._run_real_sft_prediction(
+        {
+            "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+            "adapter_path": (tmp_path / "adapter").as_posix(),
+            "schema_retry_enabled": True,
+        },
+        [row],
+        output,
+        sidecar_paths={
+            "prompt_snapshot": tmp_path / "prompt_snapshot.json",
+            "raw_decoded_summary": tmp_path / "raw_decoded_summary.jsonl",
+            "generation_trace": tmp_path / "generation_trace.jsonl",
+        },
+    )
+
+    metadata = training._prediction_metadata_common(
+        config_path=_write_prediction_config(tmp_path),
+        manifest_path=_write_manifest(tmp_path),
+        output_path=tmp_path / "predictions.jsonl",
+        dry_run=False,
+        fixture_mode=False,
+    )
+    prompt_payload = json.loads((tmp_path / "prompt_snapshot.json").read_text(encoding="utf-8"))
+
+    assert count == 1
+    assert len(tokenizer.template_calls) == 2
+    retry_template_call = tokenizer.template_calls[1]
+    assert retry_template_call["add_generation_prompt"] is True
+    assert [message["role"] for message in retry_template_call["messages"]] == ["system", "user"]
+    assert "machine-only schema retry" in retry_template_call["messages"][0]["content"]
+    assert "Retry template mode: machine_contract_regeneration" in retry_template_call["messages"][1]["content"]
+    assert "assistant JSON payload only" in tokenizer.prompts[1]
+    assert tokenizer.prompts[1].endswith("assistant:")
+    assert metadata["retry_template_boundary"]["retry_prompt_uses_chat_template_boundary"] is True
+    assert metadata["retry_template_boundary"]["retry_template_mode_visible"] is True
+    assert prompt_payload["retry_template_boundary"] == metadata["retry_template_boundary"]
 
 
 def test_real_sft_prediction_rejects_markdown_wrapped_retry_even_when_fragment_is_valid(
