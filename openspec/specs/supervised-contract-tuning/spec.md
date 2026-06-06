@@ -509,3 +509,26 @@ The system SHALL make the shared SFT training and trained-adapter prediction pro
 #### Scenario: Surface prompt constraint metadata
 - **WHEN** prompt constraint metadata is recorded in prediction metadata, prompt snapshots, manifests, reports, or evidence packs
 - **THEN** it MUST include explicit booleans for public-readonly search policy visibility, `public_readonly` safety reason visibility, search query slot guidance visibility, and task-type-not-route-enum guidance visibility
+
+### Requirement: Run A100 public-readonly search policy train-split rerun
+The system SHALL support a bounded, explicitly authorized A100 prediction-only train-split rerun after public-readonly search contract prompt policy is visible, while keeping all private runtime artifacts outside git.
+
+#### Scenario: Launch public-readonly search policy rerun
+- **WHEN** a developer launches the rerun with explicit A100 approval, a repo-external private override, an idle A100 GPU, and an approved private output root represented in public artifacts as `<a100_project_root>`
+- **THEN** the system MUST use `prediction_split=train`, `overfit_diagnostic=true`, `generalization_claim=false`, `schema_repair_applied=false`, and generate private-adapter predictions plus public-safe prompt snapshot, raw decoded summary, generation trace, and prediction metadata sidecars
+
+#### Scenario: Record public-readonly search prompt policy visibility
+- **WHEN** prediction metadata is generated for the rerun
+- **THEN** it MUST record that public-readonly search policy, `safety.reason=public_readonly`, `slots.query` guidance, and the `task_type`-is-not-`route` rule are visible, and that prediction prompts do not include row-specific gold target contracts except strings already present in the user input
+
+#### Scenario: Reject unresolved or accidental execution
+- **WHEN** the rerun command is launched without explicit prediction opt-in, with unresolved template paths, without a configured private adapter path, or outside the approved output root
+- **THEN** the system MUST NOT load private model artifacts or start remote prediction and MUST report that no private adapter rerun occurred
+
+#### Scenario: Keep private A100 artifacts private
+- **WHEN** the real rerun completes or fails
+- **THEN** raw logs, checkpoints, adapters, caches, private overrides, host details, SSH details, private paths, tokens, and private corpus rows MUST remain outside committed artifacts
+
+#### Scenario: Preserve diagnostic model output
+- **WHEN** the private adapter emits schema-invalid, truncated, non-JSON, contract-like but wrong, or strict-string-mismatched output
+- **THEN** the prediction artifact and sidecars MUST preserve sanitized model evidence without replacing it with fixture-mode, rule-baseline, gold-contract predictions, semantic-equivalence labels, slot-normalized fields, or repaired strings

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Autonomous Loop Closeout: A100 Public-readonly Search Policy Rerun</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f7f8fb; color: #20242a; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 52px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel, .metric { background: #fff; border: 1px solid #d8dde6; border-radius: 8px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+    .metric strong { display: block; font-size: 22px; }
+    code { background: #eceff3; padding: 1px 5px; border-radius: 4px; }
+    a { color: #1957a6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous loop: A100 public-readonly search policy rerun</h1>
+  <section class="panel">
+    <p><strong>一句话结论：</strong>本轮 `/opsx auto` 已完成并归档一次已授权 A100 prediction-only train-split rerun；结果显示 public-readonly 字段进入 raw output，但 strict schema 仍为 <code>0/3</code>，下一步应先做本地 output-boundary/retry prompt 修复，而不是扩大评测。</p>
+  </section>
+  <div class="grid">
+    <div class="metric"><span>loop status</span><strong>stopped</strong></div>
+    <div class="metric"><span>phase archived</span><strong>1</strong></div>
+    <div class="metric"><span>A100 run</span><strong>real</strong></div>
+    <div class="metric"><span>validation</span><strong>passed</strong></div>
+  </div>
+
+  <h2>停止原因</h2>
+  <p>停止条件：下一步推荐会从已确认的 A100 prediction-only observation 转向修改本地 output-boundary / retry prompt policy，以处理 malformed JSON、prose/Markdown wrapper 和 <code>task_type=search_web</code> route-alias。这会改变下一阶段行为策略，需要用户确认新的 bounded OpenSpec scope 后再继续。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目目标：first-phase speech-to-contract normalization。来源：<a href="../../CONTEXT.md">CONTEXT.md</a> 与 <a href="../../README.md">README.md</a>。</li>
+    <li>本阶段推进：把 public-readonly search contract prompt policy 送入真实 A100 private-adapter prediction path，并产出 public-safe train-split evidence。</li>
+    <li>剩余能力差距：schema/output boundary 仍失败；retry 输出仍带 prose/Markdown wrapper；<code>task_type</code> 仍复用 route enum；slots query exact string 仍不匹配。</li>
+    <li>下一阶段计划：推荐新小阶段 `repair-public-readonly-output-boundary-retry-policy`，本地先修 prompt/retry/output-boundary，再决定是否需要下一次 A100 rerun。</li>
+  </ul>
+
+  <h2>完成的阶段</h2>
+  <ul>
+    <li>OpenSpec archive：<a href="../../openspec/changes/archive/2026-06-06-run-a100-public-readonly-search-policy-train-split-rerun/proposal.md">2026-06-06-run-a100-public-readonly-search-policy-train-split-rerun</a>。</li>
+    <li>阶段 Human Brief：<a href="2026-06-06-run-a100-public-readonly-search-policy-train-split-rerun.html">2026-06-06-run-a100-public-readonly-search-policy-train-split-rerun.html</a>。</li>
+    <li>Evidence report：<a href="../../reports/public-sample/a100-public-readonly-search-policy-train-split-rerun/report.md">reports/public-sample/a100-public-readonly-search-policy-train-split-rerun/report.md</a>。</li>
+  </ul>
+
+  <h2>关键结果</h2>
+  <ul>
+    <li>真实 A100 prediction source：<code>private_a100_adapter</code>；split：<code>train</code>；prediction count：<code>3</code>。</li>
+    <li>Prompt policy visibility：四个 public-readonly search policy flags 均为 true。</li>
+    <li>Strict metrics：<code>json_valid_rate=0.0000</code>，<code>contract_exact_match=0.0000</code>。</li>
+    <li>Field observation：raw output 三行都出现 <code>route=search_web</code>、<code>safety.reason=public_readonly</code>、<code>confirmation_required=false</code> 和 <code>slots.query</code>；但三行仍为 malformed JSON 且 <code>task_type=search_web</code>。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：passed。</li>
+    <li><code>git diff --check</code>：passed。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：passed。</li>
+    <li><code>uv run ruff check .</code>：passed。</li>
+    <li><code>uv run mypy src</code>：passed。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>：ok true。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>：26 pairs summarized。</li>
+    <li>Evidence/phase/post-archive/final leak scans：ok true，0 findings。</li>
+  </ul>
+
+  <h2>Review 和集成</h2>
+  <ul>
+    <li>Reviewer：inline diff review，Final Verdict: Pass；Must Fix: none。</li>
+    <li>External Pro review：未运行；本阶段主要是 A100 evidence import 与 strict privacy/evidence validation。</li>
+    <li>Auto integration：本报告生成时待 stage/commit；精确 commit hash 与 push skip reason 以 Codex final response 为准。当前 branch 为 <code>main</code>，无 upstream。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <ul>
+    <li>这不是训练、checkpoint release、adapter release、evaluator metric change、semantic-equivalence scoring、slot normalization、prediction repair 或 re-score。</li>
+    <li>这不是 held-out/generalization、model-quality improvement、production readiness 或 live-browser benchmark evidence。</li>
+    <li>Raw text 字段观察只是诊断证据，不能当作合法 Browser Task Contract metric。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>建议确认一个小阶段：本地修复 strict output-boundary 与 retry prompt，目标是让重试输出保持纯 JSON object、继续禁止 <code>task_type</code> 复用 route enum，并明确 slots query exact-string 边界。完成本地修复后，再决定是否需要 A100 train-split rerun。</p>
+</main>
+</body>
+</html>
