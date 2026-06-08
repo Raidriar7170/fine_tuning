@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Autonomous Loop: A100 first-pass output boundary</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.55; color: #1f2933; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 24px; }
+    code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #fef2f2; color: #991b1b; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 16px 0; }
+    .metric { border: 1px solid #d7dde5; border-radius: 8px; padding: 12px; }
+    .value { font-size: 22px; font-weight: 700; }
+    a { color: #0f766e; }
+  </style>
+</head>
+<body>
+  <h1>Autonomous Loop: A100 first-pass output boundary</h1>
+  <p><span class="status">stopped: needs user confirmation</span></p>
+  <p><strong>一句话结论：</strong>本轮完成了真实 A100 prediction-only 复跑和后续本地 wrapper persistence 诊断；first-pass boundary 已可见，但 3/3 输出仍是 Markdown-wrapped fragment，strict schema-valid 仍为 0/3。</p>
+
+  <div class="grid">
+    <div class="metric"><div>Archived phases</div><div class="value">2</div></div>
+    <div class="metric"><div>A100 predictions</div><div class="value">3</div></div>
+    <div class="metric"><div>schema-valid</div><div class="value">0/3</div></div>
+    <div class="metric"><div>wrapper count</div><div class="value">3/3</div></div>
+  </div>
+
+  <h2>Stop Reason</h2>
+  <p>硬停原因：推荐下一步将从 evidence diagnosis 转为 decoding/template 行为变更，用于验证是否抑制 Markdown fence。这会改变输出行为边界，需要用户确认后再开新的 OpenSpec 阶段。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>Current target: <code>not explicitly defined</code> as MVP/v1/v2/release/interview-ready in authoritative artifacts checked in this loop。</li>
+    <li>Source: <a href="../../CONTEXT.md">CONTEXT.md</a> 定义 first-phase speech-to-contract normalization 和 contract evaluation ladder；README A100 runbooks 明确 train-internal diagnostic 不是 release 或 held-out generalization。</li>
+    <li>本轮推进：把 first-pass output-boundary 从本地 prompt instrumentation 推进到真实 A100 private-adapter evidence，并补了本地归因诊断。</li>
+    <li>剩余差距：strict schema-valid 仍为 0/3；仍无 dev/test held-out generalization、模型恢复、release、production readiness 或 live-browser benchmark evidence。</li>
+    <li>Next-stage plan: 等用户确认后，开一个很小的 behavior-change OpenSpec 阶段，专门验证 decoding/template 层是否能抑制 Markdown fence；不应在确认前继续。</li>
+  </ul>
+
+  <h2>Completed Phases</h2>
+  <ul>
+    <li><code>run-a100-first-pass-output-boundary-rerun</code>: archived and committed as <code>51bfbc0</code>。真实 A100 prediction-only，train split，3 条 public-sample rows。</li>
+    <li><code>diagnose-first-pass-wrapper-persistence</code>: archived and committed as <code>8364f0c</code>。本地 evidence-only diagnosis，不启动新的 A100。</li>
+  </ul>
+
+  <h2>Key Evidence</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-first-pass-output-boundary-rerun/report.md">A100 first-pass output-boundary report</a></li>
+    <li><a href="../../reports/public-sample/a100-first-pass-output-boundary-rerun/output_boundary_rerun_diagnosis.json">A100 rerun diagnosis JSON</a></li>
+    <li><a href="../../reports/public-sample/a100-first-pass-wrapper-persistence-diagnosis/wrapper_persistence_diagnosis.md">Wrapper persistence diagnosis</a></li>
+    <li><a href="2026-06-08-run-a100-first-pass-output-boundary-rerun.html">Phase Human Brief: A100 rerun</a></li>
+    <li><a href="2026-06-08-diagnose-first-pass-wrapper-persistence.html">Phase Human Brief: wrapper persistence diagnosis</a></li>
+  </ul>
+
+  <h2>Validation</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>: <code>181 passed</code> after the second phase。</li>
+    <li><code>uv run ruff check .</code>: passed。</li>
+    <li><code>uv run mypy src</code>: passed。</li>
+    <li>Public data validation: <code>ok=true</code>, <code>sft_rows=12</code>, <code>dpo_pairs=26</code>。</li>
+    <li>DPO pair check: passed with 26 total pairs。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: <code>4 passed, 0 failed</code> after archive。</li>
+    <li><code>git diff --check</code>: passed after archive EOF cleanup。</li>
+    <li>Leak scans: phase, post-archive, and final scans passed for both evidence packs。</li>
+  </ul>
+
+  <h2>Auto Integration</h2>
+  <ul>
+    <li>Committed: <code>51bfbc0</code> and <code>8364f0c</code> on <code>main</code>。</li>
+    <li>Merge/submission: not applicable; work ran directly on <code>main</code>。</li>
+    <li>Push: skipped because this checkout has no configured remote/upstream submit path。</li>
+    <li>External Pro review: not run; scope was evidence packaging/diagnosis with local validation and leak scans, not public positioning or UI review。</li>
+  </ul>
+
+  <h2>Do Not Overstate</h2>
+  <ul>
+    <li>不能声明模型质量改善、模型恢复、held-out generalization、production readiness、checkpoint/adapter release 或 live-browser benchmark improvement。</li>
+    <li>不能把 EOS observed 解读为 schema-valid；它只说明生成停止。</li>
+    <li>不能把 embedded JSON fragment 当作 strict parser 接受的 Browser Task Contract。</li>
+    <li>不能把本地 wrapper persistence diagnosis 说成新的 A100 rerun。</li>
+  </ul>
+
+  <h2>Recommended Manual Decision</h2>
+  <p>请确认是否开启下一阶段：<code>repair-first-pass-markdown-fence-suppression</code> 或同等小范围 OpenSpec behavior-change。建议边界：本地 TDD 先验证 prompt/template/decoding 输出边界，不训练、不 release、不改 evaluator metric、不做 parser relaxation。</p>
+</body>
+</html>
