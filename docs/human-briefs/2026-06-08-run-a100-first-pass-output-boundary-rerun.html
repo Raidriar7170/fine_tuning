@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>A100 first-pass output-boundary rerun</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.55; color: #1f2933; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 24px; }
+    code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #fff7ed; color: #9a3412; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 16px 0; }
+    .metric { border: 1px solid #d7dde5; border-radius: 8px; padding: 12px; }
+    .value { font-size: 22px; font-weight: 700; }
+    a { color: #0f766e; }
+  </style>
+</head>
+<body>
+  <h1>A100 first-pass output-boundary rerun</h1>
+  <p><span class="status">archived</span></p>
+  <p><strong>一句话结论：</strong>这次真实 A100 prediction-only 复跑证明 first-pass <code>prediction_output_boundary</code> 已进入 prompt，但 3/3 输出仍是 Markdown-wrapped JSON fragment，strict schema-valid 仍为 <code>0/3</code>；不能声明模型质量改善。</p>
+
+  <div class="grid">
+    <div class="metric"><div>prediction_count</div><div class="value">3</div></div>
+    <div class="metric"><div>schema-valid</div><div class="value">0/3</div></div>
+    <div class="metric"><div>Markdown wrapped</div><div class="value">3/3</div></div>
+    <div class="metric"><div>boundary visible</div><div class="value">yes</div></div>
+  </div>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li>使用既有 private adapter 在 A100 上执行 train-split prediction-only rerun。</li>
+    <li>只带回 sanitized public-sample artifacts：predictions、metadata、prompt snapshot、raw decoded summary、generation trace。</li>
+    <li>生成严格 metrics、schema guard summary、output-boundary comparison diagnosis、manifest、report 和 leak scan。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-first-pass-output-boundary-rerun/report.md">report.md</a></li>
+    <li><a href="../../reports/public-sample/a100-first-pass-output-boundary-rerun/output_boundary_rerun_diagnosis.json">output_boundary_rerun_diagnosis.json</a></li>
+    <li><a href="../../reports/public-sample/a100-first-pass-output-boundary-rerun/manifest.json">manifest.json</a></li>
+    <li><a href="../../openspec/changes/run-a100-first-pass-output-boundary-rerun/tasks.md">OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li>A100 execution: completed on an idle GPU with <code>CUDA_VISIBLE_DEVICES</code> set; no training.</li>
+    <li>Strict metrics: <code>json_valid_rate=0.0</code>, <code>contract_exact_match=0.0</code>。</li>
+    <li>Leak scan: phase、post-archive 和 final scans 均已生成并通过。</li>
+  </ul>
+
+  <h2>不能夸大的点</h2>
+  <ul>
+    <li>不能声明模型质量改善、模型恢复、held-out generalization、production readiness 或 live-browser benchmark improvement。</li>
+    <li>没有训练、parser relaxation、evaluator metric change、prediction repair/re-score、slot normalization、checkpoint release 或 adapter release。</li>
+    <li>这只是 3 条 public-sample train rows 的 overfit diagnostic。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>先完成本阶段验证、Reviewer pass、OpenSpec archive 和 guarded commit；随后如果继续推进，应单独开小阶段诊断“为什么 first-pass boundary 可见但模型仍输出 Markdown fence”，不要直接进入发布或质量宣称。</p>
+</body>
+</html>

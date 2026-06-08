@@ -3633,6 +3633,142 @@ def test_a100_search_query_slot_policy_rerun_pack_is_public_safe_and_bounded() -
     assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
 
 
+def test_a100_first_pass_output_boundary_rerun_pack_is_public_safe_and_bounded() -> None:
+    prior_dir = Path("reports/public-sample/a100-search-query-slot-policy-rerun")
+    local_boundary_dir = Path("reports/public-sample/repair-output-boundary-template-decoding-instrumentation")
+    evidence_dir = Path("reports/public-sample/a100-first-pass-output-boundary-rerun")
+    human_brief_path = Path("docs/human-briefs/2026-06-08-run-a100-first-pass-output-boundary-rerun.html")
+    archive_dir = Path("openspec/changes/archive/2026-06-08-run-a100-first-pass-output-boundary-rerun")
+    change_dirs = [Path("openspec/changes/run-a100-first-pass-output-boundary-rerun"), archive_dir]
+    required_files = {
+        "predictions.jsonl",
+        "prediction_metadata.json",
+        "prompt_snapshot.json",
+        "raw_decoded_summary.jsonl",
+        "generation_trace.jsonl",
+        "train_split_gold.jsonl",
+        "metrics.json",
+        "metrics.md",
+        "schema_guard_summary.json",
+        "schema_guard_summary.md",
+        "output_boundary_rerun_diagnosis.json",
+        "output_boundary_rerun_diagnosis.md",
+        "manifest.json",
+        "report.md",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+    }
+    expected_row_ids = ["seed-search-weather", "seed-search-weather-aug-1", "seed-search-weather-aug-2"]
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+    if archive_dir.exists():
+        assert {"post_archive_leak_scan_result.json", "final_leak_scan_result.json"} <= {
+            path.name for path in evidence_dir.iterdir()
+        }
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    metadata = json.loads((evidence_dir / "prediction_metadata.json").read_text(encoding="utf-8"))
+    prompt_snapshot = json.loads((evidence_dir / "prompt_snapshot.json").read_text(encoding="utf-8"))
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    schema_guard = json.loads((evidence_dir / "schema_guard_summary.json").read_text(encoding="utf-8"))
+    diagnosis = json.loads((evidence_dir / "output_boundary_rerun_diagnosis.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    prediction_rows = [
+        json.loads(line)
+        for line in (evidence_dir / "predictions.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    train_gold_rows = [
+        json.loads(line)
+        for line in (evidence_dir / "train_split_gold.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8")
+    diagnosis_markdown = (evidence_dir / "output_boundary_rerun_diagnosis.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+
+    assert metadata["prediction_status"] == "private_adapter_predictions_written"
+    assert metadata["prediction_source_kind"] == "private_a100_adapter"
+    assert metadata["prediction_split"] == "train"
+    assert metadata["overfit_diagnostic"] is True
+    assert metadata["generalization_claim"] is False
+    assert metadata["prediction_output_boundary"]["exact_json_only_output_visible"] is True
+    assert metadata["prediction_output_boundary"]["strict_whole_object_parser_boundary_visible"] is True
+    assert prompt_snapshot["prediction_output_boundary"] == metadata["prediction_output_boundary"]
+    assert [row["id"] for row in prompt_snapshot["rows"]] == expected_row_ids
+    assert [row["id"] for row in prediction_rows] == expected_row_ids
+    assert [row["id"] for row in train_gold_rows] == expected_row_ids
+
+    assert diagnosis["diagnostic_kind"] == "a100_first_pass_output_boundary_rerun"
+    assert diagnosis["source_prior_phase"] == prior_dir.as_posix()
+    assert diagnosis["source_artifacts"]["local_output_boundary_instrumentation"].startswith(
+        local_boundary_dir.as_posix()
+    )
+    assert diagnosis["summary"]["prediction_count"] == 3
+    assert diagnosis["summary"]["prediction_output_boundary_visible"] is True
+    assert diagnosis["summary"]["validated_output_schema_valid_count"] == schema_guard["summary"][
+        "validated_output_schema_valid_count"
+    ]
+    assert diagnosis["summary"]["strict_final_json_valid_rate"] == metrics["metrics"]["json_valid_rate"]
+    assert diagnosis["comparison_to_prior"]["prior_markdown_wrapped_prediction_count"] == 3
+    assert isinstance(diagnosis["comparison_to_prior"]["wrapper_reduction_observed"], bool)
+    assert diagnosis["claims"]["a100_execution_performed"] is True
+    assert diagnosis["claims"]["prediction_rerun_performed"] is True
+    assert diagnosis["claims"]["training_performed"] is False
+    assert diagnosis["claims"]["parser_relaxation_performed"] is False
+    assert diagnosis["claims"]["prediction_repair_or_rescore_performed"] is False
+    assert diagnosis["claims"]["held_out_generalization_claim"] is False
+    assert diagnosis["claims"]["model_quality_improvement_claim"] is False
+
+    assert manifest["evidence_kind"] == "a100_first_pass_output_boundary_train_split_rerun"
+    assert manifest["observed_result"] == diagnosis["summary"]
+    assert manifest["claims"] == diagnosis["claims"]
+    assert manifest["source_artifacts"]["prior_a100_search_query_slot_policy_rerun"] == prior_dir.as_posix()
+    assert manifest["source_artifacts"]["local_output_boundary_instrumentation"].startswith(
+        local_boundary_dir.as_posix()
+    )
+    for artifact_path in manifest["artifacts"].values():
+        assert Path(artifact_path).exists()
+
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    assert "prediction_output_boundary" in report
+    assert "train-split-only" in report
+    assert "not a model-quality improvement claim" in diagnosis_markdown
+    assert "不能声明模型质量改善" in human_brief
+
+    serialized = "\n".join(
+        [
+            json.dumps(metadata, ensure_ascii=False, sort_keys=True),
+            json.dumps(prompt_snapshot, ensure_ascii=False, sort_keys=True),
+            json.dumps(metrics, ensure_ascii=False, sort_keys=True),
+            json.dumps(schema_guard, ensure_ascii=False, sort_keys=True),
+            json.dumps(diagnosis, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(prediction_rows, ensure_ascii=False, sort_keys=True),
+            json.dumps(train_gold_rows, ensure_ascii=False, sort_keys=True),
+            report,
+            diagnosis_markdown,
+            human_brief,
+        ]
+    )
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert "private-overrides" not in serialized
+    assert "private-configs" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
+
+
 def test_a100_search_query_slot_wrapper_boundary_diagnosis_pack_is_public_safe_and_bounded() -> None:
     source_dir = Path("reports/public-sample/a100-search-query-slot-policy-rerun")
     evidence_dir = Path("reports/public-sample/a100-search-query-slot-wrapper-boundary-diagnosis")
