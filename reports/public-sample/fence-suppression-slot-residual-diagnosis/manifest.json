@@ -1,0 +1,56 @@
+{
+  "change_name": "diagnose-fence-suppression-slot-residual",
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_change_performed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "local_diagnosis_only": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "production_readiness_claim": false,
+    "schema_repair_or_coercion_applied": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "training_or_prediction_rerun_performed": false
+  },
+  "counts": {
+    "prediction_count": 3,
+    "residual_row_count": 1,
+    "schema_invalid_prediction_count": 0,
+    "validated_output_schema_valid": 3
+  },
+  "diagnostic_artifacts": {
+    "diagnosis": "reports/public-sample/fence-suppression-slot-residual-diagnosis/slot_residual_diagnosis.json",
+    "human_brief": "docs/human-briefs/2026-06-08-diagnose-fence-suppression-slot-residual.html",
+    "leak_scan": "reports/public-sample/fence-suppression-slot-residual-diagnosis/leak_scan_result.json",
+    "manifest": "reports/public-sample/fence-suppression-slot-residual-diagnosis/manifest.json",
+    "phase_validation_leak_scan": "reports/public-sample/fence-suppression-slot-residual-diagnosis/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/fence-suppression-slot-residual-diagnosis/post_archive_leak_scan_result.json",
+    "final_leak_scan": "reports/public-sample/fence-suppression-slot-residual-diagnosis/final_leak_scan_result.json",
+    "report": "reports/public-sample/fence-suppression-slot-residual-diagnosis/slot_residual_diagnosis.md"
+  },
+  "evidence_kind": "fence_suppression_slot_residual_diagnosis_local",
+  "generated_at": "2026-06-08T08:18:00+00:00",
+  "source_artifact_policy": {
+    "no_private_raw_logs_or_adapters_read": true,
+    "source_alignment_preserved": true,
+    "source_metrics_preserved": true,
+    "source_predictions_preserved": true,
+    "source_schema_guard_preserved": true,
+    "uses_prior_public_sample_artifacts_only": true
+  },
+  "source_artifacts": {
+    "alignment_diagnostics": "reports/public-sample/a100-first-pass-fence-suppression-rerun/alignment_diagnostics.json",
+    "metrics": "reports/public-sample/a100-first-pass-fence-suppression-rerun/metrics.json",
+    "predictions": "reports/public-sample/a100-first-pass-fence-suppression-rerun/predictions.jsonl",
+    "schema_guard_summary": "reports/public-sample/a100-first-pass-fence-suppression-rerun/schema_guard_summary.json",
+    "source_rerun": "reports/public-sample/a100-first-pass-fence-suppression-rerun",
+    "train_split_gold": "reports/public-sample/a100-first-pass-fence-suppression-rerun/train_split_gold.jsonl"
+  },
+  "source_prior_phase": "reports/public-sample/a100-first-pass-fence-suppression-rerun"
+}

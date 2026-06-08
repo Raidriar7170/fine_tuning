@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Fence-suppression slot residual diagnosis</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.55; color: #1f2933; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 24px; }
+    code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 16px 0; }
+    .metric { border: 1px solid #d7dde5; border-radius: 8px; padding: 12px; }
+    .value { font-size: 22px; font-weight: 700; }
+    a { color: #0f766e; }
+  </style>
+</head>
+<body>
+  <h1>Fence-suppression slot residual diagnosis</h1>
+  <p><span class="status">archived</span></p>
+  <p><strong>一句话结论：</strong>上一轮 A100 fence-suppression rerun 的 wrapper/schema 边界已改善，但 strict exact match 仍剩 1 条 slot object mismatch：gold 是 compact <code>query</code>，prediction 是 <code>city/date/topic</code>。</p>
+
+  <div class="grid">
+    <div class="metric"><div>schema-invalid</div><div class="value">0</div></div>
+    <div class="metric"><div>residual rows</div><div class="value">1</div></div>
+    <div class="metric"><div>exact match</div><div class="value">2/3</div></div>
+    <div class="metric"><div>slot F1</div><div class="value">2/3</div></div>
+  </div>
+
+  <h2>本阶段变化</h2>
+  <ul>
+    <li>只读取 sanitized public-sample artifacts，不启动新的 A100、不训练、不复跑 prediction。</li>
+    <li>把 residual row 固化为 <code>strict_slot_object_mismatch</code>，并记录 gold/predicted slot keys。</li>
+    <li>把 wrapper/schema 改善和剩余 slot exact-match failure 分开表述，避免把语义相近误写成通过。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/fence-suppression-slot-residual-diagnosis/slot_residual_diagnosis.json">slot_residual_diagnosis.json</a></li>
+    <li><a href="../../reports/public-sample/fence-suppression-slot-residual-diagnosis/slot_residual_diagnosis.md">slot_residual_diagnosis.md</a></li>
+    <li><a href="../../reports/public-sample/fence-suppression-slot-residual-diagnosis/manifest.json">manifest.json</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-08-diagnose-fence-suppression-slot-residual/tasks.md">OpenSpec archive tasks</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li>Source rerun: <code>json_valid_rate=1.0</code>, <code>contract_exact_match=0.6667</code>, <code>slot_f1=0.6667</code>。</li>
+    <li>Residual row: <code>seed-search-weather-aug-1</code>。</li>
+    <li>Gold slots: <code>{"query":"北京明天天气"}</code>；predicted slots: <code>{"city":"北京","date":"明天","topic":""}</code>。</li>
+  </ul>
+
+  <h2>不能夸大的点</h2>
+  <ul>
+    <li>本阶段是本地 evidence-only diagnosis，不证明模型质量改善、模型恢复、held-out generalization 或 production readiness。</li>
+    <li>不改 strict evaluator metrics，不做 slot normalization、semantic-equivalence scoring、prediction repair 或 re-score。</li>
+    <li><code>city/date/topic</code> 与 compact <code>query</code> 语义相关，但在 strict evaluator 下仍不是 exact match。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：not explicitly defined。</li>
+    <li>本阶段推进：把 A100 rerun 后剩余失败从 wrapper/schema 问题收敛成单条 strict slot policy residual。</li>
+    <li>剩余缺口：是否要改变 slot policy、训练数据或 prompt 约束需要单独决策。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>完成并归档本地诊断后，再决定是否开一个行为变化阶段来处理 compact query slot preservation；在确认前不要把这条 residual 当作通过或模型恢复证据。</p>
+</body>
+</html>

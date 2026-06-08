@@ -1,0 +1,124 @@
+{
+  "change_name": "diagnose-fence-suppression-slot-residual",
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_change_performed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "local_diagnosis_only": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "production_readiness_claim": false,
+    "schema_repair_or_coercion_applied": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "training_or_prediction_rerun_performed": false
+  },
+  "diagnostic_kind": "fence_suppression_slot_exact_match_residual",
+  "evidence_kind": "fence_suppression_slot_residual_diagnosis_local",
+  "generated_at": "2026-06-08T08:18:00+00:00",
+  "interpretation": {
+    "residual_is_strict_slot_object_mismatch": true,
+    "schema_boundary_regression_observed": false,
+    "semantic_relation_is_not_counted_as_pass": true,
+    "wrapper_boundary_remains_fixed_in_source_rerun": true
+  },
+  "next_recommended_decision": {
+    "needs_user_confirmation_before_behavior_change": true,
+    "reason": "Changing slot policy, training data, evaluator semantics, or prediction repair would change scope beyond local diagnosis.",
+    "recommended_next": "decide whether to open a separate policy/training phase for compact query slot preservation"
+  },
+  "rows": [
+    {
+      "gold_normalized_command": "搜索北京明天天气",
+      "gold_slot_keys": [
+        "query"
+      ],
+      "gold_slots": {
+        "query": "北京明天天气"
+      },
+      "metric_impact": {
+        "contributes_contract_exact_match_failure": true,
+        "contributes_slot_failure_slice": true,
+        "diagnostic_pair_count_only_not_evaluator_recalculation": {
+          "false_negative_slot_pairs": 1,
+          "false_positive_slot_pairs": 3,
+          "true_positive_slot_pairs": 0
+        }
+      },
+      "mismatch_category": "strict_slot_object_mismatch",
+      "prediction_normalized_command": "搜索北京明天天气",
+      "prediction_slot_keys": [
+        "city",
+        "date",
+        "topic"
+      ],
+      "prediction_slots": {
+        "city": "北京",
+        "date": "明天",
+        "topic": ""
+      },
+      "row_id": "seed-search-weather-aug-1",
+      "schema_guard": {
+        "raw_attempt_schema_valid": true,
+        "retry_attempted": false,
+        "strict_prediction_is_markdown_wrapped": false,
+        "strict_schema_valid": true,
+        "validated_output_source": "raw_attempt"
+      },
+      "strict_contract_exact_match": false
+    }
+  ],
+  "source_artifact_policy": {
+    "no_private_raw_logs_or_adapters_read": true,
+    "source_alignment_preserved": true,
+    "source_metrics_preserved": true,
+    "source_predictions_preserved": true,
+    "source_schema_guard_preserved": true,
+    "uses_prior_public_sample_artifacts_only": true
+  },
+  "source_artifacts": {
+    "alignment_diagnostics": "reports/public-sample/a100-first-pass-fence-suppression-rerun/alignment_diagnostics.json",
+    "metrics": "reports/public-sample/a100-first-pass-fence-suppression-rerun/metrics.json",
+    "prediction_metadata": "reports/public-sample/a100-first-pass-fence-suppression-rerun/prediction_metadata.json",
+    "predictions": "reports/public-sample/a100-first-pass-fence-suppression-rerun/predictions.jsonl",
+    "schema_guard_summary": "reports/public-sample/a100-first-pass-fence-suppression-rerun/schema_guard_summary.json",
+    "source_rerun": "reports/public-sample/a100-first-pass-fence-suppression-rerun",
+    "train_split_gold": "reports/public-sample/a100-first-pass-fence-suppression-rerun/train_split_gold.jsonl"
+  },
+  "source_prior_phase": "reports/public-sample/a100-first-pass-fence-suppression-rerun",
+  "source_summary": {
+    "markdown_fence_suppression_enabled": true,
+    "markdown_fence_suppression_strategy": "bad_words_ids",
+    "markdown_wrapped_prediction_count": 0,
+    "prediction_count": 3,
+    "raw_attempt_schema_valid_count": 3,
+    "retry_attempted_count": 0,
+    "slot_exact_match_residual_rows": 1,
+    "strict_final_contract_exact_match": 0.6666666666666666,
+    "strict_final_json_valid_rate": 1.0,
+    "strict_final_slot_f1": 0.6666666666666666,
+    "validated_output_schema_valid_count": 3,
+    "wrapper_reduction_observed": true
+  },
+  "summary": {
+    "field_mismatch_counts": {
+      "slots": 1
+    },
+    "residual_row_count": 1,
+    "residual_row_ids": [
+      "seed-search-weather-aug-1"
+    ],
+    "schema_invalid_prediction_count": 0,
+    "strict_metric_boundary": {
+      "contract_exact_match": 0.6666666666666666,
+      "json_valid_rate": 1.0,
+      "slot_f1": 0.6666666666666666
+    },
+    "validated_output_schema_valid_count": 3
+  }
+}

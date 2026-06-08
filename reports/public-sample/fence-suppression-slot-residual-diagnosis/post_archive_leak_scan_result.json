@@ -1,0 +1,11 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-08T08:40:44.899392+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/fence-suppression-slot-residual-diagnosis",
+    "docs/human-briefs/2026-06-08-diagnose-fence-suppression-slot-residual.html",
+    "openspec/changes/archive/2026-06-08-diagnose-fence-suppression-slot-residual"
+  ]
+}
