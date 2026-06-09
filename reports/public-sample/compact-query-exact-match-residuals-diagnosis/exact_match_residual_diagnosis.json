@@ -1,0 +1,190 @@
+{
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_change_performed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "local_evidence_only_analysis": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "prediction_rerun_performed": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "source_metrics_preserved": true,
+    "source_predictions_preserved": true,
+    "training_performed": false
+  },
+  "diagnostic_kind": "compact_query_exact_match_residuals_diagnosis",
+  "evidence_kind": "compact_query_exact_match_residuals_local_diagnosis",
+  "generated_at": "2026-06-09T00:00:00+08:00",
+  "inherited_metrics": {
+    "contract_exact_match": 0,
+    "json_valid_rate": 1,
+    "slot_f1": 0.6666666666666666
+  },
+  "interpretation": {
+    "contract_exact_match_remains_strict_full_contract_match": true,
+    "json_validity_does_not_imply_exact_match_recovery": true,
+    "normalized_command_string_mismatches_are_not_marked_equivalent": true,
+    "slot_shape_mismatch_is_reported_without_repair": true,
+    "train_split_public_sample_only": true
+  },
+  "rows": [
+    {
+      "field_mismatches": [
+        "normalized_command"
+      ],
+      "gold": {
+        "normalized_command": "搜索北京明天天气",
+        "slots": {
+          "query": "北京明天天气"
+        }
+      },
+      "prediction": {
+        "normalized_command": "搜索北京明天的天气",
+        "slots": {
+          "query": "北京明天天气"
+        }
+      },
+      "residual_family": "strict_normalized_command_string_mismatch",
+      "row_id": "seed-search-weather",
+      "source_prediction_preserved": true,
+      "strict_contract_exact_match": false,
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    },
+    {
+      "field_mismatches": [
+        "slots"
+      ],
+      "gold": {
+        "normalized_command": "搜索北京明天天气",
+        "slots": {
+          "query": "北京明天天气"
+        }
+      },
+      "prediction": {
+        "normalized_command": "搜索北京明天天气",
+        "slots": {
+          "city": "北京",
+          "date": "明天",
+          "topic": ""
+        }
+      },
+      "residual_family": "compact_query_slot_shape_mismatch",
+      "row_id": "seed-search-weather-aug-1",
+      "slot_subfamily": "city_date_slots_instead_of_query",
+      "source_prediction_preserved": true,
+      "strict_contract_exact_match": false,
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    },
+    {
+      "field_mismatches": [
+        "normalized_command"
+      ],
+      "gold": {
+        "normalized_command": "搜索北京明天天气",
+        "slots": {
+          "query": "北京明天天气"
+        }
+      },
+      "prediction": {
+        "normalized_command": "搜索北京明天的天气",
+        "slots": {
+          "query": "北京明天天气"
+        }
+      },
+      "residual_family": "strict_normalized_command_string_mismatch",
+      "row_id": "seed-search-weather-aug-2",
+      "source_prediction_preserved": true,
+      "strict_contract_exact_match": false,
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    }
+  ],
+  "source_artifact_policy": {
+    "no_a100_execution_performed": true,
+    "no_parser_relaxation_or_metric_change": true,
+    "no_prediction_repair_replacement_or_rescore": true,
+    "no_private_raw_logs_or_adapters_read": true,
+    "no_slot_normalization_or_semantic_equivalence": true,
+    "no_training_or_prediction_rerun_performed": true,
+    "source_metrics_preserved": true,
+    "source_predictions_preserved": true,
+    "uses_prior_public_sample_artifacts_only": true
+  },
+  "source_artifacts": {
+    "source_diagnosis": "reports/public-sample/a100-compact-query-slot-preservation-rerun/compact_query_slot_preservation_rerun_diagnosis.json",
+    "source_manifest": "reports/public-sample/a100-compact-query-slot-preservation-rerun/manifest.json",
+    "source_metrics": "reports/public-sample/a100-compact-query-slot-preservation-rerun/metrics.json",
+    "source_predictions": "reports/public-sample/a100-compact-query-slot-preservation-rerun/predictions.jsonl",
+    "source_schema_guard_summary": "reports/public-sample/a100-compact-query-slot-preservation-rerun/schema_guard_summary.json",
+    "source_train_split_gold": "reports/public-sample/a100-compact-query-slot-preservation-rerun/train_split_gold.jsonl"
+  },
+  "source_prior_phase": "reports/public-sample/a100-compact-query-slot-preservation-rerun",
+  "summary": {
+    "exact_match_residual_count": 3,
+    "family_counts": {
+      "compact_query_slot_shape_mismatch": 1,
+      "strict_normalized_command_string_mismatch": 2
+    },
+    "field_mismatch_counts": {
+      "normalized_command": 2,
+      "slots": 1
+    },
+    "prediction_count": 3,
+    "row_ids": [
+      "seed-search-weather",
+      "seed-search-weather-aug-1",
+      "seed-search-weather-aug-2"
+    ],
+    "schema_invalid_prediction_count": 0,
+    "slot_subfamily_counts": {
+      "city_date_slots_instead_of_query": 1
+    },
+    "strict_contract_exact_match_preserved": 0,
+    "strict_schema_valid_rate_preserved": 1,
+    "validated_output_schema_valid_count": 3
+  },
+  "validation_commands": [
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py::test_compact_query_exact_match_residuals_diagnosis_pack_is_public_safe_and_bounded",
+      "result": "failed before evidence generation: evidence_dir.exists() was false"
+    },
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py::test_compact_query_exact_match_residuals_diagnosis_pack_is_public_safe_and_bounded",
+      "result": "1 passed"
+    },
+    {
+      "command": "PYTHONPATH=src pytest -q tests/test_a100_sft_prediction_smoke.py",
+      "result": "79 passed"
+    },
+    {
+      "command": "uv run ruff check tests/test_a100_sft_prediction_smoke.py",
+      "result": "All checks passed"
+    },
+    {
+      "command": "uv run mypy src",
+      "result": "Success: no issues found in 16 source files"
+    },
+    {
+      "command": "PYTHONPATH=src python -c <scan_paths evidence_dir human_brief change_dir>",
+      "result": "ok=true; findings=[]"
+    },
+    {
+      "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
+      "result": "5 passed, 0 failed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ]
+}

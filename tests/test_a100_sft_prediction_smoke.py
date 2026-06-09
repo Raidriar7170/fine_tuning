@@ -4543,6 +4543,206 @@ def test_a100_compact_query_slot_preservation_rerun_pack_is_public_safe_and_boun
     assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
 
 
+def test_compact_query_exact_match_residuals_diagnosis_pack_is_public_safe_and_bounded() -> None:
+    source_dir = Path("reports/public-sample/a100-compact-query-slot-preservation-rerun")
+    evidence_dir = Path("reports/public-sample/compact-query-exact-match-residuals-diagnosis")
+    human_brief_path = Path(
+        "docs/human-briefs/2026-06-09-diagnose-compact-query-exact-match-residuals.html"
+    )
+    archive_dir = Path("openspec/changes/archive/2026-06-09-diagnose-compact-query-exact-match-residuals")
+    change_dirs = [
+        Path("openspec/changes/diagnose-compact-query-exact-match-residuals"),
+        archive_dir,
+    ]
+    required_files = {
+        "exact_match_residual_diagnosis.json",
+        "exact_match_residual_diagnosis.md",
+        "manifest.json",
+        "leak_scan_result.json",
+        "phase_validation_leak_scan_result.json",
+    }
+    expected_row_ids = ["seed-search-weather", "seed-search-weather-aug-1", "seed-search-weather-aug-2"]
+
+    assert evidence_dir.exists()
+    assert required_files <= {path.name for path in evidence_dir.iterdir()}
+    if archive_dir.exists():
+        assert {"post_archive_leak_scan_result.json", "final_leak_scan_result.json"} <= {
+            path.name for path in evidence_dir.iterdir()
+        }
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    diagnosis = json.loads((evidence_dir / "exact_match_residual_diagnosis.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "exact_match_residual_diagnosis.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    phase_validation_leak_scan = json.loads(
+        (evidence_dir / "phase_validation_leak_scan_result.json").read_text(encoding="utf-8")
+    )
+    post_archive_leak_scan = (
+        json.loads((evidence_dir / "post_archive_leak_scan_result.json").read_text(encoding="utf-8"))
+        if (evidence_dir / "post_archive_leak_scan_result.json").exists()
+        else None
+    )
+    final_leak_scan = (
+        json.loads((evidence_dir / "final_leak_scan_result.json").read_text(encoding="utf-8"))
+        if (evidence_dir / "final_leak_scan_result.json").exists()
+        else None
+    )
+    source_metrics = json.loads((source_dir / "metrics.json").read_text(encoding="utf-8"))
+    source_schema_guard = json.loads((source_dir / "schema_guard_summary.json").read_text(encoding="utf-8"))
+    serialized = "\n".join(
+        [
+            json.dumps(diagnosis, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(phase_validation_leak_scan, ensure_ascii=False, sort_keys=True),
+            json.dumps(post_archive_leak_scan, ensure_ascii=False, sort_keys=True)
+            if post_archive_leak_scan is not None
+            else "",
+            json.dumps(final_leak_scan, ensure_ascii=False, sort_keys=True) if final_leak_scan is not None else "",
+            report,
+            human_brief,
+        ]
+    )
+
+    assert diagnosis["diagnostic_kind"] == "compact_query_exact_match_residuals_diagnosis"
+    assert diagnosis["evidence_kind"] == "compact_query_exact_match_residuals_local_diagnosis"
+    assert diagnosis["source_prior_phase"] == source_dir.as_posix()
+    assert diagnosis["source_artifact_policy"]["uses_prior_public_sample_artifacts_only"] is True
+    assert diagnosis["source_artifact_policy"]["no_a100_execution_performed"] is True
+    assert diagnosis["source_artifact_policy"]["no_training_or_prediction_rerun_performed"] is True
+    assert diagnosis["source_artifact_policy"]["source_predictions_preserved"] is True
+    assert diagnosis["source_artifact_policy"]["source_metrics_preserved"] is True
+    assert diagnosis["source_artifact_policy"]["no_parser_relaxation_or_metric_change"] is True
+    assert diagnosis["source_artifact_policy"]["no_slot_normalization_or_semantic_equivalence"] is True
+    assert diagnosis["source_artifact_policy"]["no_prediction_repair_replacement_or_rescore"] is True
+
+    assert diagnosis["inherited_metrics"] == {
+        "json_valid_rate": source_metrics["metrics"]["json_valid_rate"],
+        "contract_exact_match": source_metrics["metrics"]["contract_exact_match"],
+        "slot_f1": source_metrics["metrics"]["slot_f1"],
+    }
+    assert diagnosis["inherited_metrics"]["json_valid_rate"] == 1.0
+    assert diagnosis["inherited_metrics"]["contract_exact_match"] == 0.0
+    assert diagnosis["inherited_metrics"]["slot_f1"] == 2 / 3
+
+    summary = diagnosis["summary"]
+    assert summary["prediction_count"] == 3
+    assert summary["row_ids"] == expected_row_ids
+    assert summary["exact_match_residual_count"] == 3
+    assert summary["schema_invalid_prediction_count"] == 0
+    assert summary["validated_output_schema_valid_count"] == 3
+    assert summary["field_mismatch_counts"] == {"normalized_command": 2, "slots": 1}
+    assert summary["family_counts"] == {
+        "strict_normalized_command_string_mismatch": 2,
+        "compact_query_slot_shape_mismatch": 1,
+    }
+    assert summary["slot_subfamily_counts"] == {"city_date_slots_instead_of_query": 1}
+    assert summary["strict_schema_valid_rate_preserved"] == source_schema_guard["summary"][
+        "strict_final_json_valid_rate"
+    ]
+    assert summary["strict_contract_exact_match_preserved"] == source_schema_guard["summary"][
+        "strict_final_contract_exact_match"
+    ]
+
+    assert [row["row_id"] for row in diagnosis["rows"]] == expected_row_ids
+    rows_by_id = {row["row_id"]: row for row in diagnosis["rows"]}
+    target_row = rows_by_id["seed-search-weather-aug-1"]
+    assert target_row["residual_family"] == "compact_query_slot_shape_mismatch"
+    assert target_row["slot_subfamily"] == "city_date_slots_instead_of_query"
+    assert target_row["field_mismatches"] == ["slots"]
+    assert target_row["gold"]["slots"] == {"query": "北京明天天气"}
+    assert target_row["prediction"]["slots"] == {"city": "北京", "date": "明天", "topic": ""}
+    assert target_row["gold"]["normalized_command"] == "搜索北京明天天气"
+    assert target_row["prediction"]["normalized_command"] == "搜索北京明天天气"
+    assert target_row["strict_contract_exact_match"] is False
+    assert target_row["validated_output_schema_valid"] is True
+
+    for row_id in ("seed-search-weather", "seed-search-weather-aug-2"):
+        row = rows_by_id[row_id]
+        assert row["residual_family"] == "strict_normalized_command_string_mismatch"
+        assert row["field_mismatches"] == ["normalized_command"]
+        assert row["gold"]["slots"] == {"query": "北京明天天气"}
+        assert row["prediction"]["slots"] == {"query": "北京明天天气"}
+        assert row["gold"]["normalized_command"] == "搜索北京明天天气"
+        assert row["prediction"]["normalized_command"] == "搜索北京明天的天气"
+        assert row["strict_contract_exact_match"] is False
+        assert row["validated_output_schema_valid"] is True
+
+    claims = diagnosis["claims"]
+    for claim_name in (
+        "a100_execution_performed",
+        "training_performed",
+        "prediction_rerun_performed",
+        "parser_relaxation_performed",
+        "evaluator_metric_change_performed",
+        "semantic_equivalence_scoring_performed",
+        "slot_normalization_performed",
+        "prediction_repair_or_rescore_performed",
+        "held_out_generalization_claim",
+        "model_quality_improvement_claim",
+        "model_recovery_claim",
+        "checkpoint_release",
+        "adapter_release",
+        "public_full_corpus_release_claim",
+        "production_readiness_claim",
+        "live_browser_benchmark_claim",
+    ):
+        assert claims[claim_name] is False
+    assert claims["local_evidence_only_analysis"] is True
+    assert claims["source_predictions_preserved"] is True
+    assert claims["source_metrics_preserved"] is True
+
+    assert manifest["evidence_kind"] == diagnosis["evidence_kind"]
+    assert manifest["source_prior_phase"] == source_dir.as_posix()
+    assert manifest["counts"] == summary
+    assert manifest["inherited_metrics"] == diagnosis["inherited_metrics"]
+    assert manifest["source_artifact_policy"] == diagnosis["source_artifact_policy"]
+    assert manifest["claims"] == claims
+    assert manifest["diagnostic_artifacts"]["diagnosis"].endswith("exact_match_residual_diagnosis.json")
+    assert manifest["diagnostic_artifacts"]["report"].endswith("exact_match_residual_diagnosis.md")
+    assert manifest["diagnostic_artifacts"]["leak_scan"].endswith("leak_scan_result.json")
+    assert manifest["diagnostic_artifacts"]["phase_validation_leak_scan"].endswith(
+        "phase_validation_leak_scan_result.json"
+    )
+    assert manifest["source_artifacts"]["source_predictions"].endswith("predictions.jsonl")
+    assert manifest["source_artifacts"]["source_train_split_gold"].endswith("train_split_gold.jsonl")
+    assert manifest["source_artifacts"]["source_metrics"].endswith("metrics.json")
+    assert manifest["source_artifacts"]["source_schema_guard_summary"].endswith("schema_guard_summary.json")
+
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert phase_validation_leak_scan["ok"] is True
+    assert phase_validation_leak_scan["findings"] == []
+    if archive_dir.exists():
+        assert post_archive_leak_scan is not None
+        assert post_archive_leak_scan["ok"] is True
+        assert post_archive_leak_scan["findings"] == []
+        assert final_leak_scan is not None
+        assert final_leak_scan["ok"] is True
+        assert final_leak_scan["findings"] == []
+
+    assert "local evidence-only diagnosis" in report
+    assert "No A100 execution was performed" in report
+    assert "does not perform slot normalization or semantic-equivalence scoring" in report
+    assert "contract_exact_match remains 0.0" in report
+    assert "本地 evidence-only" in human_brief
+    assert "不启动 A100" in human_brief
+    assert "不做 slot normalization" in human_brief
+    assert "不做 semantic-equivalence scoring" in human_brief
+    assert "不能声明 held-out generalization" in human_brief
+
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert "private-overrides" not in serialized
+    assert "private-configs" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True
+
+
 def test_a100_search_query_slot_wrapper_boundary_diagnosis_pack_is_public_safe_and_bounded() -> None:
     source_dir = Path("reports/public-sample/a100-search-query-slot-policy-rerun")
     evidence_dir = Path("reports/public-sample/a100-search-query-slot-wrapper-boundary-diagnosis")
