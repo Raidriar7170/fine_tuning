@@ -7,6 +7,7 @@ from pathlib import Path
 from voice2task.evaluation import (
     diagnose_alignment_mismatches,
     diagnose_constrained_contract_decoding,
+    diagnose_heldout_family_strategy,
     diagnose_runtime_label_tiny_overfit_readiness,
     diagnose_schema_mismatches,
     diagnose_sft_contract_learning_signal,
@@ -23,6 +24,7 @@ from voice2task.io import read_json, read_jsonl
 from voice2task.reports import (
     write_alignment_diagnostics_report,
     write_constrained_decoding_diagnosis_report,
+    write_heldout_family_strategy_report,
     write_metrics_report,
     write_runtime_label_tiny_overfit_diagnostic_report,
     write_schema_diagnostics_report,
@@ -136,6 +138,21 @@ def build_parser() -> argparse.ArgumentParser:
         default="Voice2Task runtime-label and tiny-overfit diagnostic",
     )
 
+    diagnose_heldout_strategy = subcommands.add_parser("diagnose-heldout-family-strategy")
+    diagnose_heldout_strategy.add_argument("--sft", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--manifest", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--tiny-overfit-manifest", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--heldout-manifest", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--dev-alignment", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--test-alignment", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--dev-schema", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--test-schema", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument("--output", type=Path, required=True)
+    diagnose_heldout_strategy.add_argument(
+        "--title",
+        default="Voice2Task held-out family strategy diagnosis",
+    )
+
     smoke = subcommands.add_parser("smoke")
     smoke.add_argument("--gold", type=Path, required=True)
     smoke.add_argument("--predictions", type=Path, required=True)
@@ -228,6 +245,28 @@ def main(argv: list[str] | None = None) -> int:
             tiny_overfit_evidence=read_json(args.tiny_overfit_evidence) if args.tiny_overfit_evidence else None,
         )
         paths = write_runtime_label_tiny_overfit_diagnostic_report(
+            diagnostics,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "diagnose-heldout-family-strategy":
+        diagnostics = diagnose_heldout_family_strategy(
+            load_rows_path=args.sft,
+            manifest_path=args.manifest,
+            tiny_overfit_manifest=read_json(args.tiny_overfit_manifest),
+            heldout_manifest=read_json(args.heldout_manifest),
+            heldout_alignment_by_split={
+                "dev": read_json(args.dev_alignment),
+                "test": read_json(args.test_alignment),
+            },
+            heldout_schema_by_split={
+                "dev": read_json(args.dev_schema),
+                "test": read_json(args.test_schema),
+            },
+        )
+        paths = write_heldout_family_strategy_report(
             diagnostics,
             output_dir=args.output,
             title=args.title,

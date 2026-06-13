@@ -1,0 +1,72 @@
+{
+  "evidence_kind": "heldout_family_strategy_diagnosis",
+  "generated_at": "2026-06-13T17:35:39.950975+00:00",
+  "source_manifest_id": "public-sample-20260613T072200Z",
+  "phase": "diagnose-heldout-family-strategy",
+  "summary": {
+    "heldout_contract_exact_match": {
+      "dev": 0.0,
+      "test": 0.0
+    },
+    "tiny_training_subset_family_count": 1,
+    "heldout_residual_family_count": 4,
+    "broad_data_scaling_recommended": false,
+    "recommended_next_step": "propose_targeted_family_coverage_probe"
+  },
+  "strategy_recommendation": {
+    "primary": "targeted_family_coverage_probe_before_broad_scaling",
+    "requires_user_confirmation": true,
+    "candidate_next_phases": [
+      "propose_targeted_sft_family_coverage_probe",
+      "validate_residual_family_dpo_hard_negatives",
+      "inspect_prompt_policy_only_if_targeted_coverage_still_fails"
+    ]
+  },
+  "residual_family_ids": [
+    "seed-clarify-ambiguous",
+    "seed-open-example",
+    "seed-block-purchase",
+    "seed-form-email"
+  ],
+  "dpo_hard_negative_categories": [
+    "blocked_payment_action_drift",
+    "clarify_action_drift",
+    "form_confirmation_drift",
+    "navigate_canonical_url_drift"
+  ],
+  "artifacts": {
+    "diagnosis_json": "reports/public-sample/heldout-family-strategy-diagnosis/heldout_family_strategy_diagnosis.json",
+    "diagnosis_markdown": "reports/public-sample/heldout-family-strategy-diagnosis/heldout_family_strategy_diagnosis.md",
+    "manifest": "reports/public-sample/heldout-family-strategy-diagnosis/manifest.json"
+  },
+  "execution_scope": {
+    "local_public_sample_only": true,
+    "new_data_generated": false,
+    "training_run": false,
+    "dpo_run": false,
+    "a100_execution": false,
+    "prediction_run": false,
+    "evaluator_metric_change": false
+  },
+  "claims": {
+    "diagnosis_only": true,
+    "model_recovery_claim": false,
+    "held_out_generalization_claim": false,
+    "private_corpus_generalization_claim": false,
+    "checkpoint_release": false,
+    "adapter_release": false,
+    "production_readiness_claim": false,
+    "live_browser_benchmark_claim": false,
+    "prediction_repair_or_replacement": false,
+    "semantic_equivalence_primary_metric": false
+  },
+  "leak_scan_result": {
+    "ok": true,
+    "findings": []
+  },
+  "post_archive_leak_scan_result": {
+    "ok": true,
+    "findings": [],
+    "generated_at": "2026-06-13T17:37:50.414004+00:00"
+  }
+}

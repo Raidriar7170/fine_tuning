@@ -1,0 +1,525 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "diagnosis_only": true,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "prediction_repair_or_replacement": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false
+  },
+  "coverage_by_split": {
+    "dev": {
+      "confirmation_counts": {
+        "confirm:false": 3,
+        "confirm:true": 3
+      },
+      "contract_family_counts": {
+        "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity": 3,
+        "navigate|open_url|public_readonly|confirm:false|slots:url": 3
+      },
+      "route_counts": {
+        "clarify": 3,
+        "open_url": 3
+      },
+      "row_count": 6,
+      "safety_reason_counts": {
+        "ambiguous_request": 3,
+        "public_readonly": 3
+      },
+      "slot_key_counts": {
+        "ambiguity": 3,
+        "url": 3
+      },
+      "source_family_counts": {
+        "seed-clarify-ambiguous": 3,
+        "seed-open-example": 3
+      },
+      "task_type_counts": {
+        "clarify": 3,
+        "navigate": 3
+      }
+    },
+    "test": {
+      "confirmation_counts": {
+        "confirm:true": 6
+      },
+      "contract_family_counts": {
+        "blocked|deny|unsafe_payment|confirm:true|slots:reason": 3,
+        "form_fill|fill_form|requires_confirmation|confirm:true|slots:field": 3
+      },
+      "route_counts": {
+        "deny": 3,
+        "fill_form": 3
+      },
+      "row_count": 6,
+      "safety_reason_counts": {
+        "requires_confirmation": 3,
+        "unsafe_payment": 3
+      },
+      "slot_key_counts": {
+        "field": 3,
+        "reason": 3
+      },
+      "source_family_counts": {
+        "seed-block-purchase": 3,
+        "seed-form-email": 3
+      },
+      "task_type_counts": {
+        "blocked": 3,
+        "form_fill": 3
+      }
+    },
+    "train": {
+      "confirmation_counts": {
+        "confirm:false": 9,
+        "confirm:true": 9
+      },
+      "contract_family_counts": {
+        "blocked|deny|unsafe_payment|confirm:true|slots:reason": 3,
+        "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity": 3,
+        "extract|extract_page|public_readonly|confirm:false|slots:target": 3,
+        "form_fill|fill_form|requires_confirmation|confirm:true|slots:field": 3,
+        "navigate|open_url|public_readonly|confirm:false|slots:url": 3,
+        "search|search_web|public_readonly|confirm:false|slots:query": 3
+      },
+      "route_counts": {
+        "clarify": 3,
+        "deny": 3,
+        "extract_page": 3,
+        "fill_form": 3,
+        "open_url": 3,
+        "search_web": 3
+      },
+      "row_count": 18,
+      "safety_reason_counts": {
+        "ambiguous_request": 3,
+        "public_readonly": 9,
+        "requires_confirmation": 3,
+        "unsafe_payment": 3
+      },
+      "slot_key_counts": {
+        "ambiguity": 3,
+        "field": 3,
+        "query": 3,
+        "reason": 3,
+        "target": 3,
+        "url": 3
+      },
+      "source_family_counts": {
+        "seed-block-transfer": 3,
+        "seed-clarify-target": 3,
+        "seed-extract-price": 3,
+        "seed-form-nickname": 3,
+        "seed-open-help": 3,
+        "seed-search-weather": 3
+      },
+      "task_type_counts": {
+        "blocked": 3,
+        "clarify": 3,
+        "extract": 3,
+        "form_fill": 3,
+        "navigate": 3,
+        "search": 3
+      }
+    }
+  },
+  "diagnostic_mode": "local_public_safe_no_training_no_generation",
+  "dpo_hard_negative_signal": {
+    "categories_available_for_residual_families": [
+      "blocked_payment_action_drift",
+      "clarify_action_drift",
+      "form_confirmation_drift",
+      "navigate_canonical_url_drift"
+    ],
+    "category_count": 4,
+    "execute_dpo_in_this_phase": false
+  },
+  "evidence_kind": "heldout_family_strategy_diagnosis",
+  "execution_scope": {
+    "a100_execution": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "local_public_sample_only": true,
+    "new_data_generated": false,
+    "prediction_run": false,
+    "training_run": false
+  },
+  "heldout_family_residuals": [
+    {
+      "contract_exact_match": 0.0,
+      "contract_family_key": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+      "dpo_hard_negative_category": "clarify_action_drift",
+      "field_mismatch_counts": {
+        "confirmation_required": 3,
+        "normalized_command": 3,
+        "route": 2,
+        "safety.allow": 1,
+        "safety.reason": 2,
+        "slots": 3,
+        "task_type": 2
+      },
+      "route": "clarify",
+      "row_count": 3,
+      "row_ids": [
+        "seed-clarify-ambiguous",
+        "seed-clarify-ambiguous-aug-1",
+        "seed-clarify-ambiguous-aug-2"
+      ],
+      "schema_invalid_prediction_count": 0,
+      "source_family_id": "seed-clarify-ambiguous",
+      "split": "dev",
+      "strategy_bucket": "targeted_sft_family_coverage",
+      "task_type": "clarify",
+      "tiny_subset_row_count": 0,
+      "train_analog_family_id": "seed-clarify-target",
+      "train_analog_row_count": 3
+    },
+    {
+      "contract_exact_match": 0.0,
+      "contract_family_key": "navigate|open_url|public_readonly|confirm:false|slots:url",
+      "dpo_hard_negative_category": "navigate_canonical_url_drift",
+      "field_mismatch_counts": {
+        "normalized_command": 3,
+        "route": 1,
+        "slots": 1,
+        "task_type": 1
+      },
+      "route": "open_url",
+      "row_count": 3,
+      "row_ids": [
+        "seed-open-example",
+        "seed-open-example-aug-1",
+        "seed-open-example-aug-2"
+      ],
+      "schema_invalid_prediction_count": 0,
+      "source_family_id": "seed-open-example",
+      "split": "dev",
+      "strategy_bucket": "targeted_sft_family_coverage",
+      "task_type": "navigate",
+      "tiny_subset_row_count": 0,
+      "train_analog_family_id": "seed-open-help",
+      "train_analog_row_count": 3
+    },
+    {
+      "contract_exact_match": 0.0,
+      "contract_family_key": "blocked|deny|unsafe_payment|confirm:true|slots:reason",
+      "dpo_hard_negative_category": "blocked_payment_action_drift",
+      "field_mismatch_counts": {
+        "normalized_command": 3,
+        "slots": 3
+      },
+      "route": "deny",
+      "row_count": 3,
+      "row_ids": [
+        "seed-block-purchase",
+        "seed-block-purchase-aug-1",
+        "seed-block-purchase-aug-2"
+      ],
+      "schema_invalid_prediction_count": 0,
+      "source_family_id": "seed-block-purchase",
+      "split": "test",
+      "strategy_bucket": "targeted_sft_family_coverage",
+      "task_type": "blocked",
+      "tiny_subset_row_count": 0,
+      "train_analog_family_id": "seed-block-transfer",
+      "train_analog_row_count": 3
+    },
+    {
+      "contract_exact_match": 0.0,
+      "contract_family_key": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+      "dpo_hard_negative_category": "form_confirmation_drift",
+      "field_mismatch_counts": {
+        "normalized_command": 3,
+        "safety.allow": 1,
+        "safety.reason": 2,
+        "slots": 3
+      },
+      "route": "fill_form",
+      "row_count": 3,
+      "row_ids": [
+        "seed-form-email",
+        "seed-form-email-aug-1",
+        "seed-form-email-aug-2"
+      ],
+      "schema_invalid_prediction_count": 2,
+      "source_family_id": "seed-form-email",
+      "split": "test",
+      "strategy_bucket": "targeted_sft_family_coverage",
+      "task_type": "form_fill",
+      "tiny_subset_row_count": 0,
+      "train_analog_family_id": "seed-form-nickname",
+      "train_analog_row_count": 3
+    }
+  ],
+  "source_family_coverage": {
+    "seed-block-purchase": {
+      "confirmation_required": true,
+      "contract_family_key": "blocked|deny|unsafe_payment|confirm:true|slots:reason",
+      "route": "deny",
+      "row_count": 3,
+      "row_ids": [
+        "seed-block-purchase",
+        "seed-block-purchase-aug-1",
+        "seed-block-purchase-aug-2"
+      ],
+      "safety_reason": "unsafe_payment",
+      "slot_keys": [
+        "reason"
+      ],
+      "source_family_id": "seed-block-purchase",
+      "split_counts": {
+        "test": 3
+      },
+      "task_type": "blocked"
+    },
+    "seed-block-transfer": {
+      "confirmation_required": true,
+      "contract_family_key": "blocked|deny|unsafe_payment|confirm:true|slots:reason",
+      "route": "deny",
+      "row_count": 3,
+      "row_ids": [
+        "seed-block-transfer",
+        "seed-block-transfer-aug-1",
+        "seed-block-transfer-aug-2"
+      ],
+      "safety_reason": "unsafe_payment",
+      "slot_keys": [
+        "reason"
+      ],
+      "source_family_id": "seed-block-transfer",
+      "split_counts": {
+        "train": 3
+      },
+      "task_type": "blocked"
+    },
+    "seed-clarify-ambiguous": {
+      "confirmation_required": true,
+      "contract_family_key": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+      "route": "clarify",
+      "row_count": 3,
+      "row_ids": [
+        "seed-clarify-ambiguous",
+        "seed-clarify-ambiguous-aug-1",
+        "seed-clarify-ambiguous-aug-2"
+      ],
+      "safety_reason": "ambiguous_request",
+      "slot_keys": [
+        "ambiguity"
+      ],
+      "source_family_id": "seed-clarify-ambiguous",
+      "split_counts": {
+        "dev": 3
+      },
+      "task_type": "clarify"
+    },
+    "seed-clarify-target": {
+      "confirmation_required": true,
+      "contract_family_key": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+      "route": "clarify",
+      "row_count": 3,
+      "row_ids": [
+        "seed-clarify-target",
+        "seed-clarify-target-aug-1",
+        "seed-clarify-target-aug-2"
+      ],
+      "safety_reason": "ambiguous_request",
+      "slot_keys": [
+        "ambiguity"
+      ],
+      "source_family_id": "seed-clarify-target",
+      "split_counts": {
+        "train": 3
+      },
+      "task_type": "clarify"
+    },
+    "seed-extract-price": {
+      "confirmation_required": false,
+      "contract_family_key": "extract|extract_page|public_readonly|confirm:false|slots:target",
+      "route": "extract_page",
+      "row_count": 3,
+      "row_ids": [
+        "seed-extract-price",
+        "seed-extract-price-aug-1",
+        "seed-extract-price-aug-2"
+      ],
+      "safety_reason": "public_readonly",
+      "slot_keys": [
+        "target"
+      ],
+      "source_family_id": "seed-extract-price",
+      "split_counts": {
+        "train": 3
+      },
+      "task_type": "extract"
+    },
+    "seed-form-email": {
+      "confirmation_required": true,
+      "contract_family_key": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+      "route": "fill_form",
+      "row_count": 3,
+      "row_ids": [
+        "seed-form-email",
+        "seed-form-email-aug-1",
+        "seed-form-email-aug-2"
+      ],
+      "safety_reason": "requires_confirmation",
+      "slot_keys": [
+        "field"
+      ],
+      "source_family_id": "seed-form-email",
+      "split_counts": {
+        "test": 3
+      },
+      "task_type": "form_fill"
+    },
+    "seed-form-nickname": {
+      "confirmation_required": true,
+      "contract_family_key": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+      "route": "fill_form",
+      "row_count": 3,
+      "row_ids": [
+        "seed-form-nickname",
+        "seed-form-nickname-aug-1",
+        "seed-form-nickname-aug-2"
+      ],
+      "safety_reason": "requires_confirmation",
+      "slot_keys": [
+        "field"
+      ],
+      "source_family_id": "seed-form-nickname",
+      "split_counts": {
+        "train": 3
+      },
+      "task_type": "form_fill"
+    },
+    "seed-open-example": {
+      "confirmation_required": false,
+      "contract_family_key": "navigate|open_url|public_readonly|confirm:false|slots:url",
+      "route": "open_url",
+      "row_count": 3,
+      "row_ids": [
+        "seed-open-example",
+        "seed-open-example-aug-1",
+        "seed-open-example-aug-2"
+      ],
+      "safety_reason": "public_readonly",
+      "slot_keys": [
+        "url"
+      ],
+      "source_family_id": "seed-open-example",
+      "split_counts": {
+        "dev": 3
+      },
+      "task_type": "navigate"
+    },
+    "seed-open-help": {
+      "confirmation_required": false,
+      "contract_family_key": "navigate|open_url|public_readonly|confirm:false|slots:url",
+      "route": "open_url",
+      "row_count": 3,
+      "row_ids": [
+        "seed-open-help",
+        "seed-open-help-aug-1",
+        "seed-open-help-aug-2"
+      ],
+      "safety_reason": "public_readonly",
+      "slot_keys": [
+        "url"
+      ],
+      "source_family_id": "seed-open-help",
+      "split_counts": {
+        "train": 3
+      },
+      "task_type": "navigate"
+    },
+    "seed-search-weather": {
+      "confirmation_required": false,
+      "contract_family_key": "search|search_web|public_readonly|confirm:false|slots:query",
+      "route": "search_web",
+      "row_count": 3,
+      "row_ids": [
+        "seed-search-weather",
+        "seed-search-weather-aug-1",
+        "seed-search-weather-aug-2"
+      ],
+      "safety_reason": "public_readonly",
+      "slot_keys": [
+        "query"
+      ],
+      "source_family_id": "seed-search-weather",
+      "split_counts": {
+        "train": 3
+      },
+      "task_type": "search"
+    }
+  },
+  "source_manifest": {
+    "counts": {
+      "dpo_pairs": 90,
+      "seed_rows": 10,
+      "sft_rows": 30
+    },
+    "manifest_id": "public-sample-20260613T072200Z",
+    "split_counts": {
+      "dev": 6,
+      "test": 6,
+      "train": 18
+    }
+  },
+  "strategy_recommendation": {
+    "candidate_next_phases": [
+      "propose_targeted_sft_family_coverage_probe",
+      "validate_residual_family_dpo_hard_negatives",
+      "inspect_prompt_policy_only_if_targeted_coverage_still_fails"
+    ],
+    "primary": "targeted_family_coverage_probe_before_broad_scaling",
+    "rationale": [
+      "heldout strict exact match is zero on current dev/test",
+      "all heldout contract families have train analog coverage in the dataset",
+      "the current tiny adapter subset trained only one search-family source",
+      "therefore the next falsifiable step should test targeted family coverage before broad data scaling"
+    ],
+    "requires_user_confirmation": true
+  },
+  "summary": {
+    "broad_data_scaling_recommended": false,
+    "heldout_contract_exact_match": {
+      "dev": 0.0,
+      "test": 0.0
+    },
+    "heldout_contract_families_absent_from_tiny_subset": [
+      "blocked|deny|unsafe_payment|confirm:true|slots:reason",
+      "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+      "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+      "navigate|open_url|public_readonly|confirm:false|slots:url"
+    ],
+    "heldout_contract_families_with_train_analog_coverage": [
+      "blocked|deny|unsafe_payment|confirm:true|slots:reason",
+      "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+      "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+      "navigate|open_url|public_readonly|confirm:false|slots:url"
+    ],
+    "heldout_residual_family_count": 4,
+    "heldout_strict_exact_match_failed": true,
+    "recommended_next_step": "propose_targeted_family_coverage_probe",
+    "tiny_training_subset_family_count": 1
+  },
+  "tiny_training_subset": {
+    "contract_family_counts": {
+      "search|search_web|public_readonly|confirm:false|slots:query": 3
+    },
+    "row_count": 3,
+    "row_ids": [
+      "seed-search-weather",
+      "seed-search-weather-aug-1",
+      "seed-search-weather-aug-2"
+    ],
+    "source_family_counts": {
+      "seed-search-weather": 3
+    }
+  }
+}

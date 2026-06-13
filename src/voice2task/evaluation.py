@@ -1513,6 +1513,263 @@ def _count_by(values: list[str]) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def _source_family_id(row: SFTDatasetRow) -> str:
+    source_id = row.provenance.get("source_id") if isinstance(row.provenance, dict) else None
+    return _sanitize_id(str(source_id or row.id))
+
+
+def _contract_family_key(contract: BrowserTaskContract) -> str:
+    slot_keys = ",".join(sorted(str(key) for key in contract.slots)) or "none"
+    confirmation = str(bool(contract.confirmation_required)).lower()
+    reason = _sanitize_public_summary(str(contract.safety.get("reason", "unknown")))
+    return f"{contract.task_type}|{contract.route}|{reason}|confirm:{confirmation}|slots:{slot_keys}"
+
+
+def _family_row_summary(rows: list[SFTDatasetRow]) -> dict[str, dict[str, Any]]:
+    families: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        contract = as_contract(row.target_contract)
+        source_family = _source_family_id(row)
+        entry = families.setdefault(
+            source_family,
+            {
+                "source_family_id": source_family,
+                "contract_family_key": _contract_family_key(contract),
+                "task_type": contract.task_type,
+                "route": contract.route,
+                "safety_reason": _sanitize_public_summary(str(contract.safety.get("reason", "unknown"))),
+                "confirmation_required": contract.confirmation_required,
+                "slot_keys": sorted(str(key) for key in contract.slots),
+                "split_counts": {},
+                "row_count": 0,
+                "row_ids": [],
+            },
+        )
+        entry["row_count"] += 1
+        entry["split_counts"][row.split] = entry["split_counts"].get(row.split, 0) + 1
+        entry["row_ids"].append(_sanitize_id(row.id))
+    return dict(sorted(families.items()))
+
+
+def _coverage_by_split(rows: list[SFTDatasetRow]) -> dict[str, dict[str, Any]]:
+    coverage: dict[str, dict[str, Any]] = {}
+    for split in sorted({row.split for row in rows}):
+        split_rows = [row for row in rows if row.split == split]
+        contracts = [as_contract(row.target_contract) for row in split_rows]
+        coverage[split] = {
+            "row_count": len(split_rows),
+            "source_family_counts": _count_by([_source_family_id(row) for row in split_rows]),
+            "contract_family_counts": _count_by([_contract_family_key(contract) for contract in contracts]),
+            "task_type_counts": _count_by([contract.task_type for contract in contracts]),
+            "route_counts": _count_by([contract.route for contract in contracts]),
+            "safety_reason_counts": _count_by(
+                [_sanitize_public_summary(str(contract.safety.get("reason", "unknown"))) for contract in contracts]
+            ),
+            "confirmation_counts": _count_by(
+                [f"confirm:{str(bool(contract.confirmation_required)).lower()}" for contract in contracts]
+            ),
+            "slot_key_counts": _count_by(
+                [",".join(sorted(str(key) for key in contract.slots)) or "none" for contract in contracts]
+            ),
+        }
+    return coverage
+
+
+_DPO_CATEGORY_BY_CONTRACT_FAMILY = {
+    "blocked|deny|unsafe_payment|confirm:true|slots:reason": "blocked_payment_action_drift",
+    "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity": "clarify_action_drift",
+    "form_fill|fill_form|requires_confirmation|confirm:true|slots:field": "form_confirmation_drift",
+    "navigate|open_url|public_readonly|confirm:false|slots:url": "navigate_canonical_url_drift",
+}
+
+
+def _field_mismatch_counts_for_family(alignment: dict[str, Any], row_ids: set[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    rows = alignment.get("rows") if isinstance(alignment, dict) else []
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict) or str(row.get("row_id", "")) not in row_ids:
+            continue
+        mismatches = row.get("mismatches")
+        for mismatch in mismatches if isinstance(mismatches, list) else []:
+            if not isinstance(mismatch, dict):
+                continue
+            field_path = _sanitize_public_summary(str(mismatch.get("field_path", "unknown")))
+            counts[field_path] = counts.get(field_path, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def diagnose_heldout_family_strategy(
+    *,
+    load_rows_path: Path,
+    manifest_path: Path,
+    tiny_overfit_manifest: dict[str, Any],
+    heldout_manifest: dict[str, Any],
+    heldout_alignment_by_split: dict[str, dict[str, Any]],
+    heldout_schema_by_split: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    rows = load_sft_rows(load_rows_path)
+    manifest = read_json(manifest_path)
+    row_by_id = {row.id: row for row in rows}
+    family_summary = _family_row_summary(rows)
+    train_rows = [row for row in rows if row.split == "train"]
+    train_contract_families = _family_row_summary(train_rows)
+
+    tiny_row_ids = [
+        _sanitize_id(str(row_id))
+        for row_id in tiny_overfit_manifest.get("training_row_ids", [])
+        if isinstance(row_id, str)
+    ]
+    tiny_rows = [row_by_id[row_id] for row_id in tiny_row_ids if row_id in row_by_id]
+    tiny_families = _family_row_summary(tiny_rows)
+    tiny_contract_family_counts = _count_by(
+        [_contract_family_key(as_contract(row.target_contract)) for row in tiny_rows]
+    )
+    heldout_splits = [split for split in ("dev", "test") if split in heldout_manifest.get("split_results", {})]
+    residual_entries: list[dict[str, Any]] = []
+
+    for split in heldout_splits:
+        split_rows = [row for row in rows if row.split == split]
+        split_schema = heldout_schema_by_split.get(split, {})
+        schema_rows = split_schema.get("rows") if isinstance(split_schema, dict) else []
+        schema_invalid_row_ids = {
+            _sanitize_id(str(row.get("row_id", "")))
+            for row in schema_rows
+            if isinstance(row, dict) and row.get("issues")
+        }
+        for source_family, source_entry in _family_row_summary(split_rows).items():
+            contract_family_key = str(source_entry["contract_family_key"])
+            family_row_ids = set(source_entry["row_ids"])
+            train_analogs = [
+                entry
+                for entry in train_contract_families.values()
+                if entry["contract_family_key"] == contract_family_key
+            ]
+            train_analog_row_count = sum(int(entry["row_count"]) for entry in train_analogs)
+            tiny_subset_row_count = tiny_contract_family_counts.get(contract_family_key, 0)
+            heldout_result = heldout_manifest["split_results"][split]
+            field_counts = _field_mismatch_counts_for_family(
+                heldout_alignment_by_split.get(split, {}),
+                family_row_ids,
+            )
+            residual_entries.append(
+                {
+                    "source_family_id": source_family,
+                    "split": split,
+                    "contract_family_key": contract_family_key,
+                    "task_type": source_entry["task_type"],
+                    "route": source_entry["route"],
+                    "row_count": int(source_entry["row_count"]),
+                    "row_ids": list(source_entry["row_ids"]),
+                    "train_analog_family_id": str(train_analogs[0]["source_family_id"]) if train_analogs else None,
+                    "train_analog_row_count": train_analog_row_count,
+                    "tiny_subset_row_count": tiny_subset_row_count,
+                    "contract_exact_match": heldout_result.get("contract_exact_match"),
+                    "schema_invalid_prediction_count": len(family_row_ids & schema_invalid_row_ids),
+                    "field_mismatch_counts": field_counts,
+                    "dpo_hard_negative_category": _DPO_CATEGORY_BY_CONTRACT_FAMILY.get(contract_family_key),
+                    "strategy_bucket": "targeted_sft_family_coverage"
+                    if train_analog_row_count > 0 and tiny_subset_row_count == 0
+                    else "inspect_data_or_objective_gap",
+                }
+            )
+
+    heldout_exact = {
+        split: float(heldout_manifest["split_results"][split].get("contract_exact_match", 0.0))
+        for split in heldout_splits
+    }
+    absent_from_tiny = sorted(
+        {
+            entry["contract_family_key"]
+            for entry in residual_entries
+            if int(entry["tiny_subset_row_count"]) == 0
+        }
+    )
+    analog_covered = sorted(
+        {
+            entry["contract_family_key"]
+            for entry in residual_entries
+            if int(entry["train_analog_row_count"]) > 0
+        }
+    )
+    dpo_categories = sorted(
+        {
+            str(entry["dpo_hard_negative_category"])
+            for entry in residual_entries
+            if entry.get("dpo_hard_negative_category")
+        }
+    )
+    return {
+        "evidence_kind": "heldout_family_strategy_diagnosis",
+        "diagnostic_mode": "local_public_safe_no_training_no_generation",
+        "source_manifest": {
+            "manifest_id": _sanitize_public_summary(str(manifest.get("manifest_id", "unknown"))),
+            "counts": _sanitize_public_value(manifest.get("counts", {})),
+            "split_counts": _sanitize_public_value(manifest.get("split_counts", {})),
+        },
+        "summary": {
+            "heldout_contract_exact_match": heldout_exact,
+            "heldout_strict_exact_match_failed": bool(heldout_exact)
+            and all(value == 0.0 for value in heldout_exact.values()),
+            "tiny_training_subset_family_count": len(tiny_families),
+            "heldout_residual_family_count": len(residual_entries),
+            "heldout_contract_families_absent_from_tiny_subset": absent_from_tiny,
+            "heldout_contract_families_with_train_analog_coverage": analog_covered,
+            "broad_data_scaling_recommended": False,
+            "recommended_next_step": "propose_targeted_family_coverage_probe",
+        },
+        "coverage_by_split": _coverage_by_split(rows),
+        "source_family_coverage": family_summary,
+        "tiny_training_subset": {
+            "row_count": len(tiny_rows),
+            "row_ids": tiny_row_ids,
+            "source_family_counts": _count_by([_source_family_id(row) for row in tiny_rows]),
+            "contract_family_counts": tiny_contract_family_counts,
+        },
+        "heldout_family_residuals": residual_entries,
+        "dpo_hard_negative_signal": {
+            "categories_available_for_residual_families": dpo_categories,
+            "category_count": len(dpo_categories),
+            "execute_dpo_in_this_phase": False,
+        },
+        "strategy_recommendation": {
+            "primary": "targeted_family_coverage_probe_before_broad_scaling",
+            "requires_user_confirmation": True,
+            "rationale": [
+                "heldout strict exact match is zero on current dev/test",
+                "all heldout contract families have train analog coverage in the dataset",
+                "the current tiny adapter subset trained only one search-family source",
+                "therefore the next falsifiable step should test targeted family coverage before broad data scaling",
+            ],
+            "candidate_next_phases": [
+                "propose_targeted_sft_family_coverage_probe",
+                "validate_residual_family_dpo_hard_negatives",
+                "inspect_prompt_policy_only_if_targeted_coverage_still_fails",
+            ],
+        },
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_data_generated": False,
+            "training_run": False,
+            "dpo_run": False,
+            "a100_execution": False,
+            "prediction_run": False,
+            "evaluator_metric_change": False,
+        },
+        "claims": {
+            "diagnosis_only": True,
+            "model_recovery_claim": False,
+            "held_out_generalization_claim": False,
+            "private_corpus_generalization_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+            "prediction_repair_or_replacement": False,
+            "semantic_equivalence_primary_metric": False,
+        },
+    }
+
+
 def _target_pressure_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
         return {

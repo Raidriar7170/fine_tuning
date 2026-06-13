@@ -1523,6 +1523,98 @@ def write_runtime_label_provenance_check_evidence_pack(
     return {"json": json_path, "markdown": markdown_path}
 
 
+def write_heldout_family_strategy_report(
+    diagnostics: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task held-out family strategy diagnosis",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "heldout_family_strategy_diagnosis.json"
+    markdown_path = output_dir / "heldout_family_strategy_diagnosis.md"
+    safe_diagnostics = _sanitize_report_value(diagnostics)
+    write_json(json_path, safe_diagnostics)
+
+    summary = safe_diagnostics["summary"]
+    strategy = safe_diagnostics["strategy_recommendation"]
+    dpo_signal = safe_diagnostics["dpo_hard_negative_signal"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This local public-sample diagnosis explains why the current tiny adapter has zero held-out "
+            "strict exact match. It is not blind data scaling, not a model recovery claim, and not "
+            "held-out generalization evidence."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- This does not train, run prediction, generate data, or run DPO.",
+        "- This is not a checkpoint release.",
+        "- This is not an adapter release.",
+        "- This is not a model recovery claim.",
+        "- This makes no production-readiness or live-browser benchmark claim.",
+        "- Semantic equivalence is not promoted to the primary metric.",
+        "",
+        "## Summary",
+        "",
+        f"- Source manifest: `{safe_diagnostics['source_manifest']['manifest_id']}`",
+        f"- Held-out strict exact match: `{summary['heldout_contract_exact_match']}`",
+        f"- Tiny training subset family count: `{summary['tiny_training_subset_family_count']}`",
+        f"- Held-out residual family count: `{summary['heldout_residual_family_count']}`",
+        f"- Broad data scaling recommended now: `{summary['broad_data_scaling_recommended']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Strategy",
+        "",
+        f"- Primary: `{strategy['primary']}`",
+        f"- Requires user confirmation: `{strategy['requires_user_confirmation']}`",
+        "- Interpretation: targeted family coverage should be tested before broad data scaling.",
+        "",
+        "## Rationale",
+        "",
+    ]
+    for reason in strategy.get("rationale", []):
+        lines.append(f"- {reason}")
+
+    lines.extend(["", "## Held-out Residual Families", ""])
+    for entry in safe_diagnostics.get("heldout_family_residuals", []):
+        lines.extend(
+            [
+                f"### `{entry['source_family_id']}`",
+                "",
+                f"- Split: `{entry['split']}`",
+                f"- Contract family: `{entry['contract_family_key']}`",
+                f"- Rows: `{entry['row_count']}`",
+                f"- Train analog family: `{entry['train_analog_family_id']}`",
+                f"- Train analog rows: `{entry['train_analog_row_count']}`",
+                f"- Tiny subset rows: `{entry['tiny_subset_row_count']}`",
+                f"- Schema-invalid predictions: `{entry['schema_invalid_prediction_count']}`",
+                f"- Field mismatches: `{entry['field_mismatch_counts']}`",
+                f"- DPO hard-negative category: `{entry['dpo_hard_negative_category']}`",
+                f"- Strategy bucket: `{entry['strategy_bucket']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## DPO Hard-negative Signal",
+            "",
+            f"- Categories available: `{dpo_signal['categories_available_for_residual_families']}`",
+            f"- Category count: `{dpo_signal['category_count']}`",
+            f"- Execute DPO in this phase: `{dpo_signal['execute_dpo_in_this_phase']}`",
+            "",
+            "## Candidate Next Phases",
+            "",
+        ]
+    )
+    for phase in strategy.get("candidate_next_phases", []):
+        lines.append(f"- `{phase}`")
+
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path}
+
+
 def write_source_diagnostics_report(
     diagnostics: dict[str, Any],
     output_dir: Path,
