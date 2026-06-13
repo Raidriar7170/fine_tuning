@@ -1,0 +1,194 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "host_details_omitted": true,
+    "private_corpus_rows_omitted": true,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false,
+    "ssh_details_omitted": true
+  },
+  "base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "dev_test_generalization_claim": false,
+    "evaluator_relaxation": false,
+    "full_private_corpus_claim": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "prediction_repair_or_replacement": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false
+  },
+  "current_manifest_id": "public-sample-20260613T072200Z",
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "evidence_kind": "current_manifest_tiny_overfit_probe",
+  "evidence_status": "private_adapter_predictions_written",
+  "files": {
+    "adapter_metadata_public": "reports/public-sample/current-manifest-tiny-overfit-probe/adapter_metadata_public.json",
+    "final_leak_scan": "reports/public-sample/current-manifest-tiny-overfit-probe/final_leak_scan_result.json",
+    "final_phase_leak_scan": "reports/public-sample/current-manifest-tiny-overfit-probe/final_phase_leak_scan_result.json",
+    "generation_trace": "reports/public-sample/current-manifest-tiny-overfit-probe/generation_trace.jsonl",
+    "leak_scan": "reports/public-sample/current-manifest-tiny-overfit-probe/leak_scan_result.json",
+    "manifest": "reports/public-sample/current-manifest-tiny-overfit-probe/manifest.json",
+    "metrics_json": "reports/public-sample/current-manifest-tiny-overfit-probe/metrics.json",
+    "metrics_markdown": "reports/public-sample/current-manifest-tiny-overfit-probe/metrics.md",
+    "phase_validation_leak_scan": "reports/public-sample/current-manifest-tiny-overfit-probe/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/current-manifest-tiny-overfit-probe/post_archive_leak_scan_result.json",
+    "prediction_metadata": "reports/public-sample/current-manifest-tiny-overfit-probe/prediction_metadata.json",
+    "predictions": "reports/public-sample/current-manifest-tiny-overfit-probe/predictions.jsonl",
+    "prompt_snapshot": "reports/public-sample/current-manifest-tiny-overfit-probe/prompt_snapshot.json",
+    "raw_decoded_summary": "reports/public-sample/current-manifest-tiny-overfit-probe/raw_decoded_summary.jsonl",
+    "report": "reports/public-sample/current-manifest-tiny-overfit-probe/report.md",
+    "train_split_gold": "reports/public-sample/current-manifest-tiny-overfit-probe/train_split_gold.jsonl"
+  },
+  "final_leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-13T16:44:16.429415+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/current-manifest-tiny-overfit-probe",
+      "docs/human-briefs/2026-06-14-run-current-manifest-tiny-overfit-probe.html",
+      "openspec/changes/archive/2026-06-13-run-current-manifest-tiny-overfit-probe",
+      "openspec/specs/supervised-contract-tuning/spec.md",
+      "openspec/specs/contract-evaluation/spec.md"
+    ]
+  },
+  "final_phase_leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-13T16:43:14.658293+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/current-manifest-tiny-overfit-probe",
+      "docs/human-briefs/2026-06-14-run-current-manifest-tiny-overfit-probe.html",
+      "openspec/changes/run-current-manifest-tiny-overfit-probe"
+    ]
+  },
+  "generalization_claim": false,
+  "generated_at": "2026-06-13T16:39:56.185008+00:00",
+  "leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-13T16:40:07.468228+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/current-manifest-tiny-overfit-probe"
+    ]
+  },
+  "model_source": "private_a100_local_model_dir",
+  "observed_result": {
+    "confirmation_accuracy": 1.0,
+    "contract_exact_match": 1.0,
+    "failure_slices": {
+      "confirmation": {
+        "count": 0,
+        "examples": []
+      },
+      "route": {
+        "count": 0,
+        "examples": []
+      },
+      "safety": {
+        "count": 0,
+        "examples": []
+      },
+      "schema": {
+        "count": 0,
+        "examples": []
+      },
+      "slot": {
+        "count": 0,
+        "examples": []
+      },
+      "task_type": {
+        "count": 0,
+        "examples": []
+      },
+      "unknown": {
+        "count": 0,
+        "examples": []
+      }
+    },
+    "json_valid_rate": 1.0,
+    "prediction_count": 3,
+    "route_accuracy": 1.0,
+    "slot_f1": 1.0,
+    "slot_f1_soft_internal_only": 1.0,
+    "task_type_accuracy": 1.0,
+    "train_gold_row_count": 3,
+    "train_internal_tiny_recovery_observed": true
+  },
+  "overfit_diagnostic": true,
+  "phase_validation_leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-13T16:42:05.244680+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/current-manifest-tiny-overfit-probe",
+      "docs/human-briefs/2026-06-14-run-current-manifest-tiny-overfit-probe.html",
+      "openspec/changes/run-current-manifest-tiny-overfit-probe"
+    ]
+  },
+  "post_archive_leak_scan_result": {
+    "findings": [],
+    "generated_at": "2026-06-13T16:43:46.244322+00:00",
+    "max_public_jsonl_rows": 5000,
+    "ok": true,
+    "scanned_paths": [
+      "reports/public-sample/current-manifest-tiny-overfit-probe",
+      "docs/human-briefs/2026-06-14-run-current-manifest-tiny-overfit-probe.html",
+      "openspec/changes/archive/2026-06-13-run-current-manifest-tiny-overfit-probe",
+      "openspec/specs/supervised-contract-tuning/spec.md",
+      "openspec/specs/contract-evaluation/spec.md"
+    ]
+  },
+  "prediction_artifact_path": "reports/public-sample/current-manifest-tiny-overfit-probe/predictions.jsonl",
+  "prediction_count": 3,
+  "prediction_row_ids": [
+    "seed-search-weather",
+    "seed-search-weather-aug-1",
+    "seed-search-weather-aug-2"
+  ],
+  "prediction_row_limit": 3,
+  "prediction_rows_before_limit": 18,
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_split": "train",
+  "release_status": "not_released",
+  "runtime_label_reference": "reports/public-sample/current-runtime-label-provenance-check/runtime_label_provenance_check.json",
+  "runtime_label_summary": {
+    "assistant_tokens_carry_loss": true,
+    "current_manifest_runtime_label_proof": true,
+    "prompt_tokens_masked": true,
+    "true_label_mask_status": "inspectable"
+  },
+  "sidecars": {
+    "generation_trace": "reports/public-sample/current-manifest-tiny-overfit-probe/generation_trace.jsonl",
+    "prompt_snapshot": "reports/public-sample/current-manifest-tiny-overfit-probe/prompt_snapshot.json",
+    "raw_decoded_summary": "reports/public-sample/current-manifest-tiny-overfit-probe/raw_decoded_summary.jsonl"
+  },
+  "source_manifest_rows": {
+    "dpo_pairs": 90,
+    "seed_rows": 10,
+    "sft_rows": 30
+  },
+  "source_manifest_split_counts": {
+    "dev": 6,
+    "test": 6,
+    "train": 18
+  },
+  "training_row_ids": [
+    "seed-search-weather",
+    "seed-search-weather-aug-1",
+    "seed-search-weather-aug-2"
+  ],
+  "training_row_limit": 3,
+  "training_rows_used": 3,
+  "training_split": "train",
+  "training_status": "training_completed"
+}

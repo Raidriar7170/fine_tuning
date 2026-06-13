@@ -1,0 +1,9 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T16:40:07.468228+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/current-manifest-tiny-overfit-probe"
+  ]
+}

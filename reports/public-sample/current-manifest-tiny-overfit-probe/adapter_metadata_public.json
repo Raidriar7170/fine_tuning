@@ -1,0 +1,142 @@
+{
+  "adapter_path": "<private_path>",
+  "adapter_release_status": "not_released",
+  "base_model": "<private_path>",
+  "base_model_public_id": "Qwen/Qwen2.5-7B-Instruct",
+  "command_summary": {
+    "config": "<private_path>",
+    "entrypoint": "voice2task-train sft",
+    "manifest": "<private_path>",
+    "mode": "run_training",
+    "output_dir": "<private_path>",
+    "requires_cli_run_training": true,
+    "requires_config_allow_heavy_training": true
+  },
+  "created_at": "2026-06-13T16:32:28.324600+00:00",
+  "dataset_load": {
+    "dataset_key": "sft",
+    "dataset_path": "data/public-samples/sft_public_sample.jsonl",
+    "loaded_rows": 30,
+    "loaded_rows_before_training_row_limit": 18,
+    "manifest_counts": {
+      "dpo_pairs": 90,
+      "seed_rows": 10,
+      "sft_rows": 30
+    },
+    "manifest_id": "public-sample-20260613T072200Z",
+    "training_row_ids": [
+      "seed-search-weather",
+      "seed-search-weather-aug-1",
+      "seed-search-weather-aug-2"
+    ],
+    "training_row_limit": 3,
+    "training_rows_used": 3,
+    "training_split": "train"
+  },
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "dataset_manifest_path": "<private_path>",
+  "dry_run": false,
+  "formatting_policy": {
+    "fallback": "deterministic_role_plain_text",
+    "normalized_command_policy": "canonical_chinese_intent_phrase_not_verbatim_transcript",
+    "policy": "shared_contract_chat_template",
+    "prediction_prompt": "shared_contract_chat_template",
+    "prediction_target_policy": "generation_prompt_without_gold_contract",
+    "sft_training_text": "shared_contract_chat_template",
+    "tokenizer_chat_template": "used_when_available_with_tokenize_false"
+  },
+  "gpu_selection_policy": {
+    "identifier_policy": "policy_only_no_host_ip_or_gpu_uuid",
+    "policy": "select_idle_gpu_only_no_process_interruption"
+  },
+  "heavy_training_gate": {
+    "cli_run_training": true,
+    "config_allow_heavy_training": true,
+    "will_run_heavy_training": true
+  },
+  "hyperparameters": {
+    "a100_project_root_policy": "must_resolve_to_approved_private_a100_project_root",
+    "adapter_output_dir": "<private_path>",
+    "allow_heavy_training": true,
+    "base_model": "<private_path>",
+    "dataset_manifest_id": "public-sample-20260613T072200Z",
+    "dataset_split": "train",
+    "evidence_output_dir": "<private_path>",
+    "generalization_claim": false,
+    "gpu_identifier_policy": "policy_only_no_host_ip_or_gpu_uuid",
+    "gpu_selection_policy": "select_idle_gpu_only_no_process_interruption",
+    "logging_steps": 1,
+    "lora": {
+      "alpha": 32,
+      "dropout": 0.05,
+      "r": 16,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj"
+      ]
+    },
+    "max_seq_length": 2048,
+    "max_train_rows": 3,
+    "num_train_epochs": 20,
+    "output_dir": "<private_path>",
+    "output_policy": "current_manifest_tiny_overfit_public_sample_only_outputs_remain_private_by_default",
+    "output_root": "<private_path>",
+    "overfit_diagnostic": true,
+    "per_device_train_batch_size": 1,
+    "private_override_required": true,
+    "private_override_requirements": [
+      "Create a private override outside git before remote execution.",
+      "Resolve <a100_project_root> to the approved private A100 project directory.",
+      "Keep max_train_rows between 1 and 3 for this tiny-overfit probe.",
+      "Keep raw logs, checkpoints, adapters, caches, host details, SSH details, tokens, and private corpus rows out of committed artifacts."
+    ],
+    "public_sample_manifest": "data/public-samples/manifest_public_sample.json",
+    "reference_runtime": "a100-current-manifest-tiny-overfit-probe",
+    "save_strategy": "no",
+    "trainer": "trl.SFTTrainer"
+  },
+  "loss_mask_policy": {
+    "assistant_target": "browser_task_contract_json",
+    "full_text_causal_lm_labels": false,
+    "policy": "assistant_only_completion_only",
+    "prompt_label_id": -100,
+    "trainer_integration": "trl_sfttrainer_pretokenized_input_ids_attention_mask_labels"
+  },
+  "metadata_path": "<private_path>",
+  "notes": "SFT training ran locally; adapter metadata is not a public checkpoint release.",
+  "output_paths": {
+    "adapter_path": "<private_path>",
+    "configured_adapter_output_dir": "<private_path>",
+    "configured_evidence_output_dir": "<private_path>",
+    "configured_output_dir": "<private_path>",
+    "configured_output_root": "<private_path>",
+    "metadata_path": "<private_path>",
+    "run_output_dir": "<private_path>"
+  },
+  "package_versions": {
+    "accelerate": "1.13.0",
+    "datasets": "5.0.0",
+    "peft": "0.18.1",
+    "python": "3.11.4",
+    "transformers": "5.5.0",
+    "trl": "1.5.1"
+  },
+  "raw_private_paths_copied_to_git": false,
+  "release_status": "not_released",
+  "sanitized_for_public_evidence": true,
+  "stack": "transformers+peft+trl+pretokenized_assistant_only_labels",
+  "stage": "sft",
+  "trainer_available": true,
+  "training_command": "voice2task-train sft --config <private_path> --manifest <private_path> --output-dir <private_path> --run-training",
+  "training_row_ids": [
+    "seed-search-weather",
+    "seed-search-weather-aug-1",
+    "seed-search-weather-aug-2"
+  ],
+  "training_row_limit": 3,
+  "training_rows_used": 3,
+  "training_split": "train",
+  "training_status": "training_completed"
+}

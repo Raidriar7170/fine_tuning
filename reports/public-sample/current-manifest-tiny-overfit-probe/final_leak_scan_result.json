@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T16:44:16.429415+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/current-manifest-tiny-overfit-probe",
+    "docs/human-briefs/2026-06-14-run-current-manifest-tiny-overfit-probe.html",
+    "openspec/changes/archive/2026-06-13-run-current-manifest-tiny-overfit-probe",
+    "openspec/specs/supervised-contract-tuning/spec.md",
+    "openspec/specs/contract-evaluation/spec.md"
+  ]
+}

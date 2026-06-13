@@ -1,0 +1,27 @@
+{
+  "adapter_path": "<a100_project_root>/runs/a100-current-manifest-tiny-overfit-probe/adapter",
+  "allow_private_prediction": true,
+  "base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "evidence_output_dir": "<a100_project_root>/evidence/current-manifest-tiny-overfit-probe/train",
+  "generalization_claim": false,
+  "max_new_tokens": 256,
+  "model_cache_policy": "private_remote_model_cache_not_copied_to_git",
+  "model_source": "modelscope",
+  "output_policy": "current_manifest_tiny_overfit_prediction_requires_private_override_no_direct_public_template_run",
+  "output_root": "<a100_project_root>",
+  "overfit_diagnostic": true,
+  "max_prediction_rows": 3,
+  "prediction_artifact_policy": "commit_only_sanitized_train_split_predictions_sidecars_metrics_manifest_and_report",
+  "prediction_split": "train",
+  "private_override_required": true,
+  "private_override_requirements": [
+    "Create a private override outside git before remote execution.",
+    "Resolve <a100_project_root> to the approved private A100 project directory.",
+    "Resolve adapter_path to the private 7B tiny-overfit adapter produced by this probe.",
+    "Run prediction only; do not launch SFT or DPO training.",
+    "Keep raw logs, checkpoints, adapters, caches, host details, SSH details, tokens, and private corpus rows out of committed artifacts."
+  ],
+  "public_sample_manifest": "data/public-samples/manifest_public_sample.json",
+  "reference_runtime": "a100-current-manifest-tiny-overfit-probe-prediction"
+}

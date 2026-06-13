@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Current Manifest Tiny-Overfit Probe</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; color: #172033; background: #f7f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .summary { background: #ffffff; border: 1px solid #d7dce5; border-radius: 8px; padding: 18px 20px; }
+    .status { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #e7f6ec; color: #146b35; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d7dce5; }
+    td, th { border-bottom: 1px solid #e6e9ef; padding: 9px 11px; text-align: left; }
+    code { background: #eef1f6; padding: 1px 5px; border-radius: 4px; }
+    a { color: #155eef; }
+    .warn { background: #fff7e6; border-left: 4px solid #d9822b; padding: 12px 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="status">archived-ready evidence phase</p>
+  <h1>7B Current Manifest Tiny-Overfit Probe</h1>
+  <section class="summary">
+    <strong>一句话结论：</strong>7B A100 SFT 在当前 public manifest 的 3 条 train row 上完成 tiny-overfit，并在同 3 条 train prediction 上达到 strict contract exact match 1.0；这只证明 train-internal memorization sanity check，不证明 held-out 泛化。
+  </section>
+
+  <h2>当前状态</h2>
+  <ul>
+    <li>OpenSpec change: <code>run-current-manifest-tiny-overfit-probe</code></li>
+    <li>Base model: <code>Qwen/Qwen2.5-7B-Instruct</code></li>
+    <li>Manifest: <code>public-sample-20260613T072200Z</code></li>
+    <li>Training rows used: <code>3</code> / row ids: <code>seed-search-weather, seed-search-weather-aug-1, seed-search-weather-aug-2</code></li>
+    <li>Prediction source: <code>private_a100_adapter</code>, prediction count: <code>3</code></li>
+  </ul>
+
+  <h2>本阶段改动</h2>
+  <ul>
+    <li>新增 current-manifest tiny-overfit 的 7B SFT/prediction public-safe config 模板。</li>
+    <li>给 SFT 训练路径增加 <code>max_train_rows</code>，并记录 <code>training_row_ids</code>。</li>
+    <li>给 prediction 路径增加 <code>max_prediction_rows</code>，避免 tiny probe 被全 train split 指标稀释。</li>
+    <li>在 A100 GPU 3 上完成 3-row SFT 与同 3-row prediction，导入脱敏 evidence pack。</li>
+  </ul>
+
+  <h2>关键指标</h2>
+  <table>
+    <tbody><tr><td>contract_exact_match</td><td>1.0</td></tr><tr><td>json_valid_rate</td><td>1.0</td></tr><tr><td>task_type_accuracy</td><td>1.0</td></tr><tr><td>route_accuracy</td><td>1.0</td></tr><tr><td>slot_f1</td><td>1.0</td></tr><tr><td>confirmation_accuracy</td><td>1.0</td></tr></tbody>
+  </table>
+
+  <h2>证据文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/current-manifest-tiny-overfit-probe/manifest.json">Evidence manifest</a></li>
+    <li><a href="../../reports/public-sample/current-manifest-tiny-overfit-probe/report.md">Evidence report</a></li>
+    <li><a href="../../reports/public-sample/current-manifest-tiny-overfit-probe/metrics.json">Metrics JSON</a></li>
+    <li><a href="../../reports/public-sample/current-runtime-label-provenance-check/runtime_label_provenance_check.json">Current runtime label evidence</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q ...</code>: focused RED/GREEN tests passed for config, training row limit, prediction row limit.</li>
+    <li><code>voice2task-report leak-scan reports/public-sample/current-manifest-tiny-overfit-probe</code>: passed, no findings.</li>
+    <li>最终归档前还需要运行 OpenSpec strict validation、focused/full-enough pytest、diff check。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：未在 repo 中显式定义为 MVP/v1/release；README/CONTEXT 描述的是 first-phase speech-to-contract normalization。</li>
+    <li>本阶段推进：证明 7B 当前 manifest 至少能记住 3 条 train contract 输出，排除了“连 tiny train 都学不会”的一类问题。</li>
+    <li>剩余差距：dev/test held-out 泛化、DPO 是否有益、私有语料规模化训练、发布/包装边界仍未证明。</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <div class="warn">不要把 3-row train-internal exact match 说成模型恢复、泛化能力、生产可用、checkpoint release 或 live-browser benchmark improvement。下一步应是很小的 held-out 诊断，而不是直接发布或扩大承诺。</div>
+</main>
+</body>
+</html>

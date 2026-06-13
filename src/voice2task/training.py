@@ -604,6 +604,45 @@ def _load_sft_training_rows(manifest_path: Path, split: str) -> list[SFTDatasetR
     return [row for row in (SFTDatasetRow(**record) for record in read_jsonl(Path(dataset_path))) if row.split == split]
 
 
+def _configured_sft_training_row_limit(config: dict[str, Any]) -> int | None:
+    value = config.get("max_train_rows")
+    if value is None:
+        return None
+    row_limit = int(value)
+    if row_limit < 1:
+        raise ValueError("max_train_rows must be at least 1 when configured")
+    return row_limit
+
+
+def _limited_sft_training_rows(rows: list[SFTDatasetRow], config: dict[str, Any]) -> tuple[list[SFTDatasetRow], int | None]:
+    row_limit = _configured_sft_training_row_limit(config)
+    if row_limit is None:
+        return rows, None
+    return rows[:row_limit], row_limit
+
+
+def _record_sft_training_row_selection(
+    metadata: dict[str, Any],
+    *,
+    split: str,
+    rows: list[SFTDatasetRow],
+    row_limit: int | None,
+    loaded_rows_before_limit: int,
+) -> None:
+    row_ids = [row.id for row in rows]
+    metadata["training_split"] = split
+    metadata["training_row_limit"] = row_limit
+    metadata["training_rows_used"] = len(rows)
+    metadata["training_row_ids"] = row_ids
+    dataset_load = metadata.setdefault("dataset_load", {})
+    if isinstance(dataset_load, dict):
+        dataset_load["training_split"] = split
+        dataset_load["training_row_limit"] = row_limit
+        dataset_load["training_rows_used"] = len(rows)
+        dataset_load["training_row_ids"] = row_ids
+        dataset_load["loaded_rows_before_training_row_limit"] = loaded_rows_before_limit
+
+
 def _load_sft_prediction_rows(manifest_path: Path, split: str) -> list[SFTDatasetRow]:
     summary = _manifest_load_summary(manifest_path, "sft")
     dataset_path = summary["dataset_path"]
@@ -613,6 +652,38 @@ def _load_sft_prediction_rows(manifest_path: Path, split: str) -> list[SFTDatase
     if split == "all":
         return rows
     return [row for row in rows if row.split == split]
+
+
+def _configured_sft_prediction_row_limit(config: dict[str, Any]) -> int | None:
+    value = config.get("max_prediction_rows")
+    if value is None:
+        return None
+    row_limit = int(value)
+    if row_limit < 1:
+        raise ValueError("max_prediction_rows must be at least 1 when configured")
+    return row_limit
+
+
+def _limited_sft_prediction_rows(
+    rows: list[SFTDatasetRow],
+    config: dict[str, Any],
+) -> tuple[list[SFTDatasetRow], int | None]:
+    row_limit = _configured_sft_prediction_row_limit(config)
+    if row_limit is None:
+        return rows, None
+    return rows[:row_limit], row_limit
+
+
+def _record_sft_prediction_row_selection(
+    metadata: dict[str, Any],
+    *,
+    rows: list[SFTDatasetRow],
+    row_limit: int | None,
+    loaded_rows_before_limit: int,
+) -> None:
+    metadata["prediction_row_limit"] = row_limit
+    metadata["prediction_row_ids"] = [row.id for row in rows]
+    metadata["prediction_rows_before_limit"] = loaded_rows_before_limit
 
 
 def _prediction_gate(config: dict[str, Any], dry_run: bool, fixture_mode: bool) -> dict[str, bool]:
@@ -1431,8 +1502,15 @@ def run_sft_prediction_export(
     if dry_run and not fixture_mode:
         metadata["prediction_status"] = "prediction_skipped_no_opt_in"
         return metadata
+    raw_rows = _load_sft_prediction_rows(manifest_path, split=str(config.get("prediction_split", "all")))
+    rows, row_limit = _limited_sft_prediction_rows(raw_rows, config)
+    _record_sft_prediction_row_selection(
+        metadata,
+        rows=rows,
+        row_limit=row_limit,
+        loaded_rows_before_limit=len(raw_rows),
+    )
     if fixture_mode:
-        rows = _load_sft_prediction_rows(manifest_path, split=str(config.get("prediction_split", "all")))
         metadata["prediction_count"] = _write_fixture_predictions(rows, output_path)
         _mark_sidecars_written(metadata)
         _write_fixture_sidecars(
@@ -1472,7 +1550,6 @@ def run_sft_prediction_export(
         return metadata
     if not _prediction_dependencies_available():
         return _write_private_prediction_unavailable(metadata)
-    rows = _load_sft_prediction_rows(manifest_path, split=str(config.get("prediction_split", "all")))
     metadata["prediction_count"] = _run_real_prediction_with_optional_sidecars(config, rows, output_path, sidecar_paths)
     _mark_sidecars_written(metadata)
     metadata["prediction_status"] = "private_adapter_predictions_written"
@@ -2247,7 +2324,16 @@ def _run_real_sft(metadata: dict[str, Any], config: dict[str, Any], manifest_pat
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from trl import SFTTrainer  # type: ignore[import-not-found, unused-ignore]
 
-    rows = _load_sft_training_rows(manifest_path, split=str(config.get("dataset_split", "train")))
+    split = str(config.get("dataset_split", "train"))
+    all_rows = _load_sft_training_rows(manifest_path, split=split)
+    rows, row_limit = _limited_sft_training_rows(all_rows, config)
+    _record_sft_training_row_selection(
+        metadata,
+        split=split,
+        rows=rows,
+        row_limit=row_limit,
+        loaded_rows_before_limit=len(all_rows),
+    )
     tokenizer = AutoTokenizer.from_pretrained(config["base_model"])
     max_seq_length = int(config.get("max_seq_length", 1024))
     records = [_assistant_only_training_record(row, tokenizer, max_seq_length=max_seq_length) for row in rows]

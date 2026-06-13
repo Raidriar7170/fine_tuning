@@ -5940,6 +5940,133 @@ def test_sft_prediction_fixture_mode_writes_public_safe_predictions(tmp_path: Pa
     assert "/Users/" not in output_text
 
 
+def test_sft_prediction_export_limits_rows_when_configured(tmp_path: Path) -> None:
+    rows = tmp_path / "sft_public_sample.jsonl"
+    rows.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "id": f"sft-train-{index + 1}",
+                    "split": "train",
+                    "input_text": f"帮我搜索天气{index + 1}",
+                    "target_contract": _contract(f"天气{index + 1}"),
+                    "provenance": {"source_id": f"sft-train-{index + 1}", "public_safe": True},
+                },
+                ensure_ascii=False,
+            )
+            for index in range(4)
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "manifest_id": "public-sample-test",
+                "files": {"sft": rows.name},
+                "counts": {"sft_rows": 4},
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = _write_prediction_config(tmp_path)
+    config_payload = json.loads(config.read_text(encoding="utf-8"))
+    config_payload["prediction_split"] = "train"
+    config_payload["max_prediction_rows"] = 2
+    config.write_text(json.dumps(config_payload), encoding="utf-8")
+    output = tmp_path / "trained_predictions.jsonl"
+
+    metadata = run_sft_prediction_export(config, manifest, output, dry_run=False, fixture_mode=True)
+
+    assert metadata["prediction_count"] == 2
+    assert metadata["prediction_row_limit"] == 2
+    assert metadata["prediction_row_ids"] == ["sft-train-1", "sft-train-2"]
+    assert [json.loads(line)["id"] for line in output.read_text(encoding="utf-8").splitlines()] == [
+        "sft-train-1",
+        "sft-train-2",
+    ]
+
+
+def test_sft_private_prediction_export_limits_rows_when_configured(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    rows = tmp_path / "sft_public_sample.jsonl"
+    rows.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "id": f"sft-train-{index + 1}",
+                    "split": "train",
+                    "input_text": f"帮我搜索天气{index + 1}",
+                    "target_contract": _contract(f"天气{index + 1}"),
+                    "provenance": {"source_id": f"sft-train-{index + 1}", "public_safe": True},
+                },
+                ensure_ascii=False,
+            )
+            for index in range(4)
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "manifest_id": "public-sample-test",
+                "files": {"sft": rows.name},
+                "counts": {"sft_rows": 4},
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = _write_prediction_config(tmp_path, adapter_path=(tmp_path / "adapter").as_posix())
+    config_payload = json.loads(config.read_text(encoding="utf-8"))
+    config_payload["prediction_split"] = "train"
+    config_payload["max_prediction_rows"] = 2
+    config.write_text(json.dumps(config_payload), encoding="utf-8")
+    output = tmp_path / "trained_predictions.jsonl"
+    observed_row_ids: list[str] = []
+
+    monkeypatch.setattr(training, "_prediction_dependencies_available", lambda: True)
+
+    def write_private_predictions(
+        config: dict[str, Any],
+        rows: list[SFTDatasetRow],
+        output_path: Path,
+        *,
+        sidecar_paths: dict[str, Path],
+    ) -> int:
+        observed_row_ids.extend(row.id for row in rows)
+        output_path.write_text(
+            "\n".join(
+                json.dumps(
+                    {
+                        "id": row.id,
+                        "prediction": row.target_contract.to_dict(),
+                        "prediction_source_kind": "private_a100_adapter",
+                        "provenance": {"public_safe": True},
+                    },
+                    ensure_ascii=False,
+                )
+                for row in rows
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return len(rows)
+
+    monkeypatch.setattr(training, "_run_real_sft_prediction", write_private_predictions)
+
+    metadata = run_sft_prediction_export(config, manifest, output, dry_run=False, fixture_mode=False)
+
+    assert observed_row_ids == ["sft-train-1", "sft-train-2"]
+    assert metadata["prediction_count"] == 2
+    assert metadata["prediction_row_limit"] == 2
+    assert metadata["prediction_row_ids"] == ["sft-train-1", "sft-train-2"]
+
+
 def test_train_split_overfit_diagnostic_config_is_public_safe_and_bounded() -> None:
     config_path = Path("configs/sft-a100-train-split-overfit-diagnostic.json")
 

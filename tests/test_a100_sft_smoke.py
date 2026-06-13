@@ -57,6 +57,46 @@ def _write_manifest(tmp_path: Path) -> Path:
     return manifest
 
 
+def _write_multirow_manifest(tmp_path: Path, *, train_rows: int = 4) -> Path:
+    manifest = tmp_path / "manifest.json"
+    rows = tmp_path / "sft_public_sample.jsonl"
+    lines = []
+    for index in range(train_rows):
+        lines.append(
+            json.dumps(
+                {
+                    "id": f"sft-{index + 1}",
+                    "split": "train",
+                    "input_text": f"搜索天气 {index + 1}",
+                    "target_contract": {
+                        "task_type": "search",
+                        "route": "search_web",
+                        "safety": {"allow": True, "reason": "public_readonly"},
+                        "confirmation_required": False,
+                        "slots": {"query": f"天气 {index + 1}"},
+                        "normalized_command": f"搜索天气 {index + 1}",
+                        "language": "zh-CN",
+                        "contract_version": "v1",
+                    },
+                    "provenance": {"source_id": f"seed-{index + 1}", "public_safe": True},
+                },
+                ensure_ascii=False,
+            )
+        )
+    rows.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    manifest.write_text(
+        json.dumps(
+            {
+                "manifest_id": "public-sample-test",
+                "files": {"sft": rows.name},
+                "counts": {"sft_rows": train_rows},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return manifest
+
+
 def _write_config(tmp_path: Path, allow_heavy_training: bool, output_root: str = A100_PROJECT_DIR) -> Path:
     suffix = "allow" if allow_heavy_training else "block"
     config = tmp_path / f"sft-{suffix}.json"
@@ -208,6 +248,37 @@ def test_compact_query_exact_match_a100_rerun_configs_use_7b_and_stay_public_saf
     assert prediction_config["generalization_claim"] is False
     assert sft_config["output_root"] == "<a100_project_root>"
     assert prediction_config["output_root"] == "<a100_project_root>"
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert scan_paths([sft_config_path, prediction_config_path]).ok is True
+
+
+def test_current_manifest_tiny_overfit_probe_configs_use_7b_and_stay_public_safe() -> None:
+    sft_config_path = REPO_ROOT / "configs" / "sft-a100-current-manifest-tiny-overfit-rerun.json"
+    prediction_config_path = REPO_ROOT / "configs" / "sft-a100-current-manifest-tiny-overfit-prediction.json"
+
+    assert sft_config_path.exists()
+    assert prediction_config_path.exists()
+    sft_config = json.loads(sft_config_path.read_text(encoding="utf-8"))
+    prediction_config = json.loads(prediction_config_path.read_text(encoding="utf-8"))
+    serialized = json.dumps({"sft": sft_config, "prediction": prediction_config}, ensure_ascii=False, sort_keys=True)
+
+    assert sft_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert prediction_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert sft_config["dataset_manifest_id"] == "public-sample-20260613T072200Z"
+    assert prediction_config["dataset_manifest_id"] == "public-sample-20260613T072200Z"
+    assert sft_config["dataset_split"] == "train"
+    assert sft_config["max_train_rows"] == 3
+    assert sft_config["allow_heavy_training"] is True
+    assert prediction_config["allow_private_prediction"] is True
+    assert prediction_config["max_prediction_rows"] == 3
+    assert prediction_config["prediction_split"] == "train"
+    assert prediction_config["overfit_diagnostic"] is True
+    assert prediction_config["generalization_claim"] is False
+    assert sft_config["output_root"] == "<a100_project_root>"
+    assert prediction_config["output_root"] == "<a100_project_root>"
+    assert sft_config["reference_runtime"] == "a100-current-manifest-tiny-overfit-probe"
+    assert prediction_config["reference_runtime"] == "a100-current-manifest-tiny-overfit-probe-prediction"
     assert "/mnt/data/" not in serialized
     assert "/Users/" not in serialized
     assert scan_paths([sft_config_path, prediction_config_path]).ok is True
@@ -1726,6 +1797,76 @@ def test_real_sft_heavy_path_supports_old_trl_sfttrainer_tokenizer_signature(
     assert isinstance(sft_trainer_calls[0]["tokenizer"], _RuntimeInspectableTokenizer)
     assert "processing_class" not in sft_trainer_calls[0]
     assert saved_paths == [(tmp_path / "adapter").as_posix()]
+
+
+def test_real_sft_heavy_path_limits_tiny_overfit_rows_and_records_metadata(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_multirow_manifest(tmp_path, train_rows=4)
+    dataset_records: list[list[dict[str, list[int]]]] = []
+    sft_trainer_calls: list[dict[str, Any]] = []
+    trainer_calls: list[dict[str, Any]] = []
+    saved_paths: list[str] = []
+
+    class FakeSFTTrainer:
+        def __init__(
+            self,
+            *,
+            model: Any,
+            processing_class: Any,
+            train_dataset: list[dict[str, list[int]]],
+            args: Any,
+            peft_config: dict[str, Any],
+            data_collator: Any,
+        ) -> None:
+            sft_trainer_calls.append(
+                {
+                    "model": model,
+                    "processing_class": processing_class,
+                    "train_dataset": train_dataset,
+                    "args": args,
+                    "peft_config": peft_config,
+                    "data_collator": data_collator,
+                }
+            )
+            self.model = model
+
+        def train(self) -> None:
+            return None
+
+    _install_fake_training_modules(
+        monkeypatch,
+        sft_trainer_class=FakeSFTTrainer,
+        dataset_records=dataset_records,
+        trainer_calls=trainer_calls,
+        saved_paths=saved_paths,
+    )
+
+    metadata = {"adapter_path": (tmp_path / "adapter").as_posix(), "dataset_load": {}}
+    training._run_real_sft(  # noqa: SLF001
+        metadata,
+        {
+            "base_model": "fake-qwen",
+            "dataset_split": "train",
+            "max_train_rows": 2,
+            "max_seq_length": RUNTIME_SFT_MAX_SEQ_LENGTH,
+            "lora": {"r": 8, "alpha": 16, "dropout": 0.05, "target_modules": ["q_proj"]},
+        },
+        manifest,
+        tmp_path / "run",
+    )
+
+    assert trainer_calls == []
+    assert len(sft_trainer_calls) == 1
+    assert len(dataset_records[0]) == 2
+    assert metadata["training_split"] == "train"
+    assert metadata["training_row_limit"] == 2
+    assert metadata["training_rows_used"] == 2
+    assert metadata["training_row_ids"] == ["sft-1", "sft-2"]
+    assert metadata["dataset_load"]["training_rows_used"] == 2
+    assert metadata["dataset_load"]["training_row_ids"] == ["sft-1", "sft-2"]
+    assert metadata["dataset_load"]["loaded_rows_before_training_row_limit"] == 4
 
 
 def test_sft_metadata_contains_public_safe_a100_smoke_fields(monkeypatch: Any, tmp_path: Path) -> None:
