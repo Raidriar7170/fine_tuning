@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>SFT contract learning-signal 诊断阶段简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; max-width: 940px; margin: 32px auto; padding: 0 20px; color: #20242a; }
+    h1 { font-size: 28px; }
+    h2 { margin-top: 28px; font-size: 18px; }
+    .status { padding: 12px 14px; border-left: 4px solid #d97706; background: #fffbeb; }
+    code { background: #f4f4f5; padding: 1px 4px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f7f7f8; }
+  </style>
+</head>
+<body>
+  <h1>SFT contract learning-signal 诊断阶段简报</h1>
+  <p class="status"><strong>一句话结论：</strong>public SFT rows 的 assistant contract target span 结构上都存在，但真实 runtime label-mask 证据仍不可用；下一步应做很小的 runtime label/tiny overfit 诊断，而不是继续盲目 A100 rerun。</p>
+
+  <h2>当前状态</h2>
+  <p>阶段状态：archived；证据类型：local public-safe SFT learning-signal diagnostic；没有下载模型、加载私有 adapter、训练或预测。</p>
+
+  <h2>关键发现</h2>
+  <table>
+    <tr><th>项目</th><th>结果</th></tr>
+    <tr><td>Rows inspected</td><td><code>30</code></td></tr>
+    <tr><td>Split counts</td><td><code>{'dev': 6, 'test': 6, 'train': 18}</code></td></tr>
+    <tr><td>Task type counts</td><td><code>{'blocked': 6, 'clarify': 6, 'extract': 3, 'form_fill': 6, 'navigate': 6, 'search': 3}</code></td></tr>
+    <tr><td>Assistant target span</td><td><code>True</code></td></tr>
+    <tr><td>Runtime label-mask status</td><td><code>unavailable</code></td></tr>
+    <tr><td>Max training text chars</td><td><code>2005</code></td></tr>
+  </table>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li>新增 public SFT learning-signal 诊断函数和 CLI。</li>
+    <li>新增 evidence pack：JSON、Markdown、manifest、leak scan。</li>
+    <li>新增测试，确保结构 target span 与真实 label-mask evidence 分开报告。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/sft-contract-learning-signal/manifest.json</code></li>
+    <li><code>reports/public-sample/sft-contract-learning-signal/sft_contract_learning_signal.json</code></li>
+    <li><code>reports/public-sample/sft-contract-learning-signal/sft_contract_learning_signal.md</code></li>
+    <li><code>openspec/changes/diagnose-sft-contract-learning-signal/</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <p>已完成 focused diagnostic tests。完整验证会在归档前后重新运行。</p>
+
+  <h2>边界</h2>
+  <p>这不是模型恢复、held-out 泛化、私有语料泛化、checkpoint/adapter release、生产可用或 live-browser benchmark 证据。它只说明本地格式层面的 assistant target 可见，而真实训练 label/loss 链路仍需 runtime 证据。</p>
+
+  <h2>推荐下一步</h2>
+  <p><code>run_bounded_runtime_label_or_tiny_overfit_diagnostic</code>：做一个很小的 runtime label 或 tiny overfit 诊断阶段。</p>
+</body>
+</html>

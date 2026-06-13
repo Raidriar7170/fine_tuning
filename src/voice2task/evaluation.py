@@ -1496,6 +1496,164 @@ def _diagnose_sft_target_template_alignment(
     }
 
 
+def _count_by(values: list[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _target_pressure_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    if not rows:
+        return {
+            "max_training_text_char_count": 0,
+            "max_assistant_target_char_count": 0,
+            "min_assistant_target_char_ratio": 0.0,
+            "max_assistant_target_char_ratio": 0.0,
+            "rows_over_2048_chars": [],
+            "tokenizer_specific_token_counts_available": False,
+        }
+    ratios = [float(row["assistant_target_char_ratio"]) for row in rows]
+    return {
+        "max_training_text_char_count": max(int(row["training_text_char_count"]) for row in rows),
+        "max_assistant_target_char_count": max(int(row["assistant_contract_target_char_count"]) for row in rows),
+        "min_assistant_target_char_ratio": min(ratios),
+        "max_assistant_target_char_ratio": max(ratios),
+        "rows_over_2048_chars": [
+            row["row_id"] for row in rows if int(row["training_text_char_count"]) > 2048
+        ],
+        "tokenizer_specific_token_counts_available": False,
+        "tokenizer_specific_token_counts_gap": "tokenizer_not_loaded_for_local_public_safe_diagnostic",
+    }
+
+
+def _prior_repair_summary(prior_repair_diagnosis: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(prior_repair_diagnosis, dict):
+        return {
+            "available": False,
+            "overall_interpretation": "unavailable",
+            "split_exact_match": {},
+            "split_json_valid_rate": {},
+            "recommended_next_step": "unavailable",
+        }
+    summary = prior_repair_diagnosis.get("summary")
+    if not isinstance(summary, dict):
+        summary = {}
+    return {
+        "available": True,
+        "overall_interpretation": _sanitize_public_summary(
+            str(summary.get("overall_interpretation", "unknown"))
+        ),
+        "split_exact_match": summary.get("split_exact_match", {}),
+        "split_json_valid_rate": summary.get("split_json_valid_rate", {}),
+        "recommended_next_step": _sanitize_public_summary(
+            str(summary.get("recommended_next_step", "unknown"))
+        ),
+    }
+
+
+def diagnose_sft_contract_learning_signal(
+    *,
+    load_rows_path: Path,
+    manifest_path: Path,
+    prior_repair_diagnosis: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    rows = load_sft_rows(load_rows_path)
+    manifest = read_json(manifest_path)
+    row_evidence: list[dict[str, Any]] = []
+    for row in rows:
+        contract = as_contract(row.target_contract)
+        target = canonical_contract_json(contract)
+        training_text = format_sft_training_text(row, tokenizer=None)
+        span = _target_span(training_text, target)
+        target_count = len(target)
+        training_count = len(training_text)
+        ratio = target_count / training_count if training_count else 0.0
+        row_evidence.append(
+            {
+                "row_id": _sanitize_id(row.id),
+                "split": row.split,
+                "task_type": contract.task_type,
+                "route": contract.route,
+                "training_text_sha256": hashlib.sha256(training_text.encode("utf-8")).hexdigest(),
+                "assistant_contract_target_sha256": hashlib.sha256(target.encode("utf-8")).hexdigest(),
+                "training_text_char_count": training_count,
+                "assistant_contract_target_char_count": target_count,
+                "assistant_target_char_ratio": ratio,
+                "target_top_level_field_count": len(contract.to_dict()),
+                "target_slot_count": len(contract.slots),
+                "assistant_target_span": span,
+                "assistant_target_span_found": span["status"] == "found",
+                "structural_proxy_status": "assistant_target_span_found"
+                if span["status"] == "found"
+                else "assistant_target_span_unavailable",
+            }
+        )
+    label_mask = _label_mask_evidence(None)
+    all_spans_found = bool(row_evidence) and all(row["assistant_target_span_found"] for row in row_evidence)
+    true_label_status = str(label_mask["true_label_mask_status"])
+    if all_spans_found and true_label_status == "unavailable":
+        recommendation = "run_bounded_runtime_label_or_tiny_overfit_diagnostic"
+    else:
+        recommendation = "repair_local_prompt_or_data_signal_before_heavy_rerun"
+    source_manifest = {
+        "manifest_id": _sanitize_public_summary(str(manifest.get("manifest_id", "unknown"))),
+        "path": manifest_path.as_posix(),
+        "sft_path": load_rows_path.as_posix(),
+        "counts": manifest.get("counts", {}),
+    }
+    return {
+        "evidence_kind": "sft_contract_learning_signal",
+        "diagnostic_mode": "local_public_safe_no_model_download",
+        "source_manifest": source_manifest,
+        "summary": {
+            "row_count": len(rows),
+            "split_counts": _count_by([row.split for row in rows]),
+            "task_type_counts": _count_by([as_contract(row.target_contract).task_type for row in rows]),
+            "route_counts": _count_by([as_contract(row.target_contract).route for row in rows]),
+            "all_rows_have_assistant_target_span": all_spans_found,
+            "true_runtime_label_mask_status": true_label_status,
+            "evidence_gaps": list(label_mask["evidence_gaps"]),
+        },
+        "target_pressure": _target_pressure_summary(row_evidence),
+        "rows": row_evidence,
+        "label_mask_evidence": label_mask,
+        "prior_repair_evidence": _prior_repair_summary(prior_repair_diagnosis),
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "model_download_allowed": False,
+            "private_adapter_load_allowed": False,
+            "a100_execution": False,
+            "training_run": False,
+            "prediction_run": False,
+        },
+        "rendering_evidence": {
+            "rendering_source": "fallback",
+            "assistant_boundary_marker": "assistant:",
+            "raw_training_text_written": False,
+            "raw_assistant_target_written": False,
+            "formatting_policy": dict(FORMATTING_POLICY),
+        },
+        "recommended_next_step": recommendation,
+        "claims": {
+            "public_sample_only": True,
+            "does_not_train": True,
+            "does_not_run_prediction": True,
+            "does_not_download_model": True,
+            "does_not_load_private_adapter": True,
+            "does_not_repair_outputs": True,
+            "does_not_relax_evaluator": True,
+            "model_recovery_claim": False,
+            "held_out_generalization_claim": False,
+            "private_corpus_generalization_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+    }
+
+
 def diagnose_source_alignment(
     rows: list[SFTDatasetRow],
     predictions: dict[str, Any],

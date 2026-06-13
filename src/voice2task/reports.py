@@ -795,6 +795,98 @@ def write_sft_target_template_alignment_report(
     return {"sft_target_template_alignment_json": json_path, "sft_target_template_alignment_markdown": markdown_path}
 
 
+def write_sft_contract_learning_signal_report(
+    diagnostics: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task SFT contract learning-signal evidence",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "sft_contract_learning_signal.json"
+    markdown_path = output_dir / "sft_contract_learning_signal.md"
+    safe_diagnostics = _sanitize_report_value(diagnostics)
+    write_json(json_path, safe_diagnostics)
+
+    summary = safe_diagnostics["summary"]
+    pressure = safe_diagnostics["target_pressure"]
+    label_mask = safe_diagnostics["label_mask_evidence"]
+    prior = safe_diagnostics["prior_repair_evidence"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This local diagnostic inspects public-sample SFT contract learning signal only. "
+            "It does not train, run prediction, download models, load private adapters, or repair outputs."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- This is not a model recovery claim.",
+        "- This is not a checkpoint release.",
+        "- This is not an adapter release.",
+        "- This is not held-out or private-corpus generalization evidence.",
+        "- This makes no production-readiness claim.",
+        "- This is not a live-browser benchmark or benchmark-improvement claim.",
+        "",
+        "## Summary",
+        "",
+        f"- Rows inspected: `{summary['row_count']}`",
+        f"- Split counts: `{summary['split_counts']}`",
+        f"- Task type counts: `{summary['task_type_counts']}`",
+        f"- All rows have assistant target span: `{summary['all_rows_have_assistant_target_span']}`",
+        f"- True runtime label-mask status: `{summary['true_runtime_label_mask_status']}`",
+        "",
+        "## Target Pressure",
+        "",
+        f"- Max training text characters: `{pressure['max_training_text_char_count']}`",
+        f"- Max assistant target characters: `{pressure['max_assistant_target_char_count']}`",
+        f"- Min assistant target char ratio: `{pressure['min_assistant_target_char_ratio']}`",
+        f"- Max assistant target char ratio: `{pressure['max_assistant_target_char_ratio']}`",
+        f"- Rows over 2048 chars: `{pressure['rows_over_2048_chars']}`",
+        f"- Tokenizer-specific token counts available: `{pressure['tokenizer_specific_token_counts_available']}`",
+        "",
+        "## Runtime label-mask evidence",
+        "",
+        f"- Status: `{label_mask['status']}`",
+        f"- True label-mask status: `{label_mask['true_label_mask_status']}`",
+        f"- Evidence gaps: `{label_mask['evidence_gaps']}`",
+        "",
+        "## Prior Repair Evidence",
+        "",
+        f"- Available: `{prior['available']}`",
+        f"- Overall interpretation: `{prior['overall_interpretation']}`",
+        f"- Split exact match: `{prior['split_exact_match']}`",
+        "",
+        "## Recommended Next Step",
+        "",
+        f"- `{safe_diagnostics['recommended_next_step']}`",
+        "",
+        "## Row Evidence",
+        "",
+    ]
+    for row in safe_diagnostics.get("rows", []):
+        lines.extend(
+            [
+                f"### `{row['row_id']}`",
+                "",
+                f"- Split: `{row['split']}`",
+                f"- Task type: `{row['task_type']}`",
+                f"- Route: `{row['route']}`",
+                f"- Assistant target span found: `{row['assistant_target_span_found']}`",
+                f"- Training text characters: `{row['training_text_char_count']}`",
+                f"- Assistant target characters: `{row['assistant_contract_target_char_count']}`",
+                f"- Assistant target char ratio: `{row['assistant_target_char_ratio']}`",
+                f"- Target fields: `{row['target_top_level_field_count']}`",
+                f"- Target slots: `{row['target_slot_count']}`",
+                f"- Training text SHA-256: `{row['training_text_sha256']}`",
+                f"- Assistant target SHA-256: `{row['assistant_contract_target_sha256']}`",
+                "",
+            ]
+        )
+
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path}
+
+
 def _sanitize_report_value(value: Any) -> Any:
     if isinstance(value, str):
         sanitized = PRIVATE_REPORT_PATH_RE.sub("<private_path>", value)

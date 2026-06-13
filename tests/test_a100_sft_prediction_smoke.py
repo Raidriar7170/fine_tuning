@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import Any
 
 from voice2task import training
+from voice2task.cli import eval as eval_cli
 from voice2task.cli import report as report_cli
 from voice2task.cli import train as train_cli
-from voice2task.evaluation import evaluate_predictions, load_predictions
+from voice2task.evaluation import diagnose_sft_contract_learning_signal, evaluate_predictions, load_predictions
 from voice2task.leak_scan import scan_paths
-from voice2task.reports import write_prediction_evidence_pack
+from voice2task.reports import write_prediction_evidence_pack, write_sft_contract_learning_signal_report
 from voice2task.schemas import ROUTES, TASK_TYPES, SFTDatasetRow
 from voice2task.training import run_sft_prediction_export
 
@@ -65,6 +66,27 @@ def _write_manifest(tmp_path: Path) -> Path:
     return manifest
 
 
+def _write_prior_repair_diagnosis(tmp_path: Path) -> Path:
+    prior = tmp_path / "heldout_residual_repair_diagnosis.json"
+    prior.write_text(
+        json.dumps(
+            {
+                "summary": {
+                    "overall_interpretation": "public_heldout_residual_repair_failed",
+                    "split_exact_match": {"train": 1 / 3, "dev": 0.0, "test": 0.0},
+                    "split_json_valid_rate": {"train": 8 / 9, "dev": 1.0, "test": 1.0},
+                    "recommended_next_step": (
+                        "open_new_bounded_phase_for_runtime_label_loss_and/or_preference_signal_diagnosis"
+                    ),
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    return prior
+
+
 def _write_prediction_config(
     tmp_path: Path,
     *,
@@ -85,6 +107,131 @@ def _write_prediction_config(
     config_path = tmp_path / "prediction-config.json"
     config_path.write_text(json.dumps(config), encoding="utf-8")
     return config_path
+
+
+def test_sft_contract_learning_signal_diagnostic_reports_structural_target_pressure_without_runtime_claim(
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    rows = json.loads(manifest.read_text(encoding="utf-8"))["files"]["sft"]
+    sft_path = tmp_path / rows
+    prior_path = _write_prior_repair_diagnosis(tmp_path)
+    prior = json.loads(prior_path.read_text(encoding="utf-8"))
+    diagnostics = diagnose_sft_contract_learning_signal(
+        load_rows_path=sft_path,
+        manifest_path=manifest,
+        prior_repair_diagnosis=prior,
+    )
+
+    assert diagnostics["evidence_kind"] == "sft_contract_learning_signal"
+    assert diagnostics["source_manifest"]["manifest_id"] == "public-sample-test"
+    assert diagnostics["summary"]["row_count"] == 2
+    assert diagnostics["summary"]["split_counts"] == {"test": 1, "train": 1}
+    assert diagnostics["summary"]["task_type_counts"] == {"search": 2}
+    assert diagnostics["summary"]["all_rows_have_assistant_target_span"] is True
+    assert diagnostics["summary"]["true_runtime_label_mask_status"] == "unavailable"
+    assert diagnostics["label_mask_evidence"]["status"] == "labels_unavailable"
+    assert "real_training_label_provenance_missing" in diagnostics["label_mask_evidence"]["evidence_gaps"]
+    assert diagnostics["target_pressure"]["max_training_text_char_count"] > 0
+    assert diagnostics["target_pressure"]["max_assistant_target_char_count"] > 0
+    assert 0 < diagnostics["target_pressure"]["min_assistant_target_char_ratio"] < 1
+    assert diagnostics["prior_repair_evidence"]["overall_interpretation"] == "public_heldout_residual_repair_failed"
+    assert diagnostics["prior_repair_evidence"]["split_exact_match"] == {"dev": 0.0, "test": 0.0, "train": 1 / 3}
+    assert diagnostics["recommended_next_step"] == "run_bounded_runtime_label_or_tiny_overfit_diagnostic"
+    assert diagnostics["claims"]["does_not_train"] is True
+    assert diagnostics["claims"]["model_recovery_claim"] is False
+    assert diagnostics["execution_scope"]["model_download_allowed"] is False
+    assert diagnostics["execution_scope"]["a100_execution"] is False
+    serialized = json.dumps(diagnostics, ensure_ascii=False, sort_keys=True)
+    assert "assistant:" in serialized
+    assert "帮我搜索" not in serialized
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+
+
+def test_sft_contract_learning_signal_cli_writes_public_safe_evidence_pack(
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    sft_path = tmp_path / json.loads(manifest.read_text(encoding="utf-8"))["files"]["sft"]
+    prior_path = _write_prior_repair_diagnosis(tmp_path)
+    output_dir = tmp_path / "learning-signal"
+
+    assert (
+        eval_cli.main(
+            [
+                "diagnose-sft-learning-signal",
+                "--sft",
+                sft_path.as_posix(),
+                "--manifest",
+                manifest.as_posix(),
+                "--prior-repair-diagnosis",
+                prior_path.as_posix(),
+                "--output",
+                output_dir.as_posix(),
+            ]
+        )
+        == 0
+    )
+
+    cli_output = json.loads(capsys.readouterr().out)
+    summary_path = output_dir / "sft_contract_learning_signal.json"
+    markdown_path = output_dir / "sft_contract_learning_signal.md"
+    assert cli_output["ok"] is True
+    assert cli_output["paths"]["json"] == summary_path.as_posix()
+    assert cli_output["paths"]["markdown"] == markdown_path.as_posix()
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    markdown = markdown_path.read_text(encoding="utf-8")
+    assert summary["summary"]["row_count"] == 2
+    assert summary["summary"]["all_rows_have_assistant_target_span"] is True
+    assert summary["label_mask_evidence"]["true_label_mask_status"] == "unavailable"
+    assert summary["prior_repair_evidence"]["split_exact_match"]["dev"] == 0.0
+    assert "Runtime label-mask evidence" in markdown
+    assert "not a model recovery claim" in markdown
+    assert "not a checkpoint release" in markdown
+    assert "not a live-browser benchmark" in markdown
+    assert "training_text" not in markdown
+    assert "帮我搜索" not in markdown
+    assert scan_paths([output_dir]).ok is True
+
+    report_output = tmp_path / "direct-report"
+    direct_paths = write_sft_contract_learning_signal_report(summary, report_output)
+    assert direct_paths["json"].exists()
+    assert direct_paths["markdown"].exists()
+    assert scan_paths([report_output]).ok is True
+
+
+def test_public_sft_contract_learning_signal_evidence_is_bounded_and_links_prior_negative_repair() -> None:
+    evidence_dir = Path("reports/public-sample/sft-contract-learning-signal")
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    summary = json.loads((evidence_dir / "sft_contract_learning_signal.json").read_text(encoding="utf-8"))
+    markdown = (evidence_dir / "sft_contract_learning_signal.md").read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+
+    assert manifest["evidence_kind"] == "sft_contract_learning_signal"
+    assert manifest["base_model"] == "not_loaded_local_diagnostic"
+    assert manifest["dataset_manifest_id"] == "public-sample-20260613T072200Z"
+    assert manifest["summary"]["row_count"] == 30
+    assert manifest["summary"]["all_rows_have_assistant_target_span"] is True
+    assert manifest["summary"]["true_runtime_label_mask_status"] == "unavailable"
+    assert manifest["prior_repair_evidence"]["split_exact_match"]["dev"] == 0.0
+    assert manifest["prior_repair_evidence"]["split_exact_match"]["test"] == 0.0
+    assert manifest["recommended_next_step"] == "run_bounded_runtime_label_or_tiny_overfit_diagnostic"
+    assert manifest["claims"]["does_not_train"] is True
+    assert manifest["claims"]["model_recovery_claim"] is False
+    assert manifest["claims"]["held_out_generalization_claim"] is False
+    assert manifest["claims"]["checkpoint_release"] is False
+    assert manifest["artifact_policy"]["raw_rendered_training_text_written"] is False
+    assert manifest["artifact_policy"]["checkpoints_or_adapters_copied_to_git"] is False
+    assert summary["summary"] == manifest["summary"]
+    assert summary["label_mask_evidence"]["true_label_mask_status"] == "unavailable"
+    assert "Runtime label-mask evidence" in markdown
+    assert "not a model recovery claim" in markdown
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert scan_paths([evidence_dir]).ok is True
 
 
 def test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config(tmp_path: Path) -> None:

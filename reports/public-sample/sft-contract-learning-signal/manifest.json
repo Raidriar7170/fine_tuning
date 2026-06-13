@@ -1,0 +1,106 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_corpus_rows_omitted": true,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "raw_prompts_or_targets_written": false,
+    "raw_rendered_training_text_written": false
+  },
+  "base_model": "not_loaded_local_diagnostic",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "does_not_download_model": true,
+    "does_not_load_private_adapter": true,
+    "does_not_relax_evaluator": true,
+    "does_not_repair_outputs": true,
+    "does_not_run_prediction": true,
+    "does_not_train": true,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "public_sample_only": true
+  },
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "diagnostic_artifacts": {
+    "final_leak_scan": "reports/public-sample/sft-contract-learning-signal/final_leak_scan_result.json",
+    "human_brief": "docs/human-briefs/2026-06-13-diagnose-sft-contract-learning-signal.html",
+    "leak_scan": "reports/public-sample/sft-contract-learning-signal/leak_scan_result.json",
+    "manifest": "reports/public-sample/sft-contract-learning-signal/manifest.json",
+    "phase_validation_leak_scan": "reports/public-sample/sft-contract-learning-signal/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/sft-contract-learning-signal/post_archive_leak_scan_result.json",
+    "summary_json": "reports/public-sample/sft-contract-learning-signal/sft_contract_learning_signal.json",
+    "summary_markdown": "reports/public-sample/sft-contract-learning-signal/sft_contract_learning_signal.md"
+  },
+  "evidence_kind": "sft_contract_learning_signal",
+  "evidence_status": "local_public_safe_diagnostic_written",
+  "generated_at": "2026-06-13T09:06:34.996611+00:00",
+  "prior_repair_evidence": {
+    "available": true,
+    "overall_interpretation": "public_heldout_residual_repair_failed",
+    "recommended_next_step": "open_new_bounded_phase_for_runtime_label_loss_and/or_preference_signal_diagnosis_before_more_training",
+    "split_exact_match": {
+      "dev": 0.0,
+      "test": 0.0,
+      "train": 0.3333333333333333
+    },
+    "split_json_valid_rate": {
+      "dev": 1.0,
+      "test": 1.0,
+      "train": 0.8888888888888888
+    }
+  },
+  "recommended_next_step": "run_bounded_runtime_label_or_tiny_overfit_diagnostic",
+  "source_manifest": {
+    "counts": {
+      "dpo_pairs": 90,
+      "seed_rows": 10,
+      "sft_rows": 30
+    },
+    "manifest_id": "public-sample-20260613T072200Z",
+    "path": "data/public-samples/manifest_public_sample.json",
+    "sft_path": "data/public-samples/sft_public_sample.jsonl"
+  },
+  "summary": {
+    "all_rows_have_assistant_target_span": true,
+    "evidence_gaps": [
+      "real_training_labels_not_inspected",
+      "real_training_label_provenance_missing"
+    ],
+    "route_counts": {
+      "clarify": 6,
+      "deny": 6,
+      "extract_page": 3,
+      "fill_form": 6,
+      "open_url": 6,
+      "search_web": 3
+    },
+    "row_count": 30,
+    "split_counts": {
+      "dev": 6,
+      "test": 6,
+      "train": 18
+    },
+    "task_type_counts": {
+      "blocked": 6,
+      "clarify": 6,
+      "extract": 3,
+      "form_fill": 6,
+      "navigate": 6,
+      "search": 3
+    },
+    "true_runtime_label_mask_status": "unavailable"
+  },
+  "target_pressure": {
+    "max_assistant_target_char_count": 244,
+    "max_assistant_target_char_ratio": 0.12248995983935743,
+    "max_training_text_char_count": 2005,
+    "min_assistant_target_char_ratio": 0.11371571072319202,
+    "rows_over_2048_chars": [],
+    "tokenizer_specific_token_counts_available": false,
+    "tokenizer_specific_token_counts_gap": "tokenizer_not_loaded_for_local_public_safe_diagnostic"
+  }
+}

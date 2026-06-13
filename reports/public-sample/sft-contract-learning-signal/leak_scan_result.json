@@ -1,0 +1,9 @@
+{
+  "findings": [],
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/sft-contract-learning-signal",
+    "docs/human-briefs/2026-06-13-diagnose-sft-contract-learning-signal.html",
+    "openspec/changes/diagnose-sft-contract-learning-signal"
+  ]
+}

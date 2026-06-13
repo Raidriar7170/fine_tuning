@@ -8,6 +8,7 @@ from voice2task.evaluation import (
     diagnose_alignment_mismatches,
     diagnose_constrained_contract_decoding,
     diagnose_schema_mismatches,
+    diagnose_sft_contract_learning_signal,
     diagnose_source_alignment,
     evaluate_predictions,
     load_predictions,
@@ -23,6 +24,7 @@ from voice2task.reports import (
     write_constrained_decoding_diagnosis_report,
     write_metrics_report,
     write_schema_diagnostics_report,
+    write_sft_contract_learning_signal_report,
     write_source_diagnostics_report,
 )
 
@@ -113,6 +115,13 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose_source.add_argument("--output", type=Path, required=True)
     diagnose_source.add_argument("--title", default="Voice2Task source diagnostics")
 
+    diagnose_learning = subcommands.add_parser("diagnose-sft-learning-signal")
+    diagnose_learning.add_argument("--sft", type=Path, required=True)
+    diagnose_learning.add_argument("--manifest", type=Path, required=True)
+    diagnose_learning.add_argument("--prior-repair-diagnosis", type=Path)
+    diagnose_learning.add_argument("--output", type=Path, required=True)
+    diagnose_learning.add_argument("--title", default="Voice2Task SFT contract learning-signal evidence")
+
     smoke = subcommands.add_parser("smoke")
     smoke.add_argument("--gold", type=Path, required=True)
     smoke.add_argument("--predictions", type=Path, required=True)
@@ -179,6 +188,17 @@ def main(argv: list[str] | None = None) -> int:
             objective_inspection=_load_objective_inspection(args.predictions, prediction_metadata),
         )
         paths = write_source_diagnostics_report(diagnostics, output_dir=args.output, title=args.title)
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "diagnose-sft-learning-signal":
+        diagnostics = diagnose_sft_contract_learning_signal(
+            load_rows_path=args.sft,
+            manifest_path=args.manifest,
+            prior_repair_diagnosis=read_json(args.prior_repair_diagnosis)
+            if args.prior_repair_diagnosis
+            else None,
+        )
+        paths = write_sft_contract_learning_signal_report(diagnostics, output_dir=args.output, title=args.title)
         print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
         return 0
     if args.command == "smoke":
