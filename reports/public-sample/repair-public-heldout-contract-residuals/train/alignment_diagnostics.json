@@ -1,0 +1,402 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "field_level_public_sample_evidence_only": true,
+    "full_private_corpus_claim": false,
+    "invalid_predictions_remain_invalid": true,
+    "live_browser_benchmark_claim": false,
+    "production_readiness_claim": false
+  },
+  "diagnostic_kind": "browser_task_contract_alignment_mismatch",
+  "rows": [
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(8): navigate",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): search",
+          "row_id": "seed-open-help"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(8): open_url",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(10): search_web",
+          "row_id": "seed-open-help"
+        },
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: url",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "empty object",
+          "row_id": "seed-open-help"
+        }
+      ],
+      "row_id": "seed-open-help"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: url",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "object with keys: url",
+          "row_id": "seed-open-help-aug-1"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(6): 打开帮助中心",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): 打开帮助页面",
+          "row_id": "seed-open-help-aug-1"
+        }
+      ],
+      "row_id": "seed-open-help-aug-1"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(6): 打开帮助中心",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): 打开帮助网站",
+          "row_id": "seed-open-help-aug-2"
+        }
+      ],
+      "row_id": "seed-open-help-aug-2"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(7): clarify",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): search",
+          "row_id": "seed-clarify-target"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(7): clarify",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(10): search_web",
+          "row_id": "seed-clarify-target"
+        },
+        {
+          "field_path": "safety.reason",
+          "gold_value_summary": "string(17): ambiguous_request",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(15): public_readonly",
+          "row_id": "seed-clarify-target"
+        },
+        {
+          "field_path": "confirmation_required",
+          "gold_value_summary": "bool: True",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "bool: False",
+          "row_id": "seed-clarify-target"
+        },
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: ambiguity",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "empty object",
+          "row_id": "seed-clarify-target"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(6): 请求澄清目标",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(8): 帮我处理那个页面",
+          "row_id": "seed-clarify-target"
+        }
+      ],
+      "row_id": "seed-clarify-target"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(7): clarify",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): search",
+          "row_id": "seed-clarify-target-aug-1"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(7): clarify",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(10): search_web",
+          "row_id": "seed-clarify-target-aug-1"
+        },
+        {
+          "field_path": "safety.reason",
+          "gold_value_summary": "string(17): ambiguous_request",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(15): public_readonly",
+          "row_id": "seed-clarify-target-aug-1"
+        },
+        {
+          "field_path": "confirmation_required",
+          "gold_value_summary": "bool: True",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "bool: False",
+          "row_id": "seed-clarify-target-aug-1"
+        },
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: ambiguity",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "empty object",
+          "row_id": "seed-clarify-target-aug-1"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(6): 请求澄清目标",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(8): 打开刚才说的那个",
+          "row_id": "seed-clarify-target-aug-1"
+        }
+      ],
+      "row_id": "seed-clarify-target-aug-1"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(7): clarify",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(7): blocked",
+          "row_id": "seed-clarify-target-aug-2"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(7): clarify",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(4): deny",
+          "row_id": "seed-clarify-target-aug-2"
+        },
+        {
+          "field_path": "safety.allow",
+          "gold_value_summary": "bool: True",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "bool: False",
+          "row_id": "seed-clarify-target-aug-2"
+        },
+        {
+          "field_path": "safety.reason",
+          "gold_value_summary": "string(17): ambiguous_request",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(14): unsafe_payment",
+          "row_id": "seed-clarify-target-aug-2"
+        },
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: ambiguity",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "object with keys: reason",
+          "row_id": "seed-clarify-target-aug-2"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(6): 请求澄清目标",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): 处理支付请求",
+          "row_id": "seed-clarify-target-aug-2"
+        }
+      ],
+      "row_id": "seed-clarify-target-aug-2"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: field",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "object with keys: field",
+          "row_id": "seed-form-nickname"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(7): 填写昵称并确认",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(16): 把昵称填到这个表单里，提交前问我",
+          "row_id": "seed-form-nickname"
+        }
+      ],
+      "row_id": "seed-form-nickname"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "safety.reason",
+          "gold_value_summary": "string(21): requires_confirmation",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "empty string",
+          "row_id": "seed-form-nickname-aug-1"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(7): 填写昵称并确认",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(16): 请确认表单中的昵称是否正确后提交",
+          "row_id": "seed-form-nickname-aug-1"
+        }
+      ],
+      "row_id": "seed-form-nickname-aug-1"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: field",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "object with keys: field",
+          "row_id": "seed-form-nickname-aug-2"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(7): 填写昵称并确认",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(7): 请确认您的昵称",
+          "row_id": "seed-form-nickname-aug-2"
+        },
+        {
+          "field_path": "contract_version",
+          "gold_value_summary": "string(2): v1",
+          "mismatch_category": "type_mismatch",
+          "prediction_value_summary": "int: 1",
+          "row_id": "seed-form-nickname-aug-2"
+        }
+      ],
+      "row_id": "seed-form-nickname-aug-2"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(7): blocked",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): search",
+          "row_id": "seed-block-transfer"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(4): deny",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(10): search_web",
+          "row_id": "seed-block-transfer"
+        },
+        {
+          "field_path": "safety.allow",
+          "gold_value_summary": "bool: False",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "bool: True",
+          "row_id": "seed-block-transfer"
+        },
+        {
+          "field_path": "safety.reason",
+          "gold_value_summary": "string(14): unsafe_payment",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(15): public_readonly",
+          "row_id": "seed-block-transfer"
+        },
+        {
+          "field_path": "confirmation_required",
+          "gold_value_summary": "bool: True",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "bool: False",
+          "row_id": "seed-block-transfer"
+        },
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: reason",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "empty object",
+          "row_id": "seed-block-transfer"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(8): 拒绝代替用户转账",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(12): 帮我用我的账户转账给别人",
+          "row_id": "seed-block-transfer"
+        }
+      ],
+      "row_id": "seed-block-transfer"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(7): blocked",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): search",
+          "row_id": "seed-block-transfer-aug-1"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(4): deny",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(10): search_web",
+          "row_id": "seed-block-transfer-aug-1"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(8): 拒绝代替用户转账",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(4): 确认转账",
+          "row_id": "seed-block-transfer-aug-1"
+        }
+      ],
+      "row_id": "seed-block-transfer-aug-1"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(7): blocked",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): search",
+          "row_id": "seed-block-transfer-aug-2"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(4): deny",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(10): search_web",
+          "row_id": "seed-block-transfer-aug-2"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(8): 拒绝代替用户转账",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(11): 使用我的账号把钱转出去",
+          "row_id": "seed-block-transfer-aug-2"
+        }
+      ],
+      "row_id": "seed-block-transfer-aug-2"
+    }
+  ],
+  "summary": {
+    "field_mismatch_counts": {
+      "confirmation_required": 3,
+      "contract_version": 1,
+      "normalized_command": 11,
+      "route": 7,
+      "safety.allow": 2,
+      "safety.reason": 5,
+      "slots": 8,
+      "task_type": 7
+    },
+    "gold_row_count": 18,
+    "mismatch_category_counts": {
+      "type_mismatch": 1,
+      "value_mismatch": 43
+    },
+    "prediction_count": 18,
+    "row_mismatch_count": 12,
+    "schema_invalid_prediction_count": 2
+  }
+}

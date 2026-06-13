@@ -1,0 +1,180 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "host_details_omitted": true,
+    "private_corpus_rows_omitted": true,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false,
+    "ssh_details_omitted": true
+  },
+  "base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_relaxation": false,
+    "held_out_generalization_recovered": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "prediction_repair_or_replacement": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "public_heldout_residual_repair": true,
+    "release_claim": false,
+    "semantic_equivalence_primary_metric": false
+  },
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "diagnostic_artifacts": {
+    "diagnosis": "reports/public-sample/repair-public-heldout-contract-residuals/heldout_residual_repair_diagnosis.json",
+    "diagnosis_markdown": "reports/public-sample/repair-public-heldout-contract-residuals/heldout_residual_repair_diagnosis.md",
+    "final_leak_scan": "reports/public-sample/repair-public-heldout-contract-residuals/final_leak_scan_result.json",
+    "human_brief": "docs/human-briefs/2026-06-13-repair-public-heldout-contract-residuals.html",
+    "leak_scan": "reports/public-sample/repair-public-heldout-contract-residuals/leak_scan_result.json",
+    "manifest": "reports/public-sample/repair-public-heldout-contract-residuals/manifest.json",
+    "phase_validation_leak_scan": "reports/public-sample/repair-public-heldout-contract-residuals/phase_validation_leak_scan_result.json",
+    "post_archive_leak_scan": "reports/public-sample/repair-public-heldout-contract-residuals/post_archive_leak_scan_result.json",
+    "report": "reports/public-sample/repair-public-heldout-contract-residuals/report.md"
+  },
+  "evidence_kind": "a100_public_heldout_residual_repair",
+  "evidence_status": "private_adapter_public_split_predictions_written_negative_result",
+  "generated_at": "2026-06-13T07:36:12.552900+00:00",
+  "model_source": "private_a100_local_model_dir",
+  "overall_interpretation": "public_heldout_residual_repair_failed",
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_splits": [
+    "train",
+    "dev",
+    "test"
+  ],
+  "primary_evidence_splits": [
+    "dev",
+    "test"
+  ],
+  "public_sample_manifest_id": "public-sample-20260613T072200Z",
+  "source_manifest_rows": {
+    "dpo_pairs": 90,
+    "seed_rows": 10,
+    "sft_rows": 30,
+    "split_counts": null
+  },
+  "split_results": {
+    "dev": {
+      "alignment_row_mismatch_count": 6,
+      "artifact_paths": {
+        "alignment_diagnostics": "reports/public-sample/repair-public-heldout-contract-residuals/dev/alignment_diagnostics.json",
+        "constrained_decoding_diagnosis": "reports/public-sample/repair-public-heldout-contract-residuals/dev/constrained_decoding_diagnosis.json",
+        "generation_trace": "reports/public-sample/repair-public-heldout-contract-residuals/dev/generation_trace.jsonl",
+        "gold": "reports/public-sample/repair-public-heldout-contract-residuals/dev/dev_gold.jsonl",
+        "metrics": "reports/public-sample/repair-public-heldout-contract-residuals/dev/metrics.json",
+        "prediction_metadata": "reports/public-sample/repair-public-heldout-contract-residuals/dev/prediction_metadata.json",
+        "predictions": "reports/public-sample/repair-public-heldout-contract-residuals/dev/predictions.jsonl",
+        "prompt_snapshot": "reports/public-sample/repair-public-heldout-contract-residuals/dev/prompt_snapshot.json",
+        "raw_decoded_summary": "reports/public-sample/repair-public-heldout-contract-residuals/dev/raw_decoded_summary.jsonl",
+        "schema_diagnostics": "reports/public-sample/repair-public-heldout-contract-residuals/dev/schema_diagnostics.json"
+      },
+      "confirmation_accuracy": 0.5,
+      "constrained_decode_invalid_prediction_count": 0,
+      "contract_exact_match": 0.0,
+      "field_mismatch_counts": {
+        "confirmation_required": 3,
+        "normalized_command": 6,
+        "route": 4,
+        "safety.reason": 3,
+        "slots": 4,
+        "task_type": 4
+      },
+      "gold_row_count": 6,
+      "json_valid_rate": 1.0,
+      "prediction_count": 6,
+      "prediction_source_kind": "private_a100_adapter",
+      "prediction_split": "dev",
+      "route_accuracy": 0.3333333333333333,
+      "safety_precision": 1.0,
+      "safety_recall": 1.0,
+      "schema_invalid_prediction_count": 0,
+      "slot_f1": 0.3333333333333333,
+      "slot_f1_soft": 0.3333333333333333,
+      "task_type_accuracy": 0.3333333333333333
+    },
+    "test": {
+      "alignment_row_mismatch_count": 6,
+      "artifact_paths": {
+        "alignment_diagnostics": "reports/public-sample/repair-public-heldout-contract-residuals/test/alignment_diagnostics.json",
+        "constrained_decoding_diagnosis": "reports/public-sample/repair-public-heldout-contract-residuals/test/constrained_decoding_diagnosis.json",
+        "generation_trace": "reports/public-sample/repair-public-heldout-contract-residuals/test/generation_trace.jsonl",
+        "gold": "reports/public-sample/repair-public-heldout-contract-residuals/test/test_gold.jsonl",
+        "metrics": "reports/public-sample/repair-public-heldout-contract-residuals/test/metrics.json",
+        "prediction_metadata": "reports/public-sample/repair-public-heldout-contract-residuals/test/prediction_metadata.json",
+        "predictions": "reports/public-sample/repair-public-heldout-contract-residuals/test/predictions.jsonl",
+        "prompt_snapshot": "reports/public-sample/repair-public-heldout-contract-residuals/test/prompt_snapshot.json",
+        "raw_decoded_summary": "reports/public-sample/repair-public-heldout-contract-residuals/test/raw_decoded_summary.jsonl",
+        "schema_diagnostics": "reports/public-sample/repair-public-heldout-contract-residuals/test/schema_diagnostics.json"
+      },
+      "confirmation_accuracy": 0.5,
+      "constrained_decode_invalid_prediction_count": 0,
+      "contract_exact_match": 0.0,
+      "field_mismatch_counts": {
+        "confirmation_required": 3,
+        "normalized_command": 6,
+        "route": 2,
+        "safety.allow": 2,
+        "safety.reason": 3,
+        "slots": 5,
+        "task_type": 2
+      },
+      "gold_row_count": 6,
+      "json_valid_rate": 1.0,
+      "prediction_count": 6,
+      "prediction_source_kind": "private_a100_adapter",
+      "prediction_split": "test",
+      "route_accuracy": 0.6666666666666666,
+      "safety_precision": 1.0,
+      "safety_recall": 0.3333333333333333,
+      "schema_invalid_prediction_count": 0,
+      "slot_f1": 0.16666666666666666,
+      "slot_f1_soft": 0.16666666666666666,
+      "task_type_accuracy": 0.6666666666666666
+    },
+    "train": {
+      "alignment_row_mismatch_count": 12,
+      "artifact_paths": {
+        "alignment_diagnostics": "reports/public-sample/repair-public-heldout-contract-residuals/train/alignment_diagnostics.json",
+        "constrained_decoding_diagnosis": "reports/public-sample/repair-public-heldout-contract-residuals/train/constrained_decoding_diagnosis.json",
+        "generation_trace": "reports/public-sample/repair-public-heldout-contract-residuals/train/generation_trace.jsonl",
+        "gold": "reports/public-sample/repair-public-heldout-contract-residuals/train/train_gold.jsonl",
+        "metrics": "reports/public-sample/repair-public-heldout-contract-residuals/train/metrics.json",
+        "prediction_metadata": "reports/public-sample/repair-public-heldout-contract-residuals/train/prediction_metadata.json",
+        "predictions": "reports/public-sample/repair-public-heldout-contract-residuals/train/predictions.jsonl",
+        "prompt_snapshot": "reports/public-sample/repair-public-heldout-contract-residuals/train/prompt_snapshot.json",
+        "raw_decoded_summary": "reports/public-sample/repair-public-heldout-contract-residuals/train/raw_decoded_summary.jsonl",
+        "schema_diagnostics": "reports/public-sample/repair-public-heldout-contract-residuals/train/schema_diagnostics.json"
+      },
+      "confirmation_accuracy": 0.7222222222222222,
+      "constrained_decode_invalid_prediction_count": 2,
+      "contract_exact_match": 0.3333333333333333,
+      "field_mismatch_counts": {
+        "confirmation_required": 3,
+        "contract_version": 1,
+        "normalized_command": 11,
+        "route": 7,
+        "safety.allow": 2,
+        "safety.reason": 5,
+        "slots": 8,
+        "task_type": 7
+      },
+      "gold_row_count": 18,
+      "json_valid_rate": 0.8888888888888888,
+      "prediction_count": 18,
+      "prediction_source_kind": "private_a100_adapter",
+      "prediction_split": "train",
+      "route_accuracy": 0.5,
+      "safety_precision": 0.6666666666666666,
+      "safety_recall": 0.6666666666666666,
+      "schema_invalid_prediction_count": 2,
+      "slot_f1": 0.5,
+      "slot_f1_soft": 0.5555555555555556,
+      "task_type_accuracy": 0.5
+    }
+  }
+}

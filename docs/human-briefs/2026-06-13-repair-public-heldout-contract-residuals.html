@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>public held-out residual repair 阶段简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; max-width: 960px; margin: 32px auto; padding: 0 20px; color: #20242a; }
+    h1 { font-size: 28px; }
+    h2 { margin-top: 28px; font-size: 18px; }
+    .status { padding: 12px 14px; border-left: 4px solid #dc2626; background: #fef2f2; }
+    code { background: #f4f4f5; padding: 1px 4px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f7f7f8; }
+  </style>
+</head>
+<body>
+  <h1>public held-out residual repair 阶段简报</h1>
+  <p class="status"><strong>一句话结论：</strong>这轮 7B SFT-only repair 是负结果：public <code>dev/test</code> 仍然 <code>contract_exact_match=0.0000</code>，而且 train repair rows 也只有 <code>0.3333</code>。</p>
+
+  <h2>当前状态</h2>
+  <p>阶段状态：archived；证据类型：public held-out residual repair；不是私有语料泛化、生产可用、checkpoint/adapter release 或 live-browser benchmark 结论。</p>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li>给 public train split 增加 navigate、clarify、form confirmation、blocked payment 的 train-only repair exemplars。</li>
+    <li>新增对应 DPO hard-negative 类型和验证规则。</li>
+    <li>让 SFT/prediction prompt 暴露通用 contract policy，但不泄漏 held-out gold target。</li>
+    <li>在 A100 上使用 7B base model 做一次 SFT rerun，并导出 train/dev/test split 预测和 diagnostics。</li>
+  </ul>
+
+  <h2>关键指标</h2>
+  <table>
+    <tr><th>split</th><th>json_valid_rate</th><th>contract_exact_match</th><th>slot_f1</th><th>主要残差</th></tr>
+    <tr><td>train</td><td>0.8889</td><td>0.3333</td><td>0.5000</td><td>repair exemplars 未严格记住，route/slots/task/safety 均有漂移</td></tr>
+    <tr><td>dev</td><td>1.0000</td><td>0.0000</td><td>0.3333</td><td>navigate string/url；clarify 漂到可执行动作</td></tr>
+    <tr><td>test</td><td>1.0000</td><td>0.0000</td><td>0.1667</td><td>form confirmation/slots；blocked payment safety 漂移</td></tr>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/repair-public-heldout-contract-residuals/manifest.json</code></li>
+    <li><code>reports/public-sample/repair-public-heldout-contract-residuals/heldout_residual_repair_diagnosis.json</code></li>
+    <li><code>reports/public-sample/repair-public-heldout-contract-residuals/report.md</code></li>
+    <li><code>openspec/changes/repair-public-heldout-contract-residuals/</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <p>已完成 A100 train/dev/test prediction 与 split-specific metrics/schema/alignment/constrained diagnostics。完整本地验证会在归档前后重新运行。</p>
+
+  <h2>剩余风险</h2>
+  <p>public 样本仍很小，但这次负结果足以说明：简单增加 train exemplars + prompt policy 的 SFT-only 方案没有解决 strict contract 学习问题。不能声称真实能力约 70%，也不能把 schema-valid 当成 contract recovery。</p>
+
+  <h2>推荐下一步</h2>
+  <p>归档本阶段为负结果。下一阶段应先诊断 SFT 训练信号，例如 assistant-label/loss mask、目标 token 压力、以及是否需要真正启用 DPO，而不是继续盲目扩大 A100 rerun。</p>
+</body>
+</html>

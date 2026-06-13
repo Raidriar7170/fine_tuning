@@ -1,0 +1,14 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T07:23:57.320081+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "data/public-samples",
+    "configs/sft-a100-public-heldout-residual-repair-rerun.json",
+    "configs/sft-a100-public-heldout-residual-repair-train-prediction.json",
+    "configs/sft-a100-public-heldout-residual-repair-dev-prediction.json",
+    "configs/sft-a100-public-heldout-residual-repair-test-prediction.json",
+    "openspec/changes/repair-public-heldout-contract-residuals"
+  ]
+}

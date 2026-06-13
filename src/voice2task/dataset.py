@@ -28,6 +28,10 @@ HARD_NEGATIVE_CATEGORIES = [
     "extract_generic_price_wording",
     "extract_listed_price_wording",
     "extract_extra_particle_wording",
+    "clarify_action_drift",
+    "blocked_payment_action_drift",
+    "form_confirmation_drift",
+    "navigate_canonical_url_drift",
     "underspecified_request",
     "malformed_schema",
 ]
@@ -245,6 +249,107 @@ def _extract_extra_particle_wording_negative(contract: BrowserTaskContract) -> B
     )
 
 
+def _public_clarify_contract(contract: BrowserTaskContract) -> bool:
+    return (
+        contract.task_type == "clarify"
+        and contract.route == "clarify"
+        and bool(contract.safety.get("allow")) is True
+        and contract.safety.get("reason") == "ambiguous_request"
+        and contract.confirmation_required is True
+        and isinstance(contract.slots.get("ambiguity"), str)
+    )
+
+
+def _clarify_action_drift_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    if not _public_clarify_contract(contract):
+        return None
+    return _replace_contract(
+        contract,
+        task_type="search",
+        route="search_web",
+        safety={"allow": True, "reason": "public_readonly"},
+        confirmation_required=False,
+        slots={"query": "公开信息"},
+        normalized_command="搜索公开信息",
+    )
+
+
+def _public_blocked_payment_contract(contract: BrowserTaskContract) -> bool:
+    return (
+        contract.task_type == "blocked"
+        and contract.route == "deny"
+        and bool(contract.safety.get("allow")) is False
+        and contract.safety.get("reason") == "unsafe_payment"
+        and contract.confirmation_required is True
+        and contract.slots.get("reason") == "payment_requires_user_control"
+    )
+
+
+def _blocked_payment_action_drift_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    if not _public_blocked_payment_contract(contract):
+        return None
+    return _replace_contract(
+        contract,
+        task_type="search",
+        route="search_web",
+        safety={"allow": True, "reason": "public_readonly"},
+        confirmation_required=False,
+        slots={"query": "付款"},
+        normalized_command="搜索付款",
+    )
+
+
+def _public_form_confirmation_contract(contract: BrowserTaskContract) -> str | None:
+    if not (
+        contract.task_type == "form_fill"
+        and contract.route == "fill_form"
+        and bool(contract.safety.get("allow")) is True
+        and contract.safety.get("reason") == "requires_confirmation"
+        and contract.confirmation_required is True
+    ):
+        return None
+    field = contract.slots.get("field")
+    return field if isinstance(field, str) and field else None
+
+
+def _form_confirmation_drift_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    field = _public_form_confirmation_contract(contract)
+    if field is None:
+        return None
+    return _replace_contract(
+        contract,
+        safety={"allow": True, "reason": "public_readonly"},
+        confirmation_required=False,
+        slots={"email": field},
+    )
+
+
+def _public_navigate_contract(contract: BrowserTaskContract) -> str | None:
+    if not (
+        contract.task_type == "navigate"
+        and contract.route == "open_url"
+        and bool(contract.safety.get("allow")) is True
+        and contract.safety.get("reason") == "public_readonly"
+        and contract.confirmation_required is False
+    ):
+        return None
+    url = contract.slots.get("url")
+    return url if isinstance(url, str) and url.startswith("https://") else None
+
+
+def _navigate_canonical_url_drift_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    url = _public_navigate_contract(contract)
+    if url is None:
+        return None
+    host = url.removeprefix("https://")
+    return _replace_contract(
+        contract,
+        slots={"url": host},
+        normalized_command=f"打开 {host}",
+        safety={**contract.safety, "reason": "navigate_canonical_url_drift"},
+    )
+
+
 _TASK_TYPE_SWAPS: dict[str, str] = {
     "search": "navigate",
     "navigate": "search",
@@ -318,6 +423,26 @@ def _negative_contract(contract: BrowserTaskContract, category: str) -> BrowserT
         if extra_particle is None:
             raise ValueError("extract_extra_particle_wording applies only to canonical public extract-price contracts")
         return extra_particle
+    if category == "clarify_action_drift":
+        clarify_drift = _clarify_action_drift_negative(contract)
+        if clarify_drift is None:
+            raise ValueError("clarify_action_drift applies only to public ambiguous clarify contracts")
+        return clarify_drift
+    if category == "blocked_payment_action_drift":
+        blocked_drift = _blocked_payment_action_drift_negative(contract)
+        if blocked_drift is None:
+            raise ValueError("blocked_payment_action_drift applies only to public unsafe payment block contracts")
+        return blocked_drift
+    if category == "form_confirmation_drift":
+        form_drift = _form_confirmation_drift_negative(contract)
+        if form_drift is None:
+            raise ValueError("form_confirmation_drift applies only to confirmation-required public form contracts")
+        return form_drift
+    if category == "navigate_canonical_url_drift":
+        navigate_drift = _navigate_canonical_url_drift_negative(contract)
+        if navigate_drift is None:
+            raise ValueError("navigate_canonical_url_drift applies only to public canonical navigation contracts")
+        return navigate_drift
     if category == "underspecified_request":
         return _replace_contract(
             contract,
@@ -368,6 +493,24 @@ def generate_hard_negative_pairs(rows: list[SFTDatasetRow]) -> list[DPOPair]:
                 if (
                     row.provenance.get("public_safe") is not True
                     or _extract_extra_particle_wording_negative(chosen) is None
+                ):
+                    continue
+            if category == "clarify_action_drift":
+                if row.provenance.get("public_safe") is not True or _clarify_action_drift_negative(chosen) is None:
+                    continue
+            if category == "blocked_payment_action_drift":
+                if (
+                    row.provenance.get("public_safe") is not True
+                    or _blocked_payment_action_drift_negative(chosen) is None
+                ):
+                    continue
+            if category == "form_confirmation_drift":
+                if row.provenance.get("public_safe") is not True or _form_confirmation_drift_negative(chosen) is None:
+                    continue
+            if category == "navigate_canonical_url_drift":
+                if (
+                    row.provenance.get("public_safe") is not True
+                    or _navigate_canonical_url_drift_negative(chosen) is None
                 ):
                     continue
             pairs.append(

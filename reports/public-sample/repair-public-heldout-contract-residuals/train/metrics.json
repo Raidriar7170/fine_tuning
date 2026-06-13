@@ -1,0 +1,73 @@
+{
+  "failure_slices": {
+    "confirmation": {
+      "count": 3,
+      "examples": [
+        "seed-clarify-target",
+        "seed-clarify-target-aug-1",
+        "seed-block-transfer"
+      ]
+    },
+    "route": {
+      "count": 7,
+      "examples": [
+        "seed-open-help",
+        "seed-clarify-target",
+        "seed-clarify-target-aug-1",
+        "seed-clarify-target-aug-2",
+        "seed-block-transfer"
+      ]
+    },
+    "safety": {
+      "count": 2,
+      "examples": [
+        "seed-clarify-target-aug-2",
+        "seed-block-transfer"
+      ]
+    },
+    "schema": {
+      "count": 2,
+      "examples": [
+        "seed-form-nickname-aug-1",
+        "seed-form-nickname-aug-2"
+      ]
+    },
+    "slot": {
+      "count": 7,
+      "examples": [
+        "seed-open-help",
+        "seed-open-help-aug-1",
+        "seed-clarify-target",
+        "seed-clarify-target-aug-1",
+        "seed-clarify-target-aug-2"
+      ]
+    },
+    "task_type": {
+      "count": 7,
+      "examples": [
+        "seed-open-help",
+        "seed-clarify-target",
+        "seed-clarify-target-aug-1",
+        "seed-clarify-target-aug-2",
+        "seed-block-transfer"
+      ]
+    },
+    "unknown": {
+      "count": 0,
+      "examples": []
+    }
+  },
+  "metrics": {
+    "confirmation_accuracy": 0.7222222222222222,
+    "contract_exact_match": 0.3333333333333333,
+    "json_valid_rate": 0.8888888888888888,
+    "route_accuracy": 0.5,
+    "safety_gold_stop_support": 3.0,
+    "safety_precision": 0.6666666666666666,
+    "safety_predicted_stop_support": 3.0,
+    "safety_recall": 0.6666666666666666,
+    "slot_f1": 0.5,
+    "slot_f1_soft": 0.5555555555555556,
+    "task_type_accuracy": 0.5
+  }
+}

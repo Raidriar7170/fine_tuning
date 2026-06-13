@@ -26,6 +26,10 @@ REJECTION_CATEGORIES = {
     "extract_generic_price_wording",
     "extract_listed_price_wording",
     "extract_extra_particle_wording",
+    "clarify_action_drift",
+    "blocked_payment_action_drift",
+    "form_confirmation_drift",
+    "navigate_canonical_url_drift",
     "underspecified_request",
     "malformed_schema",
 }

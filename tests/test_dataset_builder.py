@@ -178,6 +178,61 @@ def test_build_public_sample_dataset_adds_extract_price_hard_negatives(tmp_path:
     assert "seed-extract-price-aug-1-extract_generic_price_wording" not in dpo_by_id
 
 
+def test_build_public_sample_dataset_adds_train_only_heldout_repair_exemplars(tmp_path: Path) -> None:
+    seed_path = Path("data/public-samples/seed_traces.jsonl")
+    output_dir = tmp_path / "public"
+
+    manifest = build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+    sft_rows = [
+        json.loads(line)
+        for line in (output_dir / "sft_public_sample.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    rows_by_id = {row["id"]: row for row in sft_rows}
+    dpo_rows = [
+        json.loads(line)
+        for line in (output_dir / "dpo_public_sample.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    dpo_by_id = {row["id"]: row for row in dpo_rows}
+
+    assert rows_by_id["seed-open-help"]["split"] == "train"
+    assert rows_by_id["seed-open-help"]["target_contract"]["slots"] == {"url": "https://help.example.com"}
+    assert rows_by_id["seed-open-help"]["target_contract"]["normalized_command"] == "打开帮助中心"
+    assert rows_by_id["seed-clarify-target"]["split"] == "train"
+    assert rows_by_id["seed-clarify-target"]["target_contract"]["task_type"] == "clarify"
+    assert rows_by_id["seed-form-nickname"]["split"] == "train"
+    assert rows_by_id["seed-form-nickname"]["target_contract"]["slots"] == {"field": "昵称"}
+    assert rows_by_id["seed-block-transfer"]["split"] == "train"
+    assert rows_by_id["seed-block-transfer"]["target_contract"]["safety"] == {
+        "allow": False,
+        "reason": "unsafe_payment",
+    }
+    assert rows_by_id["seed-open-example"]["split"] == "dev"
+    assert rows_by_id["seed-clarify-ambiguous"]["split"] == "dev"
+    assert rows_by_id["seed-form-email"]["split"] == "test"
+    assert rows_by_id["seed-block-purchase"]["split"] == "test"
+    assert manifest.split_counts["dev"] == 6
+    assert manifest.split_counts["test"] == 6
+    assert manifest.split_counts["train"] >= 18
+
+    expected_repair_categories = {
+        "clarify_action_drift",
+        "blocked_payment_action_drift",
+        "form_confirmation_drift",
+        "navigate_canonical_url_drift",
+    }
+    assert expected_repair_categories.issubset(set(manifest.dpo_rejection_counts))
+    assert expected_repair_categories.issubset(
+        {row["rejection_reason"] for row in dpo_rows if row["id"].startswith("seed-")}
+    )
+    navigate_drift = dpo_by_id["seed-open-help-navigate_canonical_url_drift"]
+    assert navigate_drift["chosen_contract"]["slots"] == {"url": "https://help.example.com"}
+    assert navigate_drift["rejected_contract"]["slots"] == {"url": "help.example.com"}
+    assert dpo_by_id["seed-open-example-navigate_canonical_url_drift"]["split"] == "dev"
+
+
 def test_build_local_private_corpus_writes_split_files_and_summary(tmp_path: Path) -> None:
     seed_path = tmp_path / "private-seed.jsonl"
     output_dir = tmp_path / "local-private"

@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/repair-public-heldout-contract-residuals",
+    "docs/human-briefs/2026-06-13-repair-public-heldout-contract-residuals.html",
+    "configs/sft-a100-public-heldout-residual-repair-rerun.json",
+    "configs/sft-a100-public-heldout-residual-repair-train-prediction.json",
+    "configs/sft-a100-public-heldout-residual-repair-dev-prediction.json",
+    "configs/sft-a100-public-heldout-residual-repair-test-prediction.json",
+    "openspec/changes/repair-public-heldout-contract-residuals"
+  ]
+}

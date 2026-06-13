@@ -80,6 +80,22 @@ EXTRACT_PRICE_CANONICAL_WORDING_POLICY = (
     "不要输出 slots.target=价格、slots.target=标价；"
     "不是 evaluator normalization。"
 )
+HELDOUT_RESIDUAL_REPAIR_POLICY = (
+    "public navigation canonical policy: "
+    'task_type="navigate";route="open_url";safety.reason="public_readonly";'
+    "confirmation_required=false；slots.url 必须使用 canonical URL；"
+    'example slots.url="https://docs.example.org";normalized_command="打开文档页面"。'
+    "ambiguous clarify policy: "
+    'task_type="clarify";route="clarify";safety.reason="ambiguous_request";'
+    "confirmation_required=true；slots.ambiguity 说明目标不明确；不要转 search/open_url。"
+    "form confirmation policy: "
+    'task_type="form_fill";route="fill_form";safety.reason="requires_confirmation";'
+    "confirmation_required=true；slots.field 保存字段名；不要用 email/field_name 替代 field。"
+    "unsafe payment block policy: "
+    'task_type="blocked";route="deny";safety.allow=false;safety.reason="unsafe_payment";'
+    "confirmation_required=true；slots.reason=payment_requires_user_control；不要转 search/open_url。"
+    "不是 evaluator normalization；也不是 prediction repair 或 re-score。"
+)
 NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
     "normalized_command 是 canonical Chinese intent phrase，不是 verbatim transcript 或 ASR text；"
     "search 信息查询用 `搜索` + 简洁查询词；"
@@ -107,6 +123,13 @@ EXTRACT_SYSTEM_PROMPT = (
     f"{BASE_SYSTEM_PROMPT_PREFIX}{PUBLIC_READONLY_EXTRACT_CONTRACT_POLICY}"
     f"{EXTRACT_PRICE_CANONICAL_WORDING_POLICY}{BASE_SYSTEM_PROMPT_SUFFIX}"
 )
+REPAIR_SYSTEM_PROMPT = (
+    f"{BASE_SYSTEM_PROMPT_PREFIX}{HELDOUT_RESIDUAL_REPAIR_POLICY}"
+    "slots 必须是 JSON object，不是 array/list；"
+    f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
+    f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
+    "禁 GUI 动作。"
+)
 TRAINING_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
     f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
     "",
@@ -115,8 +138,13 @@ EXTRACT_TRAINING_SYSTEM_PROMPT = EXTRACT_SYSTEM_PROMPT.replace(
     f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
     "",
 )
+REPAIR_TRAINING_SYSTEM_PROMPT = REPAIR_SYSTEM_PROMPT.replace(
+    f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
+    "",
+)
 PREDICTION_SYSTEM_PROMPT = f"{SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
 EXTRACT_PREDICTION_SYSTEM_PROMPT = f"{EXTRACT_SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
+REPAIR_PREDICTION_SYSTEM_PROMPT = f"{REPAIR_SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
 
 FORMATTING_POLICY: dict[str, Any] = {
     "policy": "shared_contract_chat_template",
@@ -234,6 +262,22 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         and "slots.target=标价" in prompt,
         "extract_extra_particle_rejection_visible": "提取页面上的商品价格 是 strict-wrong" in prompt
         or "normalized_command=页面价格、提取页面标价、提取页面上的商品价格" in prompt,
+        "public_navigation_canonical_policy_visible": "public navigation canonical policy" in prompt
+        and 'route="open_url"' in prompt
+        and "slots.url 必须使用 canonical URL" in prompt
+        and "https://docs.example.org" in prompt,
+        "ambiguous_clarify_policy_visible": "ambiguous clarify policy" in prompt
+        and 'task_type="clarify";route="clarify"' in prompt
+        and 'safety.reason="ambiguous_request"' in prompt
+        and "不要转 search/open_url" in prompt,
+        "form_confirmation_policy_visible": "form confirmation policy" in prompt
+        and 'task_type="form_fill";route="fill_form"' in prompt
+        and 'safety.reason="requires_confirmation"' in prompt
+        and "不要用 email/field_name 替代 field" in prompt,
+        "unsafe_payment_block_policy_visible": "unsafe payment block policy" in prompt
+        and 'task_type="blocked";route="deny"' in prompt
+        and 'safety.allow=false;safety.reason="unsafe_payment"' in prompt
+        and "payment_requires_user_control" in prompt,
     }
 
 
@@ -241,6 +285,7 @@ def prediction_prompt_constraint_summary() -> dict[str, bool]:
     summaries = [
         prompt_constraint_summary(PREDICTION_SYSTEM_PROMPT),
         prompt_constraint_summary(EXTRACT_PREDICTION_SYSTEM_PROMPT),
+        prompt_constraint_summary(REPAIR_PREDICTION_SYSTEM_PROMPT),
     ]
     keys = set().union(*(summary.keys() for summary in summaries))
     return {key: any(summary.get(key, False) for summary in summaries) for key in sorted(keys)}
@@ -277,8 +322,18 @@ def _uses_extract_policy(row: SFTDatasetRow) -> bool:
     )
 
 
+def _uses_repair_policy(row: SFTDatasetRow) -> bool:
+    contract = as_contract(row.target_contract)
+    return contract.task_type in {"navigate", "clarify", "form_fill", "blocked"}
+
+
 def format_sft_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
-    system_prompt = EXTRACT_TRAINING_SYSTEM_PROMPT if _uses_extract_policy(row) else TRAINING_SYSTEM_PROMPT
+    if _uses_extract_policy(row):
+        system_prompt = EXTRACT_TRAINING_SYSTEM_PROMPT
+    elif _uses_repair_policy(row):
+        system_prompt = REPAIR_TRAINING_SYSTEM_PROMPT
+    else:
+        system_prompt = TRAINING_SYSTEM_PROMPT
     return [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": row.input_text},
@@ -287,7 +342,12 @@ def format_sft_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
 
 
 def format_sft_prompt_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
-    system_prompt = EXTRACT_PREDICTION_SYSTEM_PROMPT if _uses_extract_policy(row) else PREDICTION_SYSTEM_PROMPT
+    if _uses_extract_policy(row):
+        system_prompt = EXTRACT_PREDICTION_SYSTEM_PROMPT
+    elif _uses_repair_policy(row):
+        system_prompt = REPAIR_PREDICTION_SYSTEM_PROMPT
+    else:
+        system_prompt = PREDICTION_SYSTEM_PROMPT
     return [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": row.input_text},

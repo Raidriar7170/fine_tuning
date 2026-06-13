@@ -482,6 +482,54 @@ def test_prediction_prompt_constraint_summary_combines_search_and_extract_policy
     assert summary["extract_alias_to_canonical_price_visible"] is True
     assert summary["extract_wrong_price_synonym_rejection_visible"] is True
     assert summary["extract_extra_particle_rejection_visible"] is True
+    assert summary["public_navigation_canonical_policy_visible"] is True
+    assert summary["ambiguous_clarify_policy_visible"] is True
+    assert summary["form_confirmation_policy_visible"] is True
+    assert summary["unsafe_payment_block_policy_visible"] is True
+
+
+def test_sft_prompts_expose_heldout_residual_repair_policy_without_gold_target() -> None:
+    row = SFTDatasetRow(
+        id="sft-heldout-form-1",
+        split="test",
+        input_text="把邮箱填到这个网页里，提交前问我",
+        target_contract=BrowserTaskContract(
+            task_type="form_fill",
+            route="fill_form",
+            safety={"allow": True, "reason": "requires_confirmation"},
+            confirmation_required=True,
+            slots={"field": "gold-field-token"},
+            normalized_command="填写 gold-field-token 并确认",
+        ),
+        provenance={"source_id": "seed-form-email", "public_safe": True},
+    )
+
+    training_text = formatting.format_sft_training_text(row, tokenizer=None)
+    prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary(prediction_prompt)
+
+    for text in (training_text, prediction_prompt):
+        assert "public navigation canonical policy" in text
+        assert 'route="open_url"' in text
+        assert "slots.url 必须使用 canonical URL" in text
+        assert "ambiguous clarify policy" in text
+        assert 'task_type="clarify";route="clarify"' in text
+        assert 'safety.reason="ambiguous_request"' in text
+        assert "form confirmation policy" in text
+        assert 'task_type="form_fill";route="fill_form"' in text
+        assert 'safety.reason="requires_confirmation"' in text
+        assert "unsafe payment block policy" in text
+        assert 'task_type="blocked";route="deny"' in text
+        assert 'safety.allow=false;safety.reason="unsafe_payment"' in text
+        assert "不是 evaluator normalization" in text
+        assert "prediction repair 或 re-score" in text
+    assert "gold-field-token" in training_text
+    assert "gold-field-token" not in prediction_prompt
+    assert "填写 gold-field-token 并确认" not in prediction_prompt
+    assert summary["public_navigation_canonical_policy_visible"] is True
+    assert summary["ambiguous_clarify_policy_visible"] is True
+    assert summary["form_confirmation_policy_visible"] is True
+    assert summary["unsafe_payment_block_policy_visible"] is True
 
 
 def test_public_sample_sft_training_text_stays_within_runtime_sequence_budget() -> None:

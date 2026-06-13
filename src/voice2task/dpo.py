@@ -20,6 +20,10 @@ REJECTION_SLICE = {
     "extract_generic_price_wording": "slot",
     "extract_listed_price_wording": "slot",
     "extract_extra_particle_wording": "normalized_command",
+    "clarify_action_drift": "task_type",
+    "blocked_payment_action_drift": "safety",
+    "form_confirmation_drift": "confirmation",
+    "navigate_canonical_url_drift": "normalized_command",
     "underspecified_request": "underspecified",
     "malformed_schema": "schema",
 }
@@ -147,6 +151,79 @@ def validate_dpo_pair(pair: DPOPair) -> None:
         if rejected.get("normalized_command") == EXTRACT_PRICE_CANONICAL_NORMALIZED_COMMAND:
             raise ValidationError(
                 f"extract_extra_particle_wording: {pair.id} rejected contract must change normalized_command"
+            )
+    if pair.rejection_reason == "clarify_action_drift":
+        if not (
+            chosen.get("task_type") == "clarify"
+            and chosen.get("route") == "clarify"
+            and chosen.get("confirmation_required") is True
+            and chosen.get("safety", {}).get("reason") == "ambiguous_request"
+            and "ambiguity" in chosen.get("slots", {})
+        ):
+            raise ValidationError(
+                f"clarify_action_drift: {pair.id} chosen must be an ambiguous clarify contract"
+            )
+        if rejected.get("task_type") == "clarify" and rejected.get("route") == "clarify":
+            raise ValidationError(
+                f"clarify_action_drift: {pair.id} rejected contract must drift away from clarify"
+            )
+    if pair.rejection_reason == "blocked_payment_action_drift":
+        if not (
+            chosen.get("task_type") == "blocked"
+            and chosen.get("route") == "deny"
+            and chosen.get("safety", {}).get("allow") is False
+            and chosen.get("safety", {}).get("reason") == "unsafe_payment"
+        ):
+            raise ValidationError(
+                f"blocked_payment_action_drift: {pair.id} chosen must be an unsafe payment block contract"
+            )
+        if (
+            rejected.get("task_type") == "blocked"
+            and rejected.get("route") == "deny"
+            and rejected.get("safety", {}).get("allow") is False
+        ):
+            raise ValidationError(
+                f"blocked_payment_action_drift: {pair.id} rejected contract must allow or route payment action"
+            )
+    if pair.rejection_reason == "form_confirmation_drift":
+        chosen_slots = chosen.get("slots", {})
+        rejected_slots = rejected.get("slots", {})
+        if not (
+            chosen.get("task_type") == "form_fill"
+            and chosen.get("route") == "fill_form"
+            and chosen.get("confirmation_required") is True
+            and chosen.get("safety", {}).get("reason") == "requires_confirmation"
+            and "field" in chosen_slots
+        ):
+            raise ValidationError(
+                f"form_confirmation_drift: {pair.id} chosen must be a confirmation-required form contract"
+            )
+        if (
+            rejected.get("confirmation_required") is True
+            and rejected.get("safety", {}).get("reason") == "requires_confirmation"
+            and set(rejected_slots) == {"field"}
+        ):
+            raise ValidationError(
+                f"form_confirmation_drift: {pair.id} rejected contract must change confirmation, safety, or field slot"
+            )
+    if pair.rejection_reason == "navigate_canonical_url_drift":
+        chosen_slots = chosen.get("slots", {})
+        rejected_slots = rejected.get("slots", {})
+        if not (
+            chosen.get("task_type") == "navigate"
+            and chosen.get("route") == "open_url"
+            and chosen.get("safety", {}).get("reason") == "public_readonly"
+            and "url" in chosen_slots
+        ):
+            raise ValidationError(
+                f"navigate_canonical_url_drift: {pair.id} chosen must be a public-readonly navigation contract"
+            )
+        if (
+            rejected_slots.get("url") == chosen_slots.get("url")
+            and rejected.get("normalized_command") == chosen.get("normalized_command")
+        ):
+            raise ValidationError(
+                f"navigate_canonical_url_drift: {pair.id} rejected contract must change URL or normalized_command"
             )
     if pair.rejection_reason == "underspecified_request" and rejected.get("route") != "clarify":
         raise ValidationError(f"underspecified_request: {pair.id} rejected contract must route to clarify")

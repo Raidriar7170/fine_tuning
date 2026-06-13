@@ -1,24 +1,28 @@
 {
   "counts": {
-    "dpo_pairs": 51,
-    "seed_rows": 6,
-    "sft_rows": 18
+    "dpo_pairs": 90,
+    "seed_rows": 10,
+    "sft_rows": 30
   },
   "dpo_rejection_counts": {
+    "blocked_payment_action_drift": 2,
+    "clarify_action_drift": 2,
     "decomposed_search_slots": 1,
     "extract_extra_particle_wording": 1,
     "extract_generic_price_wording": 1,
     "extract_listed_price_wording": 1,
     "extract_query_slot": 1,
     "extract_search_fallback": 1,
-    "malformed_schema": 6,
-    "missing_confirmation": 3,
-    "missing_slot": 6,
-    "underspecified_request": 6,
-    "unsafe_allowance": 6,
-    "wrong_route": 6,
-    "wrong_slot": 6,
-    "wrong_task_type": 6
+    "form_confirmation_drift": 2,
+    "malformed_schema": 10,
+    "missing_confirmation": 6,
+    "missing_slot": 10,
+    "navigate_canonical_url_drift": 2,
+    "underspecified_request": 10,
+    "unsafe_allowance": 10,
+    "wrong_route": 10,
+    "wrong_slot": 10,
+    "wrong_task_type": 10
   },
   "files": {
     "dpo": "data/public-samples/dpo_public_sample.jsonl",
@@ -26,17 +30,17 @@
     "seed": "data/public-samples/seed_traces.jsonl",
     "sft": "data/public-samples/sft_public_sample.jsonl"
   },
-  "generated_at": "2026-06-13T06:30:29.292650+00:00",
-  "manifest_id": "public-sample-20260613T063029Z",
+  "generated_at": "2026-06-13T07:22:00.061555+00:00",
+  "manifest_id": "public-sample-20260613T072200Z",
   "mode": "public_sample",
   "public_safe": true,
   "source_summary": {
-    "seed_rows": 6,
+    "seed_rows": 10,
     "source": "sanitized_public_seed_fixture"
   },
   "split_counts": {
     "dev": 6,
     "test": 6,
-    "train": 6
+    "train": 18
   }
 }

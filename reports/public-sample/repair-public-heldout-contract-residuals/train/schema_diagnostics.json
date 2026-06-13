@@ -1,0 +1,46 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "full_private_corpus_claim": false,
+    "invalid_predictions_remain_invalid": true,
+    "live_browser_benchmark_claim": false,
+    "production_readiness_claim": false
+  },
+  "diagnostic_kind": "browser_task_contract_schema_mismatch",
+  "rows": [
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be a non-empty string",
+          "field_path": "safety.reason",
+          "issue_category": "empty_required_string",
+          "observed_value_summary": "empty string",
+          "row_id": "seed-form-nickname-aug-1"
+        }
+      ],
+      "row_id": "seed-form-nickname-aug-1"
+    },
+    {
+      "issues": [
+        {
+          "expected_constraint": "must be v1",
+          "field_path": "contract_version",
+          "issue_category": "invalid_literal",
+          "observed_value_summary": "int: 1",
+          "row_id": "seed-form-nickname-aug-2"
+        }
+      ],
+      "row_id": "seed-form-nickname-aug-2"
+    }
+  ],
+  "summary": {
+    "gold_row_count": 18,
+    "invalid_prediction_count": 2,
+    "issue_counts": {
+      "empty_required_string": 1,
+      "invalid_literal": 1
+    },
+    "prediction_count": 18
+  }
+}

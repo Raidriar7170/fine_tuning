@@ -4174,8 +4174,11 @@ def test_compact_query_slot_preservation_pack_is_public_safe_and_bounded() -> No
     assert summary["source_residual_policy"]["source_diagnosis_summary"] == source_diagnosis["summary"]
 
     public_sample = summary["public_sample"]
-    assert public_sample["counts"]["sft_rows"] == public_manifest["counts"]["sft_rows"]
-    assert public_sample["counts"]["seed_rows"] == public_manifest["counts"]["seed_rows"]
+    assert public_sample["manifest_id"] == manifest["public_sample_manifest_id"]
+    assert public_sample["counts"]["sft_rows"] == manifest["counts"]["sft_rows"]
+    assert public_sample["counts"]["dpo_pairs"] == manifest["counts"]["dpo_pairs"]
+    assert public_sample["counts"]["seed_rows"] <= public_manifest["counts"]["seed_rows"]
+    assert public_sample["counts"]["sft_rows"] <= public_manifest["counts"]["sft_rows"]
     assert public_sample["counts"]["dpo_pairs"] <= public_manifest["counts"]["dpo_pairs"]
     assert public_sample["dpo_rejection_counts"]["decomposed_search_slots"] == (
         public_manifest["dpo_rejection_counts"]["decomposed_search_slots"]
@@ -4208,10 +4211,11 @@ def test_compact_query_slot_preservation_pack_is_public_safe_and_bounded() -> No
 
     assert manifest["evidence_kind"] == summary["evidence_kind"]
     assert manifest["source_prior_phase"] == source_dir.as_posix()
+    assert manifest["public_sample_manifest_id"] == public_sample["manifest_id"]
     assert manifest["counts"]["dpo_pairs"] <= public_manifest["counts"]["dpo_pairs"]
-    assert manifest["counts"]["sft_rows"] == public_manifest["counts"]["sft_rows"]
+    assert manifest["counts"]["sft_rows"] <= public_manifest["counts"]["sft_rows"]
     if "seed_rows" in manifest["counts"]:
-        assert manifest["counts"]["seed_rows"] == public_manifest["counts"]["seed_rows"]
+        assert manifest["counts"]["seed_rows"] <= public_manifest["counts"]["seed_rows"]
     assert manifest["counts"]["decomposed_search_slots_pairs"] == 1
     assert manifest["diagnostic_artifacts"]["summary_json"].endswith("compact_query_slot_preservation.json")
     assert manifest["diagnostic_artifacts"]["report"].endswith("compact_query_slot_preservation.md")

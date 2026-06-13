@@ -303,6 +303,104 @@ def test_public_heldout_contract_generalization_prediction_configs_are_split_spe
         assert scan_paths([config_path]).ok is True
 
 
+def test_public_heldout_residual_repair_a100_configs_are_split_specific_and_public_safe() -> None:
+    manifest_id = "public-sample-20260613T072200Z"
+    sft_config_path = REPO_ROOT / "configs" / "sft-a100-public-heldout-residual-repair-rerun.json"
+    prediction_config_paths = {
+        "train": REPO_ROOT / "configs" / "sft-a100-public-heldout-residual-repair-train-prediction.json",
+        "dev": REPO_ROOT / "configs" / "sft-a100-public-heldout-residual-repair-dev-prediction.json",
+        "test": REPO_ROOT / "configs" / "sft-a100-public-heldout-residual-repair-test-prediction.json",
+    }
+
+    assert sft_config_path.exists()
+    sft_config = json.loads(sft_config_path.read_text(encoding="utf-8"))
+    serialized_sft = json.dumps(sft_config, ensure_ascii=False, sort_keys=True)
+    assert sft_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert sft_config["dataset_manifest_id"] == manifest_id
+    assert sft_config["public_sample_manifest"] == "data/public-samples/manifest_public_sample.json"
+    assert sft_config["dataset_split"] == "train"
+    assert sft_config["dev_split"] == "dev"
+    assert sft_config["allow_heavy_training"] is True
+    assert sft_config["public_heldout_residual_repair"] is True
+    assert sft_config["generalization_claim"] is False
+    assert sft_config["output_root"] == "<a100_project_root>"
+    assert sft_config["adapter_output_dir"] == (
+        "<a100_project_root>/runs/a100-public-heldout-residual-repair-rerun/adapter"
+    )
+    assert "/mnt/data/" not in serialized_sft
+    assert "/Users/" not in serialized_sft
+
+    for split, config_path in prediction_config_paths.items():
+        assert config_path.exists()
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        serialized = json.dumps(config, ensure_ascii=False, sort_keys=True)
+
+        assert config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+        assert config["dataset_manifest_id"] == manifest_id
+        assert config["public_sample_manifest"] == "data/public-samples/manifest_public_sample.json"
+        assert config["prediction_split"] == split
+        assert config["allow_private_prediction"] is True
+        assert config["public_heldout_residual_repair"] is True
+        assert config["generalization_claim"] is False
+        assert config["output_root"] == "<a100_project_root>"
+        assert config["adapter_path"] == (
+            "<a100_project_root>/runs/a100-public-heldout-residual-repair-rerun/adapter"
+        )
+        assert config["evidence_output_dir"] == (
+            f"<a100_project_root>/evidence/a100-public-heldout-residual-repair/{split}"
+        )
+        assert config["reference_runtime"] == f"a100-public-heldout-residual-repair-{split}-prediction"
+        assert "allow_heavy_training" not in config
+        assert "adapter_output_dir" not in config
+        assert "/mnt/data/" not in serialized
+        assert "/Users/" not in serialized
+        assert scan_paths([config_path]).ok is True
+
+    assert scan_paths([sft_config_path, *prediction_config_paths.values()]).ok is True
+
+
+def test_public_heldout_residual_repair_evidence_records_negative_result_without_release_claims() -> None:
+    evidence_dir = REPO_ROOT / "reports" / "public-sample" / "repair-public-heldout-contract-residuals"
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    diagnosis = json.loads((evidence_dir / "heldout_residual_repair_diagnosis.json").read_text(encoding="utf-8"))
+    train_metrics = json.loads((evidence_dir / "train" / "metrics.json").read_text(encoding="utf-8"))
+    dev_metrics = json.loads((evidence_dir / "dev" / "metrics.json").read_text(encoding="utf-8"))
+    test_metrics = json.loads((evidence_dir / "test" / "metrics.json").read_text(encoding="utf-8"))
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8").lower()
+
+    assert manifest["evidence_kind"] == "a100_public_heldout_residual_repair"
+    assert manifest["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert manifest["dataset_manifest_id"] == "public-sample-20260613T072200Z"
+    assert manifest["prediction_splits"] == ["train", "dev", "test"]
+    assert manifest["primary_evidence_splits"] == ["dev", "test"]
+    assert manifest["overall_interpretation"] == "public_heldout_residual_repair_failed"
+    assert manifest["claims"]["public_heldout_residual_repair"] is True
+    assert manifest["claims"]["held_out_generalization_recovered"] is False
+    assert manifest["claims"]["model_recovery_claim"] is False
+    assert manifest["claims"]["adapter_release"] is False
+    assert manifest["claims"]["checkpoint_release"] is False
+    assert manifest["artifact_policy"]["checkpoints_or_adapters_copied_to_git"] is False
+    assert manifest["artifact_policy"]["private_paths_omitted"] is True
+    assert manifest["split_results"]["train"]["contract_exact_match"] == pytest.approx(1 / 3)
+    assert manifest["split_results"]["dev"]["contract_exact_match"] == 0.0
+    assert manifest["split_results"]["test"]["contract_exact_match"] == 0.0
+    assert manifest["split_results"]["dev"]["json_valid_rate"] == 1.0
+    assert manifest["split_results"]["test"]["json_valid_rate"] == 1.0
+    assert train_metrics["metrics"]["contract_exact_match"] == pytest.approx(1 / 3)
+    assert dev_metrics["metrics"]["contract_exact_match"] == 0.0
+    assert test_metrics["metrics"]["contract_exact_match"] == 0.0
+    assert diagnosis["summary"]["overall_interpretation"] == "public_heldout_residual_repair_failed"
+    assert diagnosis["summary"]["split_exact_match"]["train"] == pytest.approx(1 / 3)
+    assert diagnosis["summary"]["split_exact_match"]["dev"] == 0.0
+    assert diagnosis["summary"]["split_exact_match"]["test"] == 0.0
+    assert leak_scan["ok"] is True
+    assert "negative result" in report
+    assert "not a release" in report
+    assert "private-corpus" in report
+    assert scan_paths([evidence_dir]).ok is True
+
+
 def test_prompt_snapshot_row_records_actual_extract_prompt_constraints() -> None:
     row = SFTDatasetRow(
         id="seed-extract-price-aug-1",

@@ -219,6 +219,188 @@ def test_validate_dpo_pair_accepts_extract_price_canonical_wording_hard_negative
     }
 
 
+def _clarify_contract() -> BrowserTaskContract:
+    return BrowserTaskContract(
+        task_type="clarify",
+        route="clarify",
+        safety={"allow": True, "reason": "ambiguous_request"},
+        confirmation_required=True,
+        slots={"ambiguity": "目标不明确，未指定具体网站或页面"},
+        normalized_command="请求澄清目标",
+    )
+
+
+def _blocked_payment_contract() -> BrowserTaskContract:
+    return BrowserTaskContract(
+        task_type="blocked",
+        route="deny",
+        safety={"allow": False, "reason": "unsafe_payment"},
+        confirmation_required=True,
+        slots={"reason": "payment_requires_user_control"},
+        normalized_command="拒绝代替用户付款",
+    )
+
+
+def _form_contract() -> BrowserTaskContract:
+    return BrowserTaskContract(
+        task_type="form_fill",
+        route="fill_form",
+        safety={"allow": True, "reason": "requires_confirmation"},
+        confirmation_required=True,
+        slots={"field": "邮箱"},
+        normalized_command="填写邮箱并确认",
+    )
+
+
+def _navigate_contract() -> BrowserTaskContract:
+    return BrowserTaskContract(
+        task_type="navigate",
+        route="open_url",
+        safety={"allow": True, "reason": "public_readonly"},
+        confirmation_required=False,
+        slots={"url": "https://example.com"},
+        normalized_command="打开示例网站",
+    )
+
+
+def test_validate_dpo_pair_accepts_heldout_residual_repair_hard_negatives() -> None:
+    pairs = [
+        DPOPair(
+            id="clarify-action-drift",
+            split="train",
+            input_text="帮我处理那个",
+            chosen_contract=_clarify_contract(),
+            rejected_contract=_contract(
+                task_type="search",
+                route="search_web",
+                confirmation_required=False,
+                query="公开信息",
+                safety_reason="public_readonly",
+            ),
+            rejection_reason="clarify_action_drift",
+            provenance={"source_id": "seed-clarify-target", "public_safe": True},
+        ),
+        DPOPair(
+            id="blocked-payment-action-drift",
+            split="train",
+            input_text="帮我付款",
+            chosen_contract=_blocked_payment_contract(),
+            rejected_contract=_contract(
+                task_type="search",
+                route="search_web",
+                confirmation_required=False,
+                query="付款",
+                safety_reason="public_readonly",
+            ),
+            rejection_reason="blocked_payment_action_drift",
+            provenance={"source_id": "seed-block-transfer", "public_safe": True},
+        ),
+        DPOPair(
+            id="form-confirmation-drift",
+            split="train",
+            input_text="填邮箱，提交前问我",
+            chosen_contract=_form_contract(),
+            rejected_contract=BrowserTaskContract(
+                task_type="form_fill",
+                route="fill_form",
+                safety={"allow": True, "reason": "public_readonly"},
+                confirmation_required=False,
+                slots={"email": "邮箱"},
+                normalized_command="填写邮箱并确认",
+            ),
+            rejection_reason="form_confirmation_drift",
+            provenance={"source_id": "seed-form-email", "public_safe": True},
+        ),
+        DPOPair(
+            id="navigate-canonical-url-drift",
+            split="train",
+            input_text="打开 example.com",
+            chosen_contract=_navigate_contract(),
+            rejected_contract=BrowserTaskContract(
+                task_type="navigate",
+                route="open_url",
+                safety={"allow": True, "reason": "public_readonly"},
+                confirmation_required=False,
+                slots={"url": "example.com"},
+                normalized_command="打开 example.com",
+            ),
+            rejection_reason="navigate_canonical_url_drift",
+            provenance={"source_id": "seed-open-example", "public_safe": True},
+        ),
+    ]
+
+    for pair in pairs:
+        validate_dpo_pair(pair)
+
+    summary = summarize_dpo_slices(pairs)
+    assert summary["task_type"]["count"] == 1
+    assert summary["safety"]["count"] == 1
+    assert summary["confirmation"]["count"] == 1
+    assert summary["normalized_command"]["count"] == 1
+
+
+@pytest.mark.parametrize(
+    ("pair_kwargs", "message"),
+    [
+        (
+            {
+                "id": "bad-clarify-action-drift",
+                "split": "train",
+                "input_text": "帮我处理那个",
+                "chosen_contract": _clarify_contract(),
+                "rejected_contract": _clarify_contract(),
+                "rejection_reason": "clarify_action_drift",
+                "provenance": {"source_id": "seed-clarify-target", "public_safe": True},
+            },
+            "weak_pair",
+        ),
+        (
+            {
+                "id": "bad-blocked-payment-action-drift",
+                "split": "train",
+                "input_text": "帮我付款",
+                "chosen_contract": _blocked_payment_contract(),
+                "rejected_contract": _blocked_payment_contract(),
+                "rejection_reason": "blocked_payment_action_drift",
+                "provenance": {"source_id": "seed-block-transfer", "public_safe": True},
+            },
+            "weak_pair",
+        ),
+        (
+            {
+                "id": "bad-form-confirmation-drift",
+                "split": "train",
+                "input_text": "填邮箱，提交前问我",
+                "chosen_contract": _form_contract(),
+                "rejected_contract": _form_contract(),
+                "rejection_reason": "form_confirmation_drift",
+                "provenance": {"source_id": "seed-form-email", "public_safe": True},
+            },
+            "weak_pair",
+        ),
+        (
+            {
+                "id": "bad-navigate-canonical-url-drift",
+                "split": "train",
+                "input_text": "打开 example.com",
+                "chosen_contract": _navigate_contract(),
+                "rejected_contract": _navigate_contract(),
+                "rejection_reason": "navigate_canonical_url_drift",
+                "provenance": {"source_id": "seed-open-example", "public_safe": True},
+            },
+            "weak_pair",
+        ),
+    ],
+)
+def test_validate_dpo_pair_rejects_weak_heldout_residual_repair_hard_negatives(
+    pair_kwargs: dict[str, object],
+    message: str,
+) -> None:
+    with pytest.raises(ValidationError, match=message):
+        pair = DPOPair(**pair_kwargs)
+        validate_dpo_pair(pair)
+
+
 @pytest.mark.parametrize(
     ("pair_kwargs", "message"),
     [
