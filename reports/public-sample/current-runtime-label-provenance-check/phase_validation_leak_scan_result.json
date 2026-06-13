@@ -1,0 +1,11 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T16:00:45.848543+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/current-runtime-label-provenance-check",
+    "configs/sft-current-runtime-label-provenance-check.json",
+    "openspec/changes/run-fresh-current-manifest-runtime-label-check"
+  ]
+}

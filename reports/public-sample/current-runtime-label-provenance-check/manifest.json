@@ -1,0 +1,78 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "raw_rendered_prompts_written": false
+  },
+  "assistant_token_count": 56,
+  "assistant_tokens_carry_loss": true,
+  "base_model_public_id": "Qwen/Qwen2.5-7B-Instruct",
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false
+  },
+  "current_manifest_runtime_label_proof": true,
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "evidence_kind": "current_runtime_label_provenance_check",
+  "evidence_status": "labels_inspected",
+  "execution_scope": {
+    "a100_runtime_label_check": true,
+    "dpo_training": false,
+    "grpo_training": false,
+    "model_download_to_repo": false,
+    "prediction_export": false,
+    "private_adapter_loaded": false,
+    "sft_training": false,
+    "tokenizer_collator_label_inspection_only": true
+  },
+  "expected_manifest_id": "public-sample-20260613T072200Z",
+  "files": {
+    "final_leak_scan": "reports/public-sample/current-runtime-label-provenance-check/final_leak_scan_result.json",
+    "final_phase_leak_scan": "reports/public-sample/current-runtime-label-provenance-check/final_phase_leak_scan_result.json",
+    "leak_scan": "reports/public-sample/current-runtime-label-provenance-check/leak_scan_result.json",
+    "manifest": "reports/public-sample/current-runtime-label-provenance-check/manifest.json",
+    "post_archive_leak_scan": "reports/public-sample/current-runtime-label-provenance-check/post_archive_leak_scan_result.json",
+    "runtime_metadata": "reports/public-sample/current-runtime-label-provenance-check/runtime_observed_metadata.json",
+    "summary_json": "reports/public-sample/current-runtime-label-provenance-check/runtime_label_provenance_check.json",
+    "summary_markdown": "reports/public-sample/current-runtime-label-provenance-check/runtime_label_provenance_check.md"
+  },
+  "final_leak_scan": {
+    "findings": [],
+    "ok": true
+  },
+  "final_phase_leak_scan": {
+    "findings": [],
+    "ok": true
+  },
+  "generated_at": "2026-06-13T15:59:01.230699+00:00",
+  "leak_scan": {
+    "findings": [],
+    "ok": true
+  },
+  "manifest_freshness": "fresh_current_manifest",
+  "post_archive_leak_scan": {
+    "findings": [],
+    "ok": true
+  },
+  "prior_artifacts": {
+    "runtime_label_tiny_overfit_diagnostic": "reports/public-sample/runtime-label-tiny-overfit-diagnostic/",
+    "stale_runtime_label_provenance_check": "reports/public-sample/runtime-label-provenance-check/"
+  },
+  "prior_artifacts_role": "historical_context_only",
+  "prompt_token_count": 524,
+  "prompt_tokens_masked": true,
+  "recommended_next_step": "run_1_to_3_row_current_manifest_tiny_overfit_probe",
+  "runtime_check_status": "executed_runtime_label_provenance_check",
+  "runtime_dependency_notes": {
+    "datasets_installed": false,
+    "runtime_label_check_required_full_train_extras": false,
+    "tmpdir_relocated_under_private_project_root": true,
+    "trl_installed": false
+  },
+  "true_label_mask_status": "inspectable"
+}

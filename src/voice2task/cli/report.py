@@ -49,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_check.add_argument("--runtime-metadata", type=Path, required=True)
     runtime_check.add_argument("--output-dir", type=Path, required=True)
     runtime_check.add_argument("--leak-scan-result", type=Path)
+    runtime_check.add_argument("--expected-manifest-id")
     runtime_check.add_argument("--prior-artifact", action="append", default=[])
     return parser
 
@@ -122,6 +123,7 @@ def main(argv: list[str] | None = None) -> int:
             output_dir=args.output_dir,
             leak_scan_result=read_json(args.leak_scan_result) if args.leak_scan_result else None,
             prior_artifacts=_prior_artifacts(args.prior_artifact),
+            expected_manifest_id=args.expected_manifest_id,
         )
         print(
             json.dumps(

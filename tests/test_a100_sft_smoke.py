@@ -854,7 +854,6 @@ def test_runtime_label_provenance_check_records_real_collator_labels_with_explic
         runtime_check_output_dir=output.parent.as_posix(),
         evidence_output_dir=output.parent.as_posix(),
     )
-
     def inspector(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
         return training.inspect_sft_objective(
             row,
@@ -898,6 +897,47 @@ def test_runtime_label_provenance_check_records_real_collator_labels_with_explic
     assert "fixture" not in metadata["label_source_kind"]
     assert "/mnt/data/" not in serialized
     assert "/Users/" not in serialized
+
+
+def test_runtime_label_provenance_check_uses_tokenizer_without_full_train_extras(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    manifest = _write_manifest(tmp_path)
+    resolved_root = tmp_path / "private-a100-root"
+    output = resolved_root / "evidence" / "runtime-label-provenance-check" / "runtime.json"
+    config = _write_runtime_label_provenance_config(
+        tmp_path,
+        allow_runtime_check=True,
+        output_root=resolved_root.as_posix(),
+        adapter_path=(resolved_root / "runs" / "adapter").as_posix(),
+        runtime_check_output_dir=output.parent.as_posix(),
+        evidence_output_dir=output.parent.as_posix(),
+    )
+    config_payload = json.loads(config.read_text(encoding="utf-8"))
+    config_payload["base_model"] = (resolved_root / "models" / "qwen2.5-7b-instruct").as_posix()
+    config.write_text(json.dumps(config_payload), encoding="utf-8")
+    monkeypatch.setattr(training, "_train_dependencies_available", lambda: False)
+    monkeypatch.setitem(
+        training.__dict__,
+        "AutoTokenizer",
+        types.SimpleNamespace(from_pretrained=lambda *args, **kwargs: _RuntimeInspectableTokenizer()),
+    )
+
+    metadata = training.run_sft_runtime_label_provenance_check(
+        config,
+        manifest,
+        split="train",
+        output_path=output,
+        run_runtime_check=True,
+    )
+
+    assert metadata["evidence_status"] == "labels_inspected"
+    assert metadata["tokenizer_status"] == "available"
+    assert metadata["collator_status"] == "labels_inspected"
+    assert metadata["true_label_mask_status"] == "inspectable"
+    assert metadata["prompt_tokens_masked"] is True
+    assert metadata["assistant_tokens_carry_loss"] is True
 
 
 def test_runtime_label_provenance_check_downgrades_fixture_labels_to_fixture_only(

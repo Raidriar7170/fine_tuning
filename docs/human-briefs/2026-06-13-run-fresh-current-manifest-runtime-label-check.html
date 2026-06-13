@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task fresh current-manifest runtime label check</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; max-width: 980px; margin: 32px auto; padding: 0 20px; color: #20242a; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    h2 { margin-top: 26px; font-size: 18px; }
+    .status { padding: 12px 14px; border-left: 4px solid #16a34a; background: #f0fdf4; }
+    code { background: #f4f4f5; padding: 1px 4px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f7f7f8; }
+  </style>
+</head>
+<body>
+  <h1>Voice2Task fresh current-manifest runtime label check</h1>
+  <p class="status"><strong>一句话结论：</strong>当前 manifest 的真实 tokenizer/collator label path 已检查：prompt/system/user tokens 被 mask，assistant contract tokens carry loss；下一步可以单独开 1-3 row tiny-overfit probe，但本阶段不声称模型恢复。</p>
+
+  <h2>当前状态</h2>
+  <p>阶段状态：archived；证据类型：A100 runtime label provenance check；没有训练、DPO、GRPO、prediction export、private adapter load、checkpoint 或 adapter release。</p>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li>新增 current-manifest runtime-label report freshness 判断：stale prior artifacts 只能作为 historical context。</li>
+    <li>新增 public-safe config template：<code>configs/sft-current-runtime-label-provenance-check.json</code>。</li>
+    <li>把 runtime label dependency gate 从 full train extras 收窄到 tokenizer-only path，heavy training gate 不变。</li>
+    <li>生成 fresh current-manifest evidence pack：<code>reports/public-sample/current-runtime-label-provenance-check/</code>。</li>
+  </ul>
+
+  <h2>关键结果</h2>
+  <table>
+    <tr><th>项目</th><th>结果</th><th>含义</th></tr>
+    <tr><td>current manifest</td><td><code>public-sample-20260613T072200Z</code></td><td>本轮 evidence 与当前 public sample 对齐。</td></tr>
+    <tr><td>manifest freshness</td><td><code>fresh_current_manifest</code></td><td>不是旧 runtime-label evidence 的复用。</td></tr>
+    <tr><td>runtime evidence</td><td><code>labels_inspected</code></td><td>真实 tokenizer/collator label tensor 可检查。</td></tr>
+    <tr><td>true label mask</td><td><code>inspectable</code></td><td>label provenance 来自 private training runtime path。</td></tr>
+    <tr><td>prompt masked</td><td><code>true</code></td><td>prompt/system/user tokens 不 carry loss。</td></tr>
+    <tr><td>assistant carry loss</td><td><code>true</code></td><td>assistant contract target tokens carry loss。</td></tr>
+    <tr><td>recommended next</td><td><code>run_1_to_3_row_current_manifest_tiny_overfit_probe</code></td><td>下一步才进入 tiny-overfit，必须另开阶段。</td></tr>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>openspec/changes/archive/2026-06-13-run-fresh-current-manifest-runtime-label-check/</code></li>
+    <li><code>configs/sft-current-runtime-label-provenance-check.json</code></li>
+    <li><code>src/voice2task/training.py</code></li>
+    <li><code>src/voice2task/reports.py</code></li>
+    <li><code>src/voice2task/cli/report.py</code></li>
+    <li><code>reports/public-sample/current-runtime-label-provenance-check/manifest.json</code></li>
+    <li><code>reports/public-sample/current-runtime-label-provenance-check/runtime_label_provenance_check.json</code></li>
+    <li><code>reports/public-sample/current-runtime-label-provenance-check/runtime_label_provenance_check.md</code></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>：<code>234 passed</code>。</li>
+    <li><code>uv run ruff check .</code>：<code>All checks passed!</code></li>
+    <li><code>uv run mypy src</code>：<code>Success: no issues found in 16 source files</code>。</li>
+    <li><code>voice2task-data validate --public</code>：<code>ok=true</code>, <code>sft_rows=30</code>, <code>dpo_pairs=90</code>。</li>
+    <li><code>voice2task-data dpo-check</code>：<code>total_pairs=90</code>。</li>
+    <li><code>openspec validate --all --strict</code>：archive 前 <code>5 passed</code>，archive 后 <code>4 passed</code>。</li>
+    <li><code>git diff --check</code>：passed。</li>
+    <li>Leak scans：<code>ok=true</code>, <code>findings=[]</code>。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <p>当前项目目标来自 <code>README.md</code> 和 <code>CONTEXT.md</code>：first-phase speech-to-contract normalization，把中文 spoken command / ASR transcript 转成 schema-valid Browser Task Contract。此阶段补齐了当前 manifest 的 SFT objective label-path 证据，让后续 tiny-overfit 或训练实验不再建立在旧 manifest runtime-label 证据上。</p>
+
+  <h2>剩余风险和不能夸大的点</h2>
+  <ul>
+    <li>这不是模型恢复证据；它只证明当前 rows 的 objective-path label masking。</li>
+    <li>没有预测、held-out rerun、DPO/GRPO、private adapter load 或 checkpoint/adapter release。</li>
+    <li>不能声称 private-corpus generalization、production readiness、public full-corpus release 或 live-browser benchmark improvement。</li>
+    <li>远端 runtime 缺少 full train extras，但本阶段只需要 tokenizer/collator label inspection；heavy training gate 没有放松。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>另开一个很小的新阶段：<code>run-current-manifest-tiny-overfit-probe</code>，只做 1-3 row train-internal tiny-overfit probe，继续保持 no held-out / no production / no release claim。</p>
+</body>
+</html>

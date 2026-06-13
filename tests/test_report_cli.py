@@ -529,6 +529,122 @@ def test_runtime_label_provenance_check_report_cli_requires_runtime_gate_for_lab
     assert summary["evidence_status"] == "labels_unavailable"
 
 
+def test_runtime_label_provenance_check_report_marks_stale_manifest_as_prior_context_only(
+    tmp_path: Path,
+    capsys,  # type: ignore[no-untyped-def]
+) -> None:
+    runtime_metadata = tmp_path / "old_runtime_metadata.json"
+    runtime_metadata.write_text(
+        json.dumps(
+            {
+                "evidence_kind": "sft_runtime_label_provenance_observed",
+                "runtime_check_status": "executed_runtime_label_provenance_check",
+                "runtime_gate": {
+                    "cli_requested_runtime_check": True,
+                    "config_allow_runtime_label_provenance_check": True,
+                    "private_override_resolved": True,
+                    "will_run_runtime_label_provenance_check": True,
+                },
+                "dataset_manifest_id": "public-sample-old",
+                "inspection_status": "inspectable",
+                "label_source_kind": "private_training_runtime",
+                "label_provenance": {"source_kind": "private_training_runtime", "real_training_path": True},
+                "label_tensor_available": True,
+                "true_label_mask_status": "inspectable",
+                "prompt_tokens_masked": True,
+                "assistant_tokens_carry_loss": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "runtime-label-provenance-check"
+
+    assert (
+        report_cli.main(
+            [
+                "runtime-label-provenance-check",
+                "--runtime-metadata",
+                runtime_metadata.as_posix(),
+                "--output-dir",
+                output_dir.as_posix(),
+                "--expected-manifest-id",
+                "public-sample-current",
+                "--prior-artifact",
+                "old_runtime=reports/public-sample/runtime-label-provenance-check/",
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["ok"] is True
+    summary = json.loads((output_dir / "runtime_label_provenance_check.json").read_text(encoding="utf-8"))
+    markdown = (output_dir / "runtime_label_provenance_check.md").read_text(encoding="utf-8")
+    assert summary["expected_manifest_id"] == "public-sample-current"
+    assert summary["dataset_manifest_id"] == "public-sample-old"
+    assert summary["manifest_freshness"] == "stale_manifest_mismatch"
+    assert summary["current_manifest_runtime_label_proof"] is False
+    assert summary["evidence_status"] == "stale_manifest_mismatch"
+    assert summary["prior_artifacts_role"] == "historical_context_only"
+    assert summary["recommended_next_step"] == "run_fresh_current_manifest_runtime_label_check"
+    assert "Stale prior artifacts are historical context only" in markdown
+
+
+def test_runtime_label_provenance_check_report_recommends_tiny_probe_only_for_fresh_assistant_only_labels(
+    tmp_path: Path,
+    capsys,  # type: ignore[no-untyped-def]
+) -> None:
+    runtime_metadata = tmp_path / "current_runtime_metadata.json"
+    runtime_metadata.write_text(
+        json.dumps(
+            {
+                "evidence_kind": "sft_runtime_label_provenance_observed",
+                "runtime_check_status": "executed_runtime_label_provenance_check",
+                "runtime_gate": {
+                    "cli_requested_runtime_check": True,
+                    "config_allow_runtime_label_provenance_check": True,
+                    "private_override_resolved": True,
+                    "will_run_runtime_label_provenance_check": True,
+                },
+                "dataset_manifest_id": "public-sample-current",
+                "inspection_status": "inspectable",
+                "label_source_kind": "private_training_runtime",
+                "label_provenance": {"source_kind": "private_training_runtime", "real_training_path": True},
+                "label_tensor_available": True,
+                "true_label_mask_status": "inspectable",
+                "prompt_tokens_masked": True,
+                "assistant_tokens_carry_loss": True,
+                "evidence_gaps": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "runtime-label-provenance-check"
+
+    assert (
+        report_cli.main(
+            [
+                "runtime-label-provenance-check",
+                "--runtime-metadata",
+                runtime_metadata.as_posix(),
+                "--output-dir",
+                output_dir.as_posix(),
+                "--expected-manifest-id",
+                "public-sample-current",
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["ok"] is True
+    summary = json.loads((output_dir / "runtime_label_provenance_check.json").read_text(encoding="utf-8"))
+    markdown = (output_dir / "runtime_label_provenance_check.md").read_text(encoding="utf-8")
+    assert summary["manifest_freshness"] == "fresh_current_manifest"
+    assert summary["current_manifest_runtime_label_proof"] is True
+    assert summary["assistant_only_loss_mask_claim"] is True
+    assert summary["recommended_next_step"] == "run_1_to_3_row_current_manifest_tiny_overfit_probe"
+    assert "Recommended next step: `run_1_to_3_row_current_manifest_tiny_overfit_probe`" in markdown
+
+
 def test_public_runtime_label_provenance_check_evidence_is_safe_and_bounded() -> None:
     evidence_dir = REPO_ROOT / "reports" / "public-sample" / "runtime-label-provenance-check"
     summary_path = evidence_dir / "runtime_label_provenance_check.json"
@@ -560,6 +676,37 @@ def test_public_runtime_label_provenance_check_evidence_is_safe_and_bounded() ->
     assert summary["assistant_only_loss_mask_claim"] is False
     assert "prompt_tokens_masked=false" in markdown
     assert leak_scan["ok"] is True
+    assert scan_paths([evidence_dir]).ok is True
+
+
+def test_current_runtime_label_provenance_check_evidence_is_fresh_and_bounded() -> None:
+    evidence_dir = REPO_ROOT / "reports" / "public-sample" / "current-runtime-label-provenance-check"
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    summary = json.loads((evidence_dir / "runtime_label_provenance_check.json").read_text(encoding="utf-8"))
+    metadata = json.loads((evidence_dir / "runtime_observed_metadata.json").read_text(encoding="utf-8"))
+    markdown = (evidence_dir / "runtime_label_provenance_check.md").read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    serialized = json.dumps(manifest, ensure_ascii=False, sort_keys=True)
+
+    assert manifest["dataset_manifest_id"] == "public-sample-20260613T072200Z"
+    assert manifest["expected_manifest_id"] == "public-sample-20260613T072200Z"
+    assert manifest["manifest_freshness"] == "fresh_current_manifest"
+    assert manifest["current_manifest_runtime_label_proof"] is True
+    assert manifest["execution_scope"]["tokenizer_collator_label_inspection_only"] is True
+    assert manifest["execution_scope"]["sft_training"] is False
+    assert manifest["execution_scope"]["prediction_export"] is False
+    assert manifest["execution_scope"]["private_adapter_loaded"] is False
+    assert manifest["true_label_mask_status"] == "inspectable"
+    assert manifest["prompt_tokens_masked"] is True
+    assert manifest["assistant_tokens_carry_loss"] is True
+    assert manifest["recommended_next_step"] == "run_1_to_3_row_current_manifest_tiny_overfit_probe"
+    assert summary["current_manifest_runtime_label_proof"] is True
+    assert summary["assistant_only_loss_mask_claim"] is True
+    assert metadata["label_source_kind"] == "private_training_runtime"
+    assert leak_scan["ok"] is True
+    assert "Recommended next step: `run_1_to_3_row_current_manifest_tiny_overfit_probe`" in markdown
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
     assert scan_paths([evidence_dir]).ok is True
 
 

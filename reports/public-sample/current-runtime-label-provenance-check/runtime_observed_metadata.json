@@ -1,0 +1,97 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "raw_rendered_prompts_written": false
+  },
+  "assistant_token_count": 56,
+  "assistant_tokens_carry_loss": true,
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false
+  },
+  "collator_status": "labels_inspected",
+  "config_path": "<private_path>",
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "dataset_manifest_path": "<private_path>",
+  "dependency_policy": {
+    "model_download_allowed": false,
+    "policy": "authorized_runtime_tokenizer_collator_check_no_adapter_load_no_training",
+    "private_adapter_load_allowed": false,
+    "raw_private_logs_copied_to_git": false
+  },
+  "evidence_gaps": [],
+  "evidence_kind": "sft_runtime_label_provenance_observed",
+  "evidence_status": "labels_inspected",
+  "generated_at": "2026-06-13T15:57:59.361023+00:00",
+  "inspection_status": "inspectable",
+  "label_provenance": {
+    "real_training_path": true,
+    "source_kind": "private_training_runtime"
+  },
+  "label_source": "actual_training_labels",
+  "label_source_kind": "private_training_runtime",
+  "label_tensor_available": true,
+  "loss_interpretation": {
+    "loss_improvement_alone_proves_contract_learning": false,
+    "requires_assistant_loss_evidence": true
+  },
+  "manifest_counts": {
+    "dpo_pairs": 90,
+    "seed_rows": 10,
+    "sft_rows": 30
+  },
+  "manifest_public_safe": true,
+  "metadata_path": "<private_path>",
+  "notes": "Runtime label provenance metadata records objective-path evidence only. It is not a checkpoint release, adapter release, held-out generalization claim, production-readiness claim, or live-browser benchmark improvement claim.",
+  "output_root_policy": {
+    "approved_policy": "must_resolve_to_approved_private_a100_project_root",
+    "public_template_output_root": "<a100_project_root>",
+    "requested_output": "<private_path>",
+    "runtime_check_output_dir": "<private_path>",
+    "status": "approved_private_root"
+  },
+  "package_versions": {
+    "accelerate": "1.13.0",
+    "datasets": "not_installed",
+    "peft": "0.18.1",
+    "python": "3.11.4",
+    "transformers": "5.5.0",
+    "trl": "not_installed"
+  },
+  "prior_artifacts": {
+    "runtime_label_tiny_overfit_diagnostic": "reports/public-sample/runtime-label-tiny-overfit-diagnostic/",
+    "stale_runtime_label_provenance_check": "reports/public-sample/runtime-label-provenance-check/"
+  },
+  "private_override": {
+    "public_placeholder": "<a100_project_root>",
+    "required": true,
+    "requirements": [
+      "repo-external private override resolved under approved A100 project root",
+      "select idle GPU only; do not interrupt other users"
+    ],
+    "status": "resolved",
+    "unresolved_fields": []
+  },
+  "prompt_token_count": 524,
+  "prompt_tokens_masked": true,
+  "release_status": "not_released",
+  "runtime_check_status": "executed_runtime_label_provenance_check",
+  "runtime_gate": {
+    "cli_requested_runtime_check": true,
+    "config_allow_runtime_label_provenance_check": true,
+    "private_override_resolved": true,
+    "will_run_runtime_label_provenance_check": true
+  },
+  "runtime_source_kind": "private_a100_runtime",
+  "split": "train",
+  "stage": "sft_runtime_label_provenance_observed",
+  "tokenizer_status": "available",
+  "tokenizer_template_status": "template_available",
+  "true_label_mask_status": "inspectable"
+}

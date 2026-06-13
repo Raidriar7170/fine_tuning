@@ -1,0 +1,30 @@
+{
+  "adapter_path": "<a100_project_root>/runs/current-runtime-label-provenance-check/adapter-not-loaded",
+  "allow_runtime_label_provenance_check": false,
+  "base_model": "<a100_model_root>/qwen2.5-7b-instruct",
+  "base_model_public_id": "Qwen/Qwen2.5-7B-Instruct",
+  "dataset_manifest_id": "public-sample-20260613T072200Z",
+  "dataset_split": "train",
+  "dependency_policy": "authorized_runtime_tokenizer_collator_check_no_adapter_load_no_training",
+  "evidence_output_dir": "<a100_project_root>/evidence/current-runtime-label-provenance-check",
+  "label_provenance_intent": "inspect_current_manifest_real_tokenizer_collator_labels",
+  "max_seq_length": 1024,
+  "model_cache_policy": "private_remote_model_cache_not_copied_to_git",
+  "output_root": "<a100_project_root>",
+  "output_root_policy": "must_resolve_to_approved_private_a100_project_root",
+  "prior_artifacts": {
+    "runtime_label_tiny_overfit_diagnostic": "reports/public-sample/runtime-label-tiny-overfit-diagnostic/",
+    "stale_runtime_label_provenance_check": "reports/public-sample/runtime-label-provenance-check/"
+  },
+  "private_override_required": true,
+  "private_override_requirements": [
+    "Create a private override outside git before runtime execution.",
+    "Resolve <a100_project_root> to the approved private A100 project root.",
+    "Resolve <a100_model_root> to a repo-external private model cache root.",
+    "Run only after explicit private/A100 authorization.",
+    "Keep raw rendered prompts, raw assistant targets, raw logs, checkpoints, adapters, caches, host details, SSH details, tokens, and private corpus rows out of committed artifacts."
+  ],
+  "reference_runtime": "current-runtime-label-provenance-check",
+  "runtime_check_output_dir": "<a100_project_root>/evidence/current-runtime-label-provenance-check",
+  "true_label_mask_status": "unavailable"
+}

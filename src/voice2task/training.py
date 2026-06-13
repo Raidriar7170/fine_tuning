@@ -493,6 +493,10 @@ def _train_dependencies_available() -> bool:
     return all(importlib.util.find_spec(module) is not None for module in ("datasets", "peft", "transformers", "trl"))
 
 
+def _runtime_label_dependencies_available() -> bool:
+    return importlib.util.find_spec("transformers") is not None or globals().get("AutoTokenizer") is not None
+
+
 def _write_training_plan(metadata: dict[str, Any], stage: str) -> dict[str, Any]:
     metadata["release_status"] = "not_released"
     metadata["training_status"] = "training_unavailable"
@@ -1945,8 +1949,8 @@ def _runtime_label_provenance_artifact_policy() -> dict[str, bool]:
 
 
 def _inspect_runtime_sft_objective(row: SFTDatasetRow, config: dict[str, Any]) -> dict[str, Any]:
-    if not _train_dependencies_available():
-        return _objective_unavailable("train dependencies or tokenizer are not available in this runtime")
+    if not _runtime_label_dependencies_available():
+        return _objective_unavailable("runtime tokenizer dependency is not available in this runtime")
     base_model = config.get("base_model")
     if not isinstance(base_model, str) or not base_model:
         if isinstance(config.get("base_model_public_id"), str) and config.get("base_model_public_id"):

@@ -1307,12 +1307,63 @@ def _runtime_check_status_from_metadata(metadata: dict[str, Any]) -> str:
     return "labels_unavailable" if evidence_status == "labels_inspected" else evidence_status
 
 
+def _runtime_manifest_freshness(metadata: dict[str, Any], expected_manifest_id: str | None) -> str:
+    actual_manifest_id = str(metadata.get("dataset_manifest_id", "unknown"))
+    if not expected_manifest_id:
+        return "expected_manifest_not_supplied"
+    if actual_manifest_id == expected_manifest_id:
+        return "fresh_current_manifest"
+    return "stale_manifest_mismatch"
+
+
+def _current_manifest_runtime_label_proof(
+    *,
+    evidence_status: str,
+    manifest_freshness: str,
+    metadata: dict[str, Any],
+) -> bool:
+    return (
+        evidence_status == "labels_inspected"
+        and manifest_freshness == "fresh_current_manifest"
+        and metadata.get("inspection_status") == "inspectable"
+        and metadata.get("label_tensor_available") is True
+        and metadata.get("true_label_mask_status") == "inspectable"
+    )
+
+
+def _assistant_only_loss_mask_observed(*, current_manifest_proof: bool, metadata: dict[str, Any]) -> bool:
+    return (
+        current_manifest_proof
+        and metadata.get("prompt_tokens_masked") is True
+        and metadata.get("assistant_tokens_carry_loss") is True
+    )
+
+
+def _runtime_label_recommended_next_step(
+    *,
+    evidence_status: str,
+    manifest_freshness: str,
+    current_manifest_proof: bool,
+    assistant_only_loss_mask_observed: bool,
+) -> str:
+    if manifest_freshness == "stale_manifest_mismatch":
+        return "run_fresh_current_manifest_runtime_label_check"
+    if evidence_status not in {"labels_inspected", "labels_available_but_not_real_training_proof"}:
+        return "resolve_runtime_label_check_blocker"
+    if not current_manifest_proof:
+        return "establish_real_current_manifest_runtime_label_proof"
+    if not assistant_only_loss_mask_observed:
+        return "fix_runtime_label_masking_before_tiny_overfit"
+    return "run_1_to_3_row_current_manifest_tiny_overfit_probe"
+
+
 def write_runtime_label_provenance_check_evidence_pack(
     *,
     runtime_metadata: dict[str, Any],
     output_dir: Path,
     prior_artifacts: dict[str, str] | None = None,
     leak_scan_result: dict[str, Any] | None = None,
+    expected_manifest_id: str | None = None,
     title: str = "Voice2Task observed runtime label provenance evidence",
 ) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1327,6 +1378,24 @@ def write_runtime_label_provenance_check_evidence_pack(
     if not isinstance(provenance, dict):
         provenance = {"source_kind": metadata.get("label_source_kind", "unavailable"), "real_training_path": False}
     evidence_status = _runtime_check_status_from_metadata(metadata)
+    manifest_freshness = _runtime_manifest_freshness(metadata, expected_manifest_id)
+    if manifest_freshness == "stale_manifest_mismatch":
+        evidence_status = "stale_manifest_mismatch"
+    current_manifest_proof = _current_manifest_runtime_label_proof(
+        evidence_status=evidence_status,
+        manifest_freshness=manifest_freshness,
+        metadata=metadata,
+    )
+    assistant_only_loss_mask_observed = _assistant_only_loss_mask_observed(
+        current_manifest_proof=current_manifest_proof,
+        metadata=metadata,
+    )
+    recommended_next_step = _runtime_label_recommended_next_step(
+        evidence_status=evidence_status,
+        manifest_freshness=manifest_freshness,
+        current_manifest_proof=current_manifest_proof,
+        assistant_only_loss_mask_observed=assistant_only_loss_mask_observed,
+    )
     resolved_leak_scan_status = leak_scan_result or metadata.get(
         "leak_scan_status",
         {"ok": None, "status": "pending_until_leak_scan_runs"},
@@ -1340,6 +1409,9 @@ def write_runtime_label_provenance_check_evidence_pack(
         "runtime_gate": _sanitize_report_value(metadata.get("runtime_gate", {})),
         "output_root_policy": _sanitize_report_value(metadata.get("output_root_policy", {})),
         "dataset_manifest_id": metadata.get("dataset_manifest_id", "unknown"),
+        "expected_manifest_id": expected_manifest_id or "not_supplied",
+        "manifest_freshness": manifest_freshness,
+        "current_manifest_runtime_label_proof": current_manifest_proof,
         "inspection_status": metadata.get("inspection_status", "unknown"),
         "tokenizer_status": metadata.get("tokenizer_status", "unknown"),
         "tokenizer_template_status": metadata.get("tokenizer_template_status", "unknown"),
@@ -1356,10 +1428,12 @@ def write_runtime_label_provenance_check_evidence_pack(
         "assistant_token_count": metadata.get("assistant_token_count"),
         "prompt_tokens_masked": metadata.get("prompt_tokens_masked"),
         "assistant_tokens_carry_loss": metadata.get("assistant_tokens_carry_loss"),
-        "assistant_only_loss_mask_claim": False,
+        "assistant_only_loss_mask_claim": assistant_only_loss_mask_observed,
         "evidence_gaps": _sanitize_report_value(metadata.get("evidence_gaps", [])),
         "loss_interpretation": _sanitize_report_value(metadata.get("loss_interpretation", {})),
         "prior_artifacts": combined_prior,
+        "prior_artifacts_role": "historical_context_only" if combined_prior else "none",
+        "recommended_next_step": recommended_next_step,
         "release_status": "not_released",
         "claims": _runtime_label_provenance_check_claims(),
         "artifact_policy": _runtime_label_provenance_check_artifact_policy(),
@@ -1394,6 +1468,9 @@ def write_runtime_label_provenance_check_evidence_pack(
         f"- Runtime gate: `{summary['runtime_gate']}`",
         f"- Output-root policy: `{summary['output_root_policy']}`",
         f"- Dataset manifest: `{summary['dataset_manifest_id']}`",
+        f"- Expected manifest: `{summary['expected_manifest_id']}`",
+        f"- Manifest freshness: `{summary['manifest_freshness']}`",
+        f"- Current-manifest runtime label proof: `{summary['current_manifest_runtime_label_proof']}`",
         f"- Label source: `{summary['label_source']}`",
         f"- Label source kind: `{summary['label_source_kind']}`",
         f"- Package versions: `{summary['package_versions']}`",
@@ -1404,6 +1481,7 @@ def write_runtime_label_provenance_check_evidence_pack(
         f"- Prompt tokens masked: `{summary['prompt_tokens_masked']}`",
         f"- Assistant tokens carry loss: `{summary['assistant_tokens_carry_loss']}`",
         f"- Assistant-only loss-mask claim: `{summary['assistant_only_loss_mask_claim']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
         "",
         "## Evidence Gaps",
         "",
@@ -1417,6 +1495,7 @@ def write_runtime_label_provenance_check_evidence_pack(
     lines.extend(["", "## Prior Artifacts", ""])
     prior = summary["prior_artifacts"]
     if isinstance(prior, dict) and prior:
+        lines.append("- Stale prior artifacts are historical context only.")
         for name, path in sorted(prior.items()):
             lines.append(f"- `{name}`: `{path}`")
     else:
@@ -1426,7 +1505,7 @@ def write_runtime_label_provenance_check_evidence_pack(
             "",
             "## Objective Limitations",
             "",
-            "- `prompt_tokens_masked=false` means this evidence does not support an assistant-only loss-mask claim.",
+            "- If `prompt_tokens_masked=false`, this evidence does not support an assistant-only loss-mask claim.",
             (
                 "- `assistant_tokens_carry_loss=true` means assistant target tokens participate in loss, "
                 "not that the model has learned the contract task."
