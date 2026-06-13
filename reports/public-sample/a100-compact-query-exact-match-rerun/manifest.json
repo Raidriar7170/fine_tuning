@@ -1,0 +1,85 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "host_details_omitted": true,
+    "private_corpus_rows_omitted": true,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false,
+    "ssh_details_omitted": true
+  },
+  "base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "claims": {
+    "a100_public_sample_train_split_diagnostic": true,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_relaxation": false,
+    "held_out_generalization_claim": false,
+    "model_recovery_claim": false,
+    "normalized_command_normalization": false,
+    "parser_relaxation": false,
+    "prediction_repair_or_replacement": false,
+    "prediction_rescore": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "slot_normalization": false
+  },
+  "dataset_manifest_id": "public-sample-20260613T043923Z",
+  "diagnostic_artifacts": {
+    "alignment_diagnostics": "reports/public-sample/a100-compact-query-exact-match-rerun/alignment_diagnostics.json",
+    "compact_query_residual_diagnosis": "reports/public-sample/a100-compact-query-exact-match-rerun/compact_query_exact_match_rerun_diagnosis.json",
+    "constrained_decoding_diagnosis": "reports/public-sample/a100-compact-query-exact-match-rerun/constrained_decoding_diagnosis.json",
+    "diagnosis": "reports/public-sample/a100-compact-query-exact-match-rerun/compact_query_exact_match_rerun_diagnosis.json",
+    "final_leak_scan": "reports/public-sample/a100-compact-query-exact-match-rerun/final_leak_scan_result.json",
+    "leak_scan": "reports/public-sample/a100-compact-query-exact-match-rerun/leak_scan_result.json",
+    "manifest": "reports/public-sample/a100-compact-query-exact-match-rerun/manifest.json",
+    "post_archive_leak_scan": "reports/public-sample/a100-compact-query-exact-match-rerun/post_archive_leak_scan_result.json",
+    "report": "reports/public-sample/a100-compact-query-exact-match-rerun/report.md",
+    "schema_diagnostics": "reports/public-sample/a100-compact-query-exact-match-rerun/schema_diagnostics.json",
+    "schema_guard_summary": "reports/public-sample/a100-compact-query-exact-match-rerun/schema_guard_summary.json"
+  },
+  "evidence_kind": "a100_compact_query_exact_match_rerun",
+  "evidence_status": "private_adapter_predictions_written",
+  "generalization_claim": false,
+  "generated_at": "2026-06-13T05:43:29.049605+00:00",
+  "metrics_path": "reports/public-sample/a100-compact-query-exact-match-rerun/metrics.json",
+  "model_source": "private_a100_local_model_dir",
+  "observed_result": {
+    "compact_query_compact_slot_count": 3,
+    "compact_query_decomposed_slot_count": 0,
+    "compact_query_exact_match_count": 3,
+    "compact_query_rows": 3,
+    "non_compact_extract_residual_row_count": 3,
+    "overall_interpretation": "compact_query_residual_improved_but_overall_train_split_not_fully_recovered",
+    "prediction_count": 6,
+    "prior_compact_query_residual_resolved_count": 1,
+    "prior_compact_query_residual_row_ids": [
+      "seed-search-weather-aug-1"
+    ],
+    "schema_valid_prediction_count": 6,
+    "slot_f1_soft_internal_only": 0.5,
+    "strict_contract_exact_match": 0.5,
+    "strict_slot_f1": 0.5,
+    "train_gold_row_count": 6
+  },
+  "output_root_placeholder_policy": "<a100_project_root>",
+  "overfit_diagnostic": true,
+  "prediction_artifact_path": "reports/public-sample/a100-compact-query-exact-match-rerun/predictions.jsonl",
+  "prediction_count": 6,
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_split": "train",
+  "public_sample_manifest_id": "public-sample-20260613T043923Z",
+  "release_status": "not_released",
+  "sidecars": {
+    "generation_trace": "reports/public-sample/a100-compact-query-exact-match-rerun/generation_trace.jsonl",
+    "prompt_snapshot": "reports/public-sample/a100-compact-query-exact-match-rerun/prompt_snapshot.json",
+    "raw_decoded_summary": "reports/public-sample/a100-compact-query-exact-match-rerun/raw_decoded_summary.jsonl"
+  },
+  "source_manifest_rows": {
+    "dpo_pairs": 46,
+    "seed_rows": 6,
+    "sft_rows": 18
+  },
+  "training_rows_used": 6
+}

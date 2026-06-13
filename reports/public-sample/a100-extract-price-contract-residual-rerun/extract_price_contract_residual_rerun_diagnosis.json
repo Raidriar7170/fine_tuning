@@ -1,0 +1,202 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_relaxation": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation": false,
+    "prediction_repair_or_replacement": false,
+    "production_readiness_claim": false,
+    "schema_and_route_recovery_observed": true,
+    "semantic_equivalence_primary_metric": false,
+    "strict_extract_exact_match_recovery_observed": false,
+    "train_split_public_sample_only": true
+  },
+  "compact_query_rows": [
+    {
+      "contract_exact_match": true,
+      "gold_slots": {
+        "query": "北京明天天气"
+      },
+      "prediction_normalized_command": "搜索北京明天天气",
+      "prediction_slots": {
+        "query": "北京明天天气"
+      },
+      "row_id": "seed-search-weather",
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    },
+    {
+      "contract_exact_match": true,
+      "gold_slots": {
+        "query": "北京明天天气"
+      },
+      "prediction_normalized_command": "搜索北京明天天气",
+      "prediction_slots": {
+        "query": "北京明天天气"
+      },
+      "row_id": "seed-search-weather-aug-1",
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    },
+    {
+      "contract_exact_match": true,
+      "gold_slots": {
+        "query": "北京明天天气"
+      },
+      "prediction_normalized_command": "搜索北京明天天气",
+      "prediction_slots": {
+        "query": "北京明天天气"
+      },
+      "row_id": "seed-search-weather-aug-2",
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    }
+  ],
+  "evidence_kind": "a100_extract_price_contract_residual_rerun_diagnosis",
+  "extract_price_rows": [
+    {
+      "contract_exact_match": false,
+      "gold_normalized_command": "提取页面商品价格",
+      "gold_slots": {
+        "target": "商品价格"
+      },
+      "normalized_command_exact": false,
+      "prediction_normalized_command": "提取页面上的商品价格",
+      "prediction_slots": {
+        "target": "商品价格"
+      },
+      "query_or_page_url_slot": false,
+      "residual_fields": [
+        "normalized_command"
+      ],
+      "row_id": "seed-extract-price",
+      "schema_guard": {
+        "raw_attempt_missing_required_fields": [],
+        "raw_attempt_schema_valid": true,
+        "raw_attempt_validation_error": null,
+        "raw_parse_status": "json_object",
+        "retry_attempt_schema_valid": null,
+        "retry_attempted": false,
+        "retry_parse_status": null,
+        "row_id": "seed-extract-price",
+        "validated_output_schema_valid": true,
+        "validated_output_source": "raw_attempt"
+      },
+      "search_fallback": false,
+      "slot_target_exact": true,
+      "task_route_correct": true
+    },
+    {
+      "contract_exact_match": false,
+      "gold_normalized_command": "提取页面商品价格",
+      "gold_slots": {
+        "target": "商品价格"
+      },
+      "normalized_command_exact": false,
+      "prediction_normalized_command": "页面价格",
+      "prediction_slots": {
+        "target": "价格"
+      },
+      "query_or_page_url_slot": false,
+      "residual_fields": [
+        "slots",
+        "normalized_command"
+      ],
+      "row_id": "seed-extract-price-aug-1",
+      "schema_guard": {
+        "raw_attempt_missing_required_fields": [],
+        "raw_attempt_schema_valid": true,
+        "raw_attempt_validation_error": null,
+        "raw_parse_status": "json_object",
+        "retry_attempt_schema_valid": null,
+        "retry_attempted": false,
+        "retry_parse_status": null,
+        "row_id": "seed-extract-price-aug-1",
+        "validated_output_schema_valid": true,
+        "validated_output_source": "raw_attempt"
+      },
+      "search_fallback": false,
+      "slot_target_exact": false,
+      "task_route_correct": true
+    },
+    {
+      "contract_exact_match": false,
+      "gold_normalized_command": "提取页面商品价格",
+      "gold_slots": {
+        "target": "商品价格"
+      },
+      "normalized_command_exact": false,
+      "prediction_normalized_command": "提取页面标价",
+      "prediction_slots": {
+        "target": "标价"
+      },
+      "query_or_page_url_slot": false,
+      "residual_fields": [
+        "slots",
+        "normalized_command"
+      ],
+      "row_id": "seed-extract-price-aug-2",
+      "schema_guard": {
+        "raw_attempt_missing_required_fields": [],
+        "raw_attempt_schema_valid": true,
+        "raw_attempt_validation_error": null,
+        "raw_parse_status": "json_object",
+        "retry_attempt_schema_valid": null,
+        "retry_attempted": false,
+        "retry_parse_status": null,
+        "row_id": "seed-extract-price-aug-2",
+        "validated_output_schema_valid": true,
+        "validated_output_source": "raw_attempt"
+      },
+      "search_fallback": false,
+      "slot_target_exact": false,
+      "task_route_correct": true
+    }
+  ],
+  "generated_at": "2026-06-13T06:13:55.025866+00:00",
+  "metrics": {
+    "confirmation_accuracy": 1.0,
+    "contract_exact_match": 0.5,
+    "json_valid_rate": 1.0,
+    "route_accuracy": 1.0,
+    "safety_gold_stop_support": 0.0,
+    "safety_precision": 1.0,
+    "safety_predicted_stop_support": 0.0,
+    "safety_recall": 1.0,
+    "slot_f1": 0.6666666666666666,
+    "slot_f1_soft": 0.7777777777777778,
+    "task_type_accuracy": 1.0
+  },
+  "prior_context": {
+    "prior_contract_exact_match": 0.5,
+    "prior_extract_residual_row_count": 3,
+    "prior_slot_f1": 0.5,
+    "source_evidence": "reports/public-sample/a100-compact-query-exact-match-rerun/manifest.json"
+  },
+  "summary": {
+    "compact_query_decomposed_slot_count": 0,
+    "compact_query_exact_match_count": 3,
+    "compact_query_rows": 3,
+    "extract_price_exact_match_count": 0,
+    "extract_price_normalized_command_exact_count": 0,
+    "extract_price_query_or_page_url_slot_count": 0,
+    "extract_price_rows": 3,
+    "extract_price_search_fallback_count": 0,
+    "extract_price_slot_target_exact_count": 1,
+    "extract_price_task_route_correct_count": 3,
+    "overall_interpretation": "extract_price_route_recovered_but_strict_exact_match_residual_remains",
+    "prediction_count": 6,
+    "prior_contract_exact_match": 0.5,
+    "prior_extract_residual_row_count": 3,
+    "prior_slot_f1": 0.5,
+    "schema_valid_prediction_count": 6,
+    "slot_f1_soft_internal_only": 0.7777777777777778,
+    "strict_final_contract_exact_match": 0.5,
+    "strict_final_json_valid_rate": 1.0,
+    "strict_final_slot_f1": 0.6666666666666666,
+    "train_gold_row_count": 6
+  }
+}

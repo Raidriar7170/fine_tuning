@@ -1,0 +1,32 @@
+{
+  "change_name": "run-a100-compact-query-exact-match-rerun",
+  "claims": {
+    "a100_execution_performed": false,
+    "gpu_selected": false,
+    "model_download_started": false,
+    "prediction_rerun_performed": false,
+    "superseded_by_same_phase_successful_rerun": true,
+    "training_started": false
+  },
+  "evidence_kind": "a100_compact_query_exact_match_rerun_preflight_blocked",
+  "generated_at": "2026-06-13T05:12:00Z",
+  "intended_base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "preflight_status": "blocked_before_remote_command_execution",
+  "public_sample": {
+    "dpo_pairs": 46,
+    "manifest": "data/public-samples/manifest_public_sample.json",
+    "manifest_id": "public-sample-20260613T043923Z",
+    "sft_rows": 18
+  },
+  "reason": {
+    "category": "a100_ssh_connect_timeout",
+    "public_summary": "The configured A100 SSH alias timed out before any remote command could run. GPU occupancy could not be inspected safely.",
+    "sensitive_details_omitted": true
+  },
+  "safe_next_step": "Completed later in the same phase after company VPN/proxy enabled SSH access.",
+  "superseded_by": {
+    "manifest": "reports/public-sample/a100-compact-query-exact-match-rerun/manifest.json",
+    "report": "reports/public-sample/a100-compact-query-exact-match-rerun/report.md",
+    "status": "same_phase_successful_rerun_completed"
+  }
+}

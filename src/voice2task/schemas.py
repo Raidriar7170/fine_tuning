@@ -21,6 +21,11 @@ REJECTION_CATEGORIES = {
     "missing_slot",
     "wrong_slot",
     "decomposed_search_slots",
+    "extract_search_fallback",
+    "extract_query_slot",
+    "extract_generic_price_wording",
+    "extract_listed_price_wording",
+    "extract_extra_particle_wording",
     "underspecified_request",
     "malformed_schema",
 }

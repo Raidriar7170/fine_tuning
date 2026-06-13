@@ -1,0 +1,17 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T06:43:54.986459+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-extract-price-canonical-wording-rerun",
+    "docs/human-briefs/2026-06-13-repair-extract-price-canonical-wording.html",
+    "configs/sft-a100-extract-price-canonical-wording-rerun.json",
+    "configs/sft-a100-extract-price-canonical-wording-prediction.json",
+    "openspec/changes/archive/2026-06-13-repair-extract-price-canonical-wording",
+    "openspec/specs/contract-evaluation/spec.md",
+    "openspec/specs/preference-contract-tuning/spec.md",
+    "openspec/specs/supervised-contract-tuning/spec.md",
+    "openspec/specs/voice2task-dataset-preparation/spec.md"
+  ]
+}

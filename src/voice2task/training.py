@@ -19,6 +19,7 @@ from voice2task.formatting import (
     format_sft_prediction_prompt,
     format_sft_training_text,
     prediction_output_boundary_summary,
+    prediction_prompt_constraint_summary,
     prompt_constraint_summary,
     schema_retry_template_boundary_summary,
 )
@@ -703,7 +704,7 @@ def _prediction_metadata_common(
         "release_status": "not_released",
         "adapter_release_status": "not_released",
         "formatting_policy": dict(FORMATTING_POLICY),
-        "prompt_constraints": prompt_constraint_summary(),
+        "prompt_constraints": prediction_prompt_constraint_summary(),
         "prediction_output_boundary": prediction_output_boundary_summary(),
         "retry_prompt_constraints": schema_retry_prompt_constraint_summary(),
         "retry_template_boundary": schema_retry_template_boundary_summary(),
@@ -764,6 +765,7 @@ def _prompt_snapshot_row(row: SFTDatasetRow, prompt: str) -> dict[str, Any]:
         "prompt_sha256": _sha256_text(sanitized_prompt),
         "prompt_char_count": len(sanitized_prompt),
         "prompt_preview": sanitized_prompt[:240],
+        "prompt_constraints": prompt_constraint_summary(sanitized_prompt),
         "input_text_preview": _sanitize_preview(row.input_text, limit=120),
         "provenance": {"public_safe": True, "source_id": row.provenance.get("source_id", row.id)},
     }
@@ -782,7 +784,7 @@ def _write_prompt_snapshot(
             "artifact_kind": "sft_prediction_prompt_snapshot",
             "prediction_split": prediction_split,
             "formatting_policy": dict(FORMATTING_POLICY),
-            "prompt_constraints": prompt_constraint_summary(),
+            "prompt_constraints": prediction_prompt_constraint_summary(),
             "prediction_output_boundary": prediction_output_boundary_summary(),
             "retry_prompt_constraints": schema_retry_prompt_constraint_summary(),
             "retry_template_boundary": schema_retry_template_boundary_summary(),
@@ -1173,7 +1175,7 @@ def _markdown_fence_bad_words_ids(tokenizer: Any) -> list[list[int]]:
     for source in MARKDOWN_FENCE_SUPPRESSION_TOKEN_SOURCES:
         token_ids = _encode_suppression_sequence(tokenizer, source)
         sequence_key = tuple(token_ids)
-        if token_ids and sequence_key not in seen:
+        if len(token_ids) == 1 and sequence_key not in seen:
             sequences.append(token_ids)
             seen.add(sequence_key)
     return sequences
@@ -1203,6 +1205,13 @@ def _decode_prediction_attempt(
     decoded_value = tokenizer.decode(new_tokens, skip_special_tokens=True)
     decoded = decoded_value if isinstance(decoded_value, str) else str(decoded_value)
     return decoded, new_tokens, inputs
+
+
+def _merge_and_unload_if_available(model: Any) -> Any:
+    merge_and_unload = getattr(model, "merge_and_unload", None)
+    if callable(merge_and_unload):
+        return merge_and_unload()
+    return model
 
 
 def _build_schema_guard(
@@ -1274,13 +1283,25 @@ def _run_real_sft_prediction(
     base_model = str(config["base_model"])
     adapter_path = str(config["adapter_path"])
     tokenizer: Any = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
-    model: Any = AutoModelForCausalLM.from_pretrained(
-        base_model,
-        device_map="auto",
-        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-        trust_remote_code=True,
-    )
-    model = PeftModel.from_pretrained(model, adapter_path)
+    dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    sft_adapter_path = config.get("sft_adapter_path")
+    if sft_adapter_path:
+        model: Any = AutoModelForCausalLM.from_pretrained(
+            base_model, torch_dtype=dtype, trust_remote_code=True,
+        )
+        model = PeftModel.from_pretrained(model, sft_adapter_path)
+        model = _merge_and_unload_if_available(model)
+        if hasattr(model, "peft_config"):
+            del model.peft_config
+        model = PeftModel.from_pretrained(model, adapter_path)
+        model = _merge_and_unload_if_available(model)
+        model = model.to("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            base_model, device_map="auto", torch_dtype=dtype, trust_remote_code=True,
+        )
+        model = PeftModel.from_pretrained(model, adapter_path)
+        model = _merge_and_unload_if_available(model)
     model.eval()
     max_new_tokens = int(config.get("max_new_tokens", 256))
     schema_retry_enabled = bool(config.get("schema_retry_enabled", True))
@@ -1753,12 +1774,17 @@ class _AssistantOnlyCausalLmDataCollator:
         batch: dict[str, list[list[Any]]] = {"input_ids": [], "attention_mask": [], "labels": []}
         for feature in features:
             input_ids = _token_list(feature.get("input_ids"))
-            attention_mask = _token_list(feature.get("attention_mask"))
-            labels = _token_list(feature.get("labels"))
-            pad_length = max_length - len(input_ids)
-            batch["input_ids"].append(input_ids + [pad_token_id for _ in range(pad_length)])
-            batch["attention_mask"].append(attention_mask + [0 for _ in range(pad_length)])
-            batch["labels"].append(labels + [-100 for _ in range(pad_length)])
+            seq_len = len(input_ids)
+            attention_mask = _token_list(feature.get("attention_mask"))[:seq_len]
+            labels = _token_list(feature.get("labels"))[:seq_len]
+            if len(attention_mask) < seq_len:
+                attention_mask = attention_mask + [1] * (seq_len - len(attention_mask))
+            if len(labels) < seq_len:
+                labels = labels + [-100] * (seq_len - len(labels))
+            pad_length = max_length - seq_len
+            batch["input_ids"].append(input_ids + [pad_token_id] * pad_length)
+            batch["attention_mask"].append(attention_mask + [0] * pad_length)
+            batch["labels"].append(labels + [-100] * pad_length)
         if not self._tensorize:
             return batch
         import torch
@@ -2237,8 +2263,9 @@ def _run_real_sft(metadata: dict[str, Any], config: dict[str, Any], manifest_pat
 
 def _run_real_dpo(metadata: dict[str, Any], config: dict[str, Any], manifest_path: Path, output_dir: Path) -> None:
     from datasets import Dataset  # type: ignore[import-not-found, unused-ignore]
+    from peft import PeftModel  # type: ignore[import-not-found, unused-ignore]
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    from trl import DPOTrainer  # type: ignore[import-not-found, unused-ignore]
+    from trl import DPOConfig, DPOTrainer  # type: ignore[import-not-found, unused-ignore]
 
     pairs = _load_dpo_training_pairs(manifest_path, split=str(config.get("dataset_split", "train")))
     dataset = Dataset.from_list(
@@ -2251,17 +2278,35 @@ def _run_real_dpo(metadata: dict[str, Any], config: dict[str, Any], manifest_pat
             for pair in pairs
         ]
     )
-    tokenizer = AutoTokenizer.from_pretrained(config["base_model"])
-    model = AutoModelForCausalLM.from_pretrained(config["base_model"])
-    trainer = DPOTrainer(
-        model=model,
-        tokenizer=tokenizer,
-        train_dataset=dataset,
-        args=_training_arguments(config, output_dir),
-        peft_config=_lora_config(config),
+    tokenizer = AutoTokenizer.from_pretrained(config["base_model"], trust_remote_code=True)
+    sft_adapter_path = config.get("sft_adapter_path")
+    if sft_adapter_path:
+        base_model = AutoModelForCausalLM.from_pretrained(config["base_model"], trust_remote_code=True)
+        model = PeftModel.from_pretrained(base_model, sft_adapter_path)
+        model = model.merge_and_unload()
+    else:
+        model = AutoModelForCausalLM.from_pretrained(config["base_model"], trust_remote_code=True)
+
+    dpo_config = DPOConfig(
+        output_dir=str(output_dir),
+        per_device_train_batch_size=int(config.get("per_device_train_batch_size", 2)),
+        gradient_accumulation_steps=int(config.get("gradient_accumulation_steps", 4)),
+        num_train_epochs=int(config.get("num_train_epochs", 2)),
+        learning_rate=float(config.get("learning_rate", 5e-5)),
+        warmup_ratio=float(config.get("warmup_ratio", 0.1)),
         beta=float(config.get("beta", 0.1)),
         max_length=int(config.get("max_seq_length", 1024)),
-        max_prompt_length=int(config.get("max_prompt_length", 768)),
+        logging_steps=int(config.get("logging_steps", 1)),
+        save_strategy=str(config.get("save_strategy", "no")),
+        report_to=[],
+        remove_unused_columns=False,
+    )
+    trainer = DPOTrainer(
+        model=model,
+        args=dpo_config,
+        train_dataset=dataset,
+        processing_class=tokenizer,
+        peft_config=_lora_config(config),
     )
     trainer.train()
     trainer.model.save_pretrained(metadata["adapter_path"])

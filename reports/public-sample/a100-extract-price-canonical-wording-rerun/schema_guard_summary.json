@@ -1,0 +1,105 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "fixture_or_gold_prediction_replacement": false,
+    "held_out_generalization_claim": false,
+    "model_recovery_claim": false,
+    "schema_repair_applied": false
+  },
+  "evidence_kind": "a100_extract_price_canonical_wording_schema_guard_summary",
+  "generated_at": "2026-06-13T06:40:13.430353+00:00",
+  "parse_status_counts": {
+    "raw_attempt": {
+      "json_object": 6
+    },
+    "retry_attempt": {}
+  },
+  "rows": [
+    {
+      "raw_attempt_missing_required_fields": [],
+      "raw_attempt_schema_valid": true,
+      "raw_attempt_validation_error": null,
+      "raw_parse_status": "json_object",
+      "retry_attempt_schema_valid": null,
+      "retry_attempted": false,
+      "retry_parse_status": null,
+      "row_id": "seed-search-weather",
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    },
+    {
+      "raw_attempt_missing_required_fields": [],
+      "raw_attempt_schema_valid": true,
+      "raw_attempt_validation_error": null,
+      "raw_parse_status": "json_object",
+      "retry_attempt_schema_valid": null,
+      "retry_attempted": false,
+      "retry_parse_status": null,
+      "row_id": "seed-search-weather-aug-1",
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    },
+    {
+      "raw_attempt_missing_required_fields": [],
+      "raw_attempt_schema_valid": true,
+      "raw_attempt_validation_error": null,
+      "raw_parse_status": "json_object",
+      "retry_attempt_schema_valid": null,
+      "retry_attempted": false,
+      "retry_parse_status": null,
+      "row_id": "seed-search-weather-aug-2",
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    },
+    {
+      "raw_attempt_missing_required_fields": [],
+      "raw_attempt_schema_valid": true,
+      "raw_attempt_validation_error": null,
+      "raw_parse_status": "json_object",
+      "retry_attempt_schema_valid": null,
+      "retry_attempted": false,
+      "retry_parse_status": null,
+      "row_id": "seed-extract-price",
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    },
+    {
+      "raw_attempt_missing_required_fields": [],
+      "raw_attempt_schema_valid": true,
+      "raw_attempt_validation_error": null,
+      "raw_parse_status": "json_object",
+      "retry_attempt_schema_valid": null,
+      "retry_attempted": false,
+      "retry_parse_status": null,
+      "row_id": "seed-extract-price-aug-1",
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    },
+    {
+      "raw_attempt_missing_required_fields": [],
+      "raw_attempt_schema_valid": true,
+      "raw_attempt_validation_error": null,
+      "raw_parse_status": "json_object",
+      "retry_attempt_schema_valid": null,
+      "retry_attempted": false,
+      "retry_parse_status": null,
+      "row_id": "seed-extract-price-aug-2",
+      "validated_output_schema_valid": true,
+      "validated_output_source": "raw_attempt"
+    }
+  ],
+  "summary": {
+    "prediction_count": 6,
+    "prediction_source_kind": "private_a100_adapter",
+    "prediction_split": "train",
+    "raw_attempt_schema_valid_count": 6,
+    "retry_attempt_schema_valid_count": 0,
+    "retry_attempted_count": 0,
+    "strict_final_contract_exact_match": 1.0,
+    "strict_final_json_valid_rate": 1.0,
+    "strict_final_slot_f1": 1.0,
+    "strict_final_slot_f1_soft_internal_only": 1.0,
+    "validated_output_schema_valid_count": 6
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "change_name": "harden-compact-query-exact-match-policy",
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_relaxation_performed": false,
+    "held_out_generalization_claim": false,
+    "live_browser_benchmark_claim": false,
+    "local_policy_and_data_hardening_only": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "parser_relaxation_performed": false,
+    "prediction_repair_or_rescore_performed": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_scoring_as_primary_metric": false,
+    "slot_or_command_normalization_of_predictions_performed": false,
+    "training_or_prediction_rerun_performed": false
+  },
+  "evidence_kind": "compact_query_exact_match_policy_hardening_local",
+  "generated_at": "2026-06-13T04:55:00Z",
+  "key_changes": [
+    "public seed fixtures expanded from 4 to 6 rows and derived SFT/DPO/manifest artifacts regenerated",
+    "wrong_task_type DPO hard negatives now require an actual rejected task_type change",
+    "SFT training prompt exposes compact-query exact-match policy while prediction prompt keeps the canonical one-shot boundary",
+    "markdown fence suppression passes tokenizer-derived multi-token bad_words_ids instead of dropping them",
+    "trained-adapter prediction merge is capability-based so fake local models and real PEFT models both work",
+    "slot_f1_soft is labeled as an internal diagnostic alongside strict contract metrics"
+  ],
+  "open_spec": {
+    "change_dir": "openspec/changes/harden-compact-query-exact-match-policy",
+    "status": "applying",
+    "strict_validation": "5 passed, 0 failed"
+  },
+  "prompt_constraints": {
+    "compact_query_decomposed_slot_rejection_visible": true,
+    "compact_query_exact_match_policy_visible": true,
+    "compact_query_extra_particle_avoidance_visible": true,
+    "compact_query_same_phrase_alignment_visible": true,
+    "normalized_command_no_metric_relaxation_visible": true,
+    "prediction_prompt_keeps_boundary_policy": true,
+    "training_prompt_omits_prediction_only_one_shot_for_sequence_budget": true
+  },
+  "public_sample": {
+    "counts": {
+      "dpo_pairs": 46,
+      "seed_rows": 6,
+      "sft_rows": 18
+    },
+    "dpo_rejection_counts": {
+      "decomposed_search_slots": 1,
+      "malformed_schema": 6,
+      "missing_confirmation": 3,
+      "missing_slot": 6,
+      "underspecified_request": 6,
+      "unsafe_allowance": 6,
+      "wrong_route": 6,
+      "wrong_slot": 6,
+      "wrong_task_type": 6
+    },
+    "manifest": "data/public-samples/manifest_public_sample.json",
+    "manifest_id": "public-sample-20260613T043923Z"
+  },
+  "source_artifacts": {
+    "compact_query_slot_preservation": "reports/public-sample/compact-query-slot-preservation/compact_query_slot_preservation.json",
+    "experiment_report": "reports/experiment_report.md",
+    "public_dpo": "data/public-samples/dpo_public_sample.jsonl",
+    "public_manifest": "data/public-samples/manifest_public_sample.json",
+    "public_sft": "data/public-samples/sft_public_sample.jsonl"
+  },
+  "validation": {
+    "commands": [
+      {
+        "command": "PYTHONPATH=src pytest -q tests/test_evaluator_reports.py::test_source_diagnostics_include_sft_target_template_alignment_evidence tests/test_a100_sft_prediction_smoke.py::test_compact_query_slot_preservation_pack_is_public_safe_and_bounded",
+        "result": "2 passed"
+      },
+      {
+        "command": "PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_dataset_builder.py tests/test_dpo_validation.py tests/test_a100_sft_prediction_smoke.py::test_compact_query_slot_preservation_pack_is_public_safe_and_bounded",
+        "result": "32 passed"
+      },
+      {
+        "command": "PYTHONPATH=src pytest -q",
+        "result": "195 passed"
+      },
+      {
+        "command": "uv run ruff check .",
+        "result": "All checks passed"
+      },
+      {
+        "command": "uv run mypy src",
+        "result": "Success: no issues found in 16 source files"
+      },
+      {
+        "command": "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
+        "result": "ok=true; sft_rows=18; dpo_pairs=46"
+      },
+      {
+        "command": "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
+        "result": "total_pairs=46; wrong_task_type=6; decomposed_search_slots=1"
+      },
+      {
+        "command": "PYTHONPATH=src python - <<'PY' ... scan_paths([...])",
+        "result": "ok=true; findings=[]"
+      },
+      {
+        "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
+        "result": "5 passed, 0 failed"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed"
+      }
+    ]
+  }
+}

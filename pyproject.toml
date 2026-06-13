@@ -13,7 +13,10 @@ authors = [{ name = "Voice2Task maintainers" }]
 dependencies = []
 
 [project.optional-dependencies]
-dataset = ["jsonschema>=4.22"]
+dataset = [
+  "anthropic>=0.40",
+  "jsonschema>=4.22",
+]
 evaluation = []
 train = [
   "accelerate>=0.33",

@@ -16,15 +16,24 @@ from voice2task.schemas import (
 )
 
 HARD_NEGATIVE_CATEGORIES = [
+    "wrong_task_type",
     "wrong_route",
     "unsafe_allowance",
     "missing_confirmation",
     "missing_slot",
     "wrong_slot",
     "decomposed_search_slots",
+    "extract_search_fallback",
+    "extract_query_slot",
+    "extract_generic_price_wording",
+    "extract_listed_price_wording",
+    "extract_extra_particle_wording",
     "underspecified_request",
     "malformed_schema",
 ]
+
+EXTRACT_PRICE_CANONICAL_TARGET = "商品价格"
+EXTRACT_PRICE_CANONICAL_NORMALIZED_COMMAND = "提取页面商品价格"
 
 
 def _now_id(prefix: str) -> str:
@@ -157,7 +166,103 @@ def _decomposed_search_slots_negative(contract: BrowserTaskContract) -> BrowserT
     )
 
 
+def _public_extract_target(contract: BrowserTaskContract) -> str | None:
+    if not (
+        contract.task_type == "extract"
+        and contract.route == "extract_page"
+        and bool(contract.safety.get("allow")) is True
+        and contract.safety.get("reason") == "public_readonly"
+        and contract.confirmation_required is False
+    ):
+        return None
+    target = contract.slots.get("target")
+    if not isinstance(target, str) or not target:
+        return None
+    return target
+
+
+def _extract_search_fallback_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    target = _public_extract_target(contract)
+    if target is None:
+        return None
+    return _replace_contract(
+        contract,
+        task_type="search",
+        route="search_web",
+        slots={"query": target},
+        normalized_command=f"搜索{target}",
+        safety={**contract.safety, "reason": "extract_search_fallback"},
+    )
+
+
+def _extract_query_slot_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    target = _public_extract_target(contract)
+    if target is None:
+        return None
+    return _replace_contract(
+        contract,
+        slots={"query": target, "page_url": ""},
+        safety={**contract.safety, "reason": "extract_query_slot"},
+    )
+
+
+def _public_extract_price_canonical_contract(contract: BrowserTaskContract) -> bool:
+    return (
+        _public_extract_target(contract) == EXTRACT_PRICE_CANONICAL_TARGET
+        and contract.normalized_command == EXTRACT_PRICE_CANONICAL_NORMALIZED_COMMAND
+    )
+
+
+def _extract_generic_price_wording_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    if not _public_extract_price_canonical_contract(contract):
+        return None
+    return _replace_contract(
+        contract,
+        slots={"target": "价格"},
+        normalized_command="页面价格",
+        safety={**contract.safety, "reason": "extract_generic_price_wording"},
+    )
+
+
+def _extract_listed_price_wording_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    if not _public_extract_price_canonical_contract(contract):
+        return None
+    return _replace_contract(
+        contract,
+        slots={"target": "标价"},
+        normalized_command="提取页面标价",
+        safety={**contract.safety, "reason": "extract_listed_price_wording"},
+    )
+
+
+def _extract_extra_particle_wording_negative(contract: BrowserTaskContract) -> BrowserTaskContract | None:
+    if not _public_extract_price_canonical_contract(contract):
+        return None
+    return _replace_contract(
+        contract,
+        normalized_command="提取页面上的商品价格",
+        safety={**contract.safety, "reason": "extract_extra_particle_wording"},
+    )
+
+
+_TASK_TYPE_SWAPS: dict[str, str] = {
+    "search": "navigate",
+    "navigate": "search",
+    "form_fill": "extract",
+    "extract": "form_fill",
+    "clarify": "search",
+    "blocked": "navigate",
+}
+
+
 def _negative_contract(contract: BrowserTaskContract, category: str) -> BrowserTaskContract | dict[str, Any]:
+    if category == "wrong_task_type":
+        wrong_type = _TASK_TYPE_SWAPS.get(contract.task_type, "search")
+        return _replace_contract(
+            contract,
+            task_type=wrong_type,
+            safety={**contract.safety, "reason": "wrong_task_type"},
+        )
     if category == "wrong_route":
         route = "open_url" if contract.route != "open_url" else "search_web"
         return _replace_contract(contract, route=route, safety={**contract.safety, "reason": "wrong_route"})
@@ -188,6 +293,31 @@ def _negative_contract(contract: BrowserTaskContract, category: str) -> BrowserT
         if decomposed is None:
             raise ValueError("decomposed_search_slots applies only to compact public-readonly weather search")
         return decomposed
+    if category == "extract_search_fallback":
+        search_fallback = _extract_search_fallback_negative(contract)
+        if search_fallback is None:
+            raise ValueError("extract_search_fallback applies only to public-readonly extract_page target contracts")
+        return search_fallback
+    if category == "extract_query_slot":
+        query_slot = _extract_query_slot_negative(contract)
+        if query_slot is None:
+            raise ValueError("extract_query_slot applies only to public-readonly extract_page target contracts")
+        return query_slot
+    if category == "extract_generic_price_wording":
+        generic_price = _extract_generic_price_wording_negative(contract)
+        if generic_price is None:
+            raise ValueError("extract_generic_price_wording applies only to canonical public extract-price contracts")
+        return generic_price
+    if category == "extract_listed_price_wording":
+        listed_price = _extract_listed_price_wording_negative(contract)
+        if listed_price is None:
+            raise ValueError("extract_listed_price_wording applies only to canonical public extract-price contracts")
+        return listed_price
+    if category == "extract_extra_particle_wording":
+        extra_particle = _extract_extra_particle_wording_negative(contract)
+        if extra_particle is None:
+            raise ValueError("extract_extra_particle_wording applies only to canonical public extract-price contracts")
+        return extra_particle
     if category == "underspecified_request":
         return _replace_contract(
             contract,
@@ -215,6 +345,30 @@ def generate_hard_negative_pairs(rows: list[SFTDatasetRow]) -> list[DPOPair]:
                 continue
             if category == "decomposed_search_slots":
                 if row.provenance.get("public_safe") is not True or _decomposed_search_slots_negative(chosen) is None:
+                    continue
+            if category == "extract_search_fallback":
+                if row.provenance.get("public_safe") is not True or _extract_search_fallback_negative(chosen) is None:
+                    continue
+            if category == "extract_query_slot":
+                if row.provenance.get("public_safe") is not True or _extract_query_slot_negative(chosen) is None:
+                    continue
+            if category == "extract_generic_price_wording":
+                if (
+                    row.provenance.get("public_safe") is not True
+                    or _extract_generic_price_wording_negative(chosen) is None
+                ):
+                    continue
+            if category == "extract_listed_price_wording":
+                if (
+                    row.provenance.get("public_safe") is not True
+                    or _extract_listed_price_wording_negative(chosen) is None
+                ):
+                    continue
+            if category == "extract_extra_particle_wording":
+                if (
+                    row.provenance.get("public_safe") is not True
+                    or _extract_extra_particle_wording_negative(chosen) is None
+                ):
                     continue
             pairs.append(
                 DPOPair(

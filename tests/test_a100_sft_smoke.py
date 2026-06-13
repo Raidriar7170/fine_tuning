@@ -188,6 +188,223 @@ def test_public_sample_a100_sft_smoke_config_is_bounded_and_opt_in() -> None:
     assert scan_paths([config_path]).ok is True
 
 
+def test_compact_query_exact_match_a100_rerun_configs_use_7b_and_stay_public_safe() -> None:
+    sft_config_path = REPO_ROOT / "configs" / "sft-a100-compact-query-exact-match-rerun.json"
+    prediction_config_path = REPO_ROOT / "configs" / "sft-a100-compact-query-exact-match-prediction.json"
+
+    assert sft_config_path.exists()
+    assert prediction_config_path.exists()
+    sft_config = json.loads(sft_config_path.read_text(encoding="utf-8"))
+    prediction_config = json.loads(prediction_config_path.read_text(encoding="utf-8"))
+    serialized = json.dumps({"sft": sft_config, "prediction": prediction_config}, ensure_ascii=False, sort_keys=True)
+
+    assert sft_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert prediction_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert sft_config["allow_heavy_training"] is True
+    assert prediction_config["allow_private_prediction"] is True
+    assert sft_config["public_sample_manifest"] == "data/public-samples/manifest_public_sample.json"
+    assert prediction_config["prediction_split"] == "train"
+    assert prediction_config["overfit_diagnostic"] is True
+    assert prediction_config["generalization_claim"] is False
+    assert sft_config["output_root"] == "<a100_project_root>"
+    assert prediction_config["output_root"] == "<a100_project_root>"
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert scan_paths([sft_config_path, prediction_config_path]).ok is True
+
+
+def test_extract_price_contract_residual_a100_rerun_configs_use_7b_and_stay_public_safe() -> None:
+    sft_config_path = REPO_ROOT / "configs" / "sft-a100-extract-price-contract-residual-rerun.json"
+    prediction_config_path = REPO_ROOT / "configs" / "sft-a100-extract-price-contract-residual-prediction.json"
+
+    assert sft_config_path.exists()
+    assert prediction_config_path.exists()
+    sft_config = json.loads(sft_config_path.read_text(encoding="utf-8"))
+    prediction_config = json.loads(prediction_config_path.read_text(encoding="utf-8"))
+    serialized = json.dumps({"sft": sft_config, "prediction": prediction_config}, ensure_ascii=False, sort_keys=True)
+
+    assert sft_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert prediction_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert sft_config["dataset_manifest_id"] == "public-sample-20260613T060441Z"
+    assert prediction_config["dataset_manifest_id"] == "public-sample-20260613T060441Z"
+    assert sft_config["allow_heavy_training"] is True
+    assert prediction_config["allow_private_prediction"] is True
+    assert sft_config["public_sample_manifest"] == "data/public-samples/manifest_public_sample.json"
+    assert prediction_config["prediction_split"] == "train"
+    assert prediction_config["overfit_diagnostic"] is True
+    assert prediction_config["generalization_claim"] is False
+    assert sft_config["output_root"] == "<a100_project_root>"
+    assert prediction_config["output_root"] == "<a100_project_root>"
+    assert sft_config["reference_runtime"] == "a100-extract-price-contract-residual-rerun"
+    assert prediction_config["reference_runtime"] == "a100-extract-price-contract-residual-prediction"
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert scan_paths([sft_config_path, prediction_config_path]).ok is True
+
+
+def test_extract_price_canonical_wording_a100_rerun_configs_use_7b_and_stay_public_safe() -> None:
+    sft_config_path = REPO_ROOT / "configs" / "sft-a100-extract-price-canonical-wording-rerun.json"
+    prediction_config_path = REPO_ROOT / "configs" / "sft-a100-extract-price-canonical-wording-prediction.json"
+
+    assert sft_config_path.exists()
+    assert prediction_config_path.exists()
+    sft_config = json.loads(sft_config_path.read_text(encoding="utf-8"))
+    prediction_config = json.loads(prediction_config_path.read_text(encoding="utf-8"))
+    serialized = json.dumps({"sft": sft_config, "prediction": prediction_config}, ensure_ascii=False, sort_keys=True)
+
+    assert sft_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert prediction_config["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert sft_config["dataset_manifest_id"] == "public-sample-20260613T063029Z"
+    assert prediction_config["dataset_manifest_id"] == "public-sample-20260613T063029Z"
+    assert sft_config["allow_heavy_training"] is True
+    assert prediction_config["allow_private_prediction"] is True
+    assert sft_config["public_sample_manifest"] == "data/public-samples/manifest_public_sample.json"
+    assert prediction_config["prediction_split"] == "train"
+    assert prediction_config["overfit_diagnostic"] is True
+    assert prediction_config["generalization_claim"] is False
+    assert sft_config["output_root"] == "<a100_project_root>"
+    assert prediction_config["output_root"] == "<a100_project_root>"
+    assert sft_config["reference_runtime"] == "a100-extract-price-canonical-wording-rerun"
+    assert prediction_config["reference_runtime"] == "a100-extract-price-canonical-wording-prediction"
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert scan_paths([sft_config_path, prediction_config_path]).ok is True
+
+
+def test_prompt_snapshot_row_records_actual_extract_prompt_constraints() -> None:
+    row = SFTDatasetRow(
+        id="seed-extract-price-aug-1",
+        split="train",
+        input_text="帮我看看这个东西现在卖多少钱",
+        target_contract={
+            "task_type": "extract",
+            "route": "extract_page",
+            "safety": {"allow": True, "reason": "public_readonly"},
+            "confirmation_required": False,
+            "slots": {"target": "商品价格"},
+            "normalized_command": "提取页面商品价格",
+            "language": "zh-CN",
+            "contract_version": "v1",
+        },
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+
+    prompt = training.format_sft_prediction_prompt(row, tokenizer=None)
+    snapshot = training._prompt_snapshot_row(row, prompt)  # noqa: SLF001
+
+    assert snapshot["prompt_constraints"]["public_readonly_extract_policy_visible"] is True
+    assert snapshot["prompt_constraints"]["extract_target_slot_guidance_visible"] is True
+    assert snapshot["prompt_constraints"]["extract_search_fallback_rejection_visible"] is True
+    assert snapshot["prompt_constraints"]["extract_query_page_url_slot_rejection_visible"] is True
+
+
+def test_extract_price_contract_residual_a100_rerun_evidence_is_bounded_and_public_safe() -> None:
+    evidence_dir = REPO_ROOT / "reports" / "public-sample" / "a100-extract-price-contract-residual-rerun"
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    diagnosis = json.loads(
+        (evidence_dir / "extract_price_contract_residual_rerun_diagnosis.json").read_text(encoding="utf-8")
+    )
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    metadata = json.loads((evidence_dir / "prediction_metadata.json").read_text(encoding="utf-8"))
+    prompt_snapshot = json.loads((evidence_dir / "prompt_snapshot.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8").lower()
+
+    assert manifest["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert manifest["prediction_split"] == "train"
+    assert manifest["overfit_diagnostic"] is True
+    assert manifest["generalization_claim"] is False
+    assert manifest["claims"]["model_recovery_claim"] is False
+    assert manifest["artifact_policy"]["checkpoints_or_adapters_copied_to_git"] is False
+    assert manifest["observed_result"]["compact_query_exact_match_count"] == 3
+    assert manifest["observed_result"]["extract_price_task_route_correct_count"] == 3
+    assert manifest["observed_result"]["extract_price_exact_match_count"] == 0
+    assert manifest["observed_result"]["extract_price_slot_target_exact_count"] == 1
+    assert metrics["metrics"]["contract_exact_match"] == 0.5
+    assert metrics["metrics"]["json_valid_rate"] == 1.0
+    assert metrics["metrics"]["slot_f1"] == 2 / 3
+    assert diagnosis["summary"]["overall_interpretation"] == (
+        "extract_price_route_recovered_but_strict_exact_match_residual_remains"
+    )
+    assert diagnosis["summary"]["extract_price_search_fallback_count"] == 0
+    assert diagnosis["summary"]["extract_price_query_or_page_url_slot_count"] == 0
+    assert metadata["prompt_constraints"]["public_readonly_extract_policy_visible"] is True
+    assert prompt_snapshot["prompt_constraints"]["public_readonly_extract_policy_visible"] is True
+    assert leak_scan["ok"] is True
+    assert "not a model-recovery claim" in report
+    assert scan_paths([evidence_dir]).ok is True
+
+
+def test_extract_price_canonical_wording_a100_rerun_evidence_is_bounded_and_public_safe() -> None:
+    evidence_dir = REPO_ROOT / "reports" / "public-sample" / "a100-extract-price-canonical-wording-rerun"
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    diagnosis = json.loads(
+        (evidence_dir / "extract_price_canonical_wording_rerun_diagnosis.json").read_text(encoding="utf-8")
+    )
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    metadata = json.loads((evidence_dir / "prediction_metadata.json").read_text(encoding="utf-8"))
+    prompt_snapshot = json.loads((evidence_dir / "prompt_snapshot.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8").lower()
+
+    assert manifest["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert manifest["prediction_split"] == "train"
+    assert manifest["overfit_diagnostic"] is True
+    assert manifest["generalization_claim"] is False
+    assert manifest["claims"]["model_recovery_claim"] is False
+    assert manifest["artifact_policy"]["checkpoints_or_adapters_copied_to_git"] is False
+    assert manifest["observed_result"]["compact_query_exact_match_count"] == 3
+    assert manifest["observed_result"]["extract_price_exact_match_count"] == 3
+    assert manifest["observed_result"]["extract_price_slot_target_exact_count"] == 3
+    assert manifest["observed_result"]["extract_price_normalized_command_exact_count"] == 3
+    assert manifest["observed_result"]["extract_price_wrong_price_synonym_count"] == 0
+    assert metrics["metrics"]["contract_exact_match"] == 1.0
+    assert metrics["metrics"]["json_valid_rate"] == 1.0
+    assert metrics["metrics"]["slot_f1"] == 1.0
+    assert diagnosis["summary"]["overall_interpretation"] == (
+        "extract_price_canonical_wording_recovered_on_train_split"
+    )
+    assert diagnosis["summary"]["extract_price_search_fallback_count"] == 0
+    assert diagnosis["summary"]["extract_price_extra_particle_normalized_command_count"] == 0
+    assert metadata["prompt_constraints"]["extract_canonical_price_target_visible"] is True
+    assert metadata["prompt_constraints"]["extract_wrong_price_synonym_rejection_visible"] is True
+    assert prompt_snapshot["prompt_constraints"]["extract_canonical_price_target_visible"] is True
+    assert leak_scan["ok"] is True
+    assert "not a model-recovery claim" in report
+    assert scan_paths([evidence_dir]).ok is True
+
+
+def test_compact_query_exact_match_a100_rerun_evidence_is_bounded_and_public_safe() -> None:
+    evidence_dir = REPO_ROOT / "reports" / "public-sample" / "a100-compact-query-exact-match-rerun"
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    diagnosis = json.loads(
+        (evidence_dir / "compact_query_exact_match_rerun_diagnosis.json").read_text(encoding="utf-8")
+    )
+    metrics = json.loads((evidence_dir / "metrics.json").read_text(encoding="utf-8"))
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8").lower()
+
+    assert manifest["base_model"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert manifest["prediction_split"] == "train"
+    assert manifest["overfit_diagnostic"] is True
+    assert manifest["generalization_claim"] is False
+    assert manifest["claims"]["model_recovery_claim"] is False
+    assert manifest["artifact_policy"]["checkpoints_or_adapters_copied_to_git"] is False
+    assert manifest["observed_result"]["compact_query_exact_match_count"] == 3
+    assert manifest["observed_result"]["compact_query_decomposed_slot_count"] == 0
+    assert manifest["observed_result"]["non_compact_extract_residual_row_count"] == 3
+    assert metrics["metrics"]["contract_exact_match"] == 0.5
+    assert metrics["metrics"]["json_valid_rate"] == 1.0
+    assert diagnosis["summary"]["overall_interpretation"] == (
+        "compact_query_residual_improved_but_overall_train_split_not_fully_recovered"
+    )
+    assert all(row["uses_compact_query_slot"] for row in diagnosis["compact_query_rows"])
+    assert all(not row["uses_decomposed_city_date_topic_slots"] for row in diagnosis["compact_query_rows"])
+    assert leak_scan["ok"] is True
+    assert "not a model-recovery claim" in report
+    assert scan_paths([evidence_dir]).ok is True
+
+
 def test_runtime_label_provenance_config_template_is_public_safe_and_requires_private_override() -> None:
     config_path = REPO_ROOT / "configs" / "sft-runtime-label-provenance-prep.json"
 

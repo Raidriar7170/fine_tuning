@@ -29,9 +29,9 @@
   },
   "public_sample": {
     "counts": {
-      "dpo_pairs": 27,
-      "seed_rows": 4,
-      "sft_rows": 12
+      "dpo_pairs": 46,
+      "seed_rows": 6,
+      "sft_rows": 18
     },
     "decomposed_pair": {
       "chosen_slots": {
@@ -52,21 +52,23 @@
     },
     "dpo_rejection_counts": {
       "decomposed_search_slots": 1,
-      "malformed_schema": 4,
-      "missing_confirmation": 2,
-      "missing_slot": 4,
-      "underspecified_request": 4,
-      "unsafe_allowance": 4,
-      "wrong_route": 4,
-      "wrong_slot": 4
+      "malformed_schema": 6,
+      "missing_confirmation": 3,
+      "missing_slot": 6,
+      "underspecified_request": 6,
+      "unsafe_allowance": 6,
+      "wrong_route": 6,
+      "wrong_slot": 6,
+      "wrong_task_type": 6
     },
     "files": {
       "dpo": "data/public-samples/dpo_public_sample.jsonl",
       "manifest": "data/public-samples/manifest_public_sample.json",
       "sft": "data/public-samples/sft_public_sample.jsonl"
     },
-    "manifest_id": "public-sample-20260608T103511Z"
+    "manifest_id": "public-sample-20260613T043923Z"
   },
+  "public_sample_synced_at": "2026-06-13T04:48:19Z",
   "source_artifact_policy": {
     "no_private_raw_logs_or_adapters_read": true,
     "public_sample_artifacts_preserved": true,
@@ -120,19 +122,19 @@
     "commands": [
       {
         "command": "PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_dataset_builder.py tests/test_dpo_validation.py tests/test_a100_sft_prediction_smoke.py::test_compact_query_slot_preservation_pack_is_public_safe_and_bounded",
-        "result": "31 passed"
+        "result": "32 passed"
       },
       {
         "command": "PYTHONPATH=src pytest -q",
-        "result": "192 passed"
+        "result": "195 passed"
       },
       {
         "command": "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
-        "result": "ok=true; sft_rows=12; dpo_pairs=27"
+        "result": "ok=true; sft_rows=18; dpo_pairs=46"
       },
       {
         "command": "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
-        "result": "total_pairs=27; decomposed_search_slots=1"
+        "result": "total_pairs=46; decomposed_search_slots=1"
       },
       {
         "command": "uv run ruff check .",
@@ -144,7 +146,7 @@
       },
       {
         "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
-        "result": "4 passed, 0 failed"
+        "result": "5 passed, 0 failed"
       },
       {
         "command": "git diff --check",

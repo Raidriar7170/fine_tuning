@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>extract-price 残差修复阶段简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; max-width: 920px; margin: 32px auto; padding: 0 20px; color: #20242a; }
+    h1 { font-size: 28px; }
+    h2 { margin-top: 28px; font-size: 18px; }
+    .status { padding: 12px 14px; border-left: 4px solid #d97706; background: #fff7ed; }
+    code { background: #f4f4f5; padding: 1px 4px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f7f7f8; }
+  </style>
+</head>
+<body>
+  <h1>extract-price 残差修复阶段简报</h1>
+  <p class="status"><strong>一句话结论：</strong>7B A100 训练让 extract-price 不再走 search，也不再用 query/page_url slot，但 strict exact 仍是 <code>0/3</code>，主要卡在 canonical 文案和 target 词面。</p>
+  <h2>当前状态</h2>
+  <p>阶段状态：archived；证据类型：public-sample train-split diagnostic；不是 dev/test 泛化、生产可用、checkpoint/adapter release 或 live-browser benchmark 结论。</p>
+  <h2>本阶段改变</h2>
+  <ul>
+    <li>新增 extract-price prompt policy 和两类 DPO hard negative：search fallback、query/page_url slot drift。</li>
+    <li>public DPO 从 46 对更新到 48 对。</li>
+    <li>在 A100 GPU 3 上跑 7B SFT train-split rerun，并只回传 sanitized evidence。</li>
+  </ul>
+  <h2>关键指标</h2>
+  <table>
+    <tr><th>指标</th><th>结果</th></tr>
+    <tr><td>json_valid_rate</td><td>1.0000</td></tr>
+    <tr><td>contract_exact_match</td><td>0.5000</td></tr>
+    <tr><td>slot_f1</td><td>0.6667</td></tr>
+    <tr><td>compact-query exact</td><td>3/3</td></tr>
+    <tr><td>extract task+route correct</td><td>3/3</td></tr>
+    <tr><td>extract strict exact</td><td>0/3</td></tr>
+  </table>
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/a100-extract-price-contract-residual-rerun/extract_price_contract_residual_rerun_diagnosis.json</code></li>
+    <li><code>reports/public-sample/a100-extract-price-contract-residual-rerun/report.md</code></li>
+    <li><code>reports/public-sample/a100-extract-price-contract-residual-rerun/manifest.json</code></li>
+    <li><code>openspec/changes/archive/2026-06-13-repair-extract-price-contract-residual/</code></li>
+  </ul>
+  <h2>验证</h2>
+  <p>归档后验证通过：pytest 全量、ruff、mypy、public data validate、DPO check、OpenSpec strict、leak scan、git diff check。</p>
+  <h2>剩余风险</h2>
+  <p>该结果仍是 train-split public sample 证据。它支持“任务/路由形状学会了”，不支持“strict extract canonical target 已学会”。</p>
+  <h2>推荐下一步</h2>
+  <p>开一个更小阶段专门修 canonical extract target wording：让“多少钱/标价/页面上的商品价格”统一落到 <code>slots.target="商品价格"</code> 与 <code>normalized_command="提取页面商品价格"</code>，先不要扩大到私有全量。</p>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T06:40:13.475961+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-extract-price-canonical-wording-rerun"
+  ]
+}

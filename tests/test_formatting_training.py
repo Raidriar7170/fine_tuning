@@ -308,7 +308,7 @@ def test_sft_prompts_expose_normalized_command_canonicalization_policy_without_g
 
     training_text = formatting.format_sft_training_text(row, tokenizer=None)
     prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
-    summary = formatting.prompt_constraint_summary()
+    summary = formatting.prompt_constraint_summary(prediction_prompt)
 
     for text in (training_text, prediction_prompt):
         assert "normalized_command 是 canonical Chinese intent phrase" in text
@@ -364,6 +364,10 @@ def test_sft_prompts_expose_public_readonly_search_contract_policy_without_gold_
         assert "不要在 normalized_command 之前提前关闭 root object" in text
         assert "task_type 必须是 search，不能是 search_web" in text
         assert "slots.query 使用紧凑查询短语" in text
+        assert 'normalized_command="搜索" + <compact query phrase>' in text
+        assert "slots.query=<same compact query phrase>" in text
+        assert "同一个紧凑查询短语" in text
+        assert "不要额外插入“的”" in text
         assert "中文勿人工空格" in text
         assert "不要拆成 city/date/topic" in text
         assert "该形态 rejected" in text
@@ -383,9 +387,101 @@ def test_sft_prompts_expose_public_readonly_search_contract_policy_without_gold_
     assert summary["no_premature_root_close_visible"] is True
     assert summary["public_readonly_task_type_search_not_search_web_visible"] is True
     assert summary["compact_search_query_slot_policy_visible"] is True
+    assert summary["compact_query_exact_match_policy_visible"] is True
+    assert summary["compact_query_same_phrase_alignment_visible"] is True
+    assert summary["compact_query_extra_particle_avoidance_visible"] is True
+    assert summary["compact_query_decomposed_slot_rejection_visible"] is True
     assert summary["search_query_no_city_date_split_visible"] is True
     assert summary["decomposed_search_slots_rejected_visible"] is True
     assert summary["policy_is_target_formatting_not_evaluator_normalization"] is True
+
+
+def test_sft_prompts_expose_public_extract_price_policy_without_gold_target() -> None:
+    row = SFTDatasetRow(
+        id="sft-extract-price-1",
+        split="train",
+        input_text="帮我看看这个东西现在卖多少钱",
+        target_contract=BrowserTaskContract(
+            task_type="extract",
+            route="extract_page",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"target": "gold-price-token"},
+            normalized_command="提取页面 gold-price-token",
+        ),
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+
+    training_text = formatting.format_sft_training_text(row, tokenizer=None)
+    prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary(prediction_prompt)
+
+    for text in (training_text, prediction_prompt):
+        assert "public-readonly extract-page contract policy" in text
+        assert 'task_type="extract"' in text
+        assert 'route="extract_page"' in text
+        assert 'safety.reason="public_readonly"' in text
+        assert "confirmation_required=false" in text
+        assert "slots.target" in text
+        assert "不要转成 search/search_web" in text
+        assert "不要用 slots.query 或 page_url 表达抽取目标" in text
+        assert "不是 evaluator normalization" in text
+    assert "gold-price-token" in training_text
+    assert "gold-price-token" not in prediction_prompt
+    assert summary["public_readonly_extract_policy_visible"] is True
+    assert summary["extract_target_slot_guidance_visible"] is True
+    assert summary["extract_search_fallback_rejection_visible"] is True
+    assert summary["extract_query_page_url_slot_rejection_visible"] is True
+
+
+def test_sft_prompts_expose_public_extract_price_canonical_wording_without_gold_target() -> None:
+    row = SFTDatasetRow(
+        id="sft-extract-price-canonical-1",
+        split="train",
+        input_text="帮我看看这个东西现在卖多少钱",
+        target_contract=BrowserTaskContract(
+            task_type="extract",
+            route="extract_page",
+            safety={"allow": True, "reason": "public_readonly"},
+            confirmation_required=False,
+            slots={"target": "gold-price-token"},
+            normalized_command="提取页面 gold-price-token",
+        ),
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+
+    training_text = formatting.format_sft_training_text(row, tokenizer=None)
+    prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary(prediction_prompt)
+
+    for text in (training_text, prediction_prompt):
+        assert "extract-price canonical wording policy" in text
+        assert "多少钱/标价/页面上的商品价格" in text
+        assert 'slots.target="商品价格"' in text
+        assert 'normalized_command="提取页面商品价格"' in text
+        assert "页面价格/标价/提取页面上的商品价格 是 strict-wrong" in text
+        assert "不是 evaluator normalization" in text
+    assert "gold-price-token" in training_text
+    assert "gold-price-token" not in prediction_prompt
+    assert summary["extract_canonical_price_target_visible"] is True
+    assert summary["extract_alias_to_canonical_price_visible"] is True
+    assert summary["extract_wrong_price_synonym_rejection_visible"] is True
+    assert summary["extract_extra_particle_rejection_visible"] is True
+
+
+def test_prediction_prompt_constraint_summary_combines_search_and_extract_policy_visibility() -> None:
+    summary = formatting.prediction_prompt_constraint_summary()
+
+    assert summary["public_readonly_search_policy_visible"] is True
+    assert summary["compact_search_query_slot_policy_visible"] is True
+    assert summary["public_readonly_extract_policy_visible"] is True
+    assert summary["extract_target_slot_guidance_visible"] is True
+    assert summary["extract_search_fallback_rejection_visible"] is True
+    assert summary["extract_query_page_url_slot_rejection_visible"] is True
+    assert summary["extract_canonical_price_target_visible"] is True
+    assert summary["extract_alias_to_canonical_price_visible"] is True
+    assert summary["extract_wrong_price_synonym_rejection_visible"] is True
+    assert summary["extract_extra_particle_rejection_visible"] is True
 
 
 def test_public_sample_sft_training_text_stays_within_runtime_sequence_budget() -> None:
@@ -421,12 +517,23 @@ def test_public_sample_prediction_prompt_policy_examples_do_not_include_gold_tar
         prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
         query = row.target_contract.slots.get("query")
 
-        assert row.target_contract.normalized_command not in system_prompt
+        if row.target_contract.normalized_command in system_prompt:
+            assert row.target_contract.normalized_command in formatting.EXTRACT_PRICE_CANONICAL_WORDING_POLICY
+            assert row.target_contract.task_type == "extract"
+            assert row.target_contract.slots == {"target": "商品价格"}
+        else:
+            assert row.target_contract.normalized_command not in system_prompt
         if isinstance(query, str):
             assert query not in system_prompt
             if query not in row.input_text:
                 assert query not in prediction_prompt
-        if row.target_contract.normalized_command not in row.input_text:
+        if (
+            row.target_contract.normalized_command in prediction_prompt
+            and row.target_contract.normalized_command in formatting.EXTRACT_PRICE_CANONICAL_WORDING_POLICY
+        ):
+            assert row.target_contract.task_type == "extract"
+            assert row.target_contract.slots == {"target": "商品价格"}
+        elif row.target_contract.normalized_command not in row.input_text:
             assert row.target_contract.normalized_command not in prediction_prompt
 
 
@@ -474,7 +581,7 @@ def test_sft_training_text_fallback_is_deterministic_contract_only_text() -> Non
     )
     assert text == "\n".join(
         [
-            f"system: {SYSTEM_PROMPT}",
+            f"system: {formatting.TRAINING_SYSTEM_PROMPT}",
             "user: 帮我搜高铁票",
             assistant_line,
         ]

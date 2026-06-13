@@ -1030,3 +1030,70 @@ The system SHALL publish public-safe local evidence that explains strict exact-m
 - **WHEN** reports, Human Briefs, loop reports, or archived OpenSpec artifacts describe the diagnosis
 - **THEN** they MUST state that the phase performs no A100 execution, training, prediction rerun, prompt change, decoding change, parser relaxation, evaluator metric change, semantic-equivalence scoring, slot normalization, prediction repair, prediction replacement, or prediction re-score
 - **AND** they MUST NOT claim held-out generalization, production readiness, model-quality improvement, model recovery, checkpoint release, adapter release, public full-corpus release, or live-browser benchmark improvement
+
+### Requirement: Publish compact-query exact-match policy hardening evidence
+The system SHALL publish public-safe local evidence for compact-query exact-match prompt policy hardening without reinterpreting prior A100 predictions or strict evaluator metrics.
+
+#### Scenario: Generate compact-query exact-match policy hardening evidence pack
+- **WHEN** the local prompt policy hardening phase completes
+- **THEN** the evidence pack MUST include a manifest, machine-readable policy summary, human-readable report, leak-scan results, source residual-diagnosis links, prompt constraint metadata, public sample target checks, validation commands, and explicit non-claims
+- **AND** it MUST record whether compact-query exact-match policy visibility, same-query-phrase alignment visibility, extra-particle avoidance visibility, and decomposed-slot rejection visibility are present
+- **AND** it MUST link the prior compact-query exact-match residual diagnosis as historical source evidence without modifying that source evidence
+
+#### Scenario: Preserve prior strict evidence
+- **WHEN** the hardening evidence summarizes prior residuals
+- **THEN** it MUST preserve prior source predictions, metrics, residual row ids, and field-family counts as historical evidence
+- **AND** it MUST NOT repair, normalize, replace, re-score, or reinterpret prior outputs as exact-match recovery
+
+#### Scenario: Bound compact-query hardening evidence claims
+- **WHEN** reports, Human Briefs, loop reports, or archived OpenSpec artifacts describe the hardening phase
+- **THEN** they MUST state that the phase performs no A100 execution, training, prediction rerun, parser relaxation, strict evaluator metric replacement or relaxation, semantic-equivalence scoring, slot normalization, `normalized_command` normalization, prediction repair, prediction replacement, or prediction re-score
+- **AND** they MUST NOT claim held-out generalization, production readiness, model-quality improvement, model recovery, checkpoint release, adapter release, public full-corpus release, or live-browser benchmark improvement
+
+### Requirement: Keep soft slot diagnostics separate from strict metrics
+The system SHALL expose soft slot diagnostics only as internal analysis and SHALL keep strict contract metrics authoritative.
+
+#### Scenario: Report slot_f1_soft as internal-only diagnostic
+- **WHEN** the evaluator reports `slot_f1_soft`
+- **THEN** it MUST continue to report strict `slot_f1` and `contract_exact_match`
+- **AND** reports MUST label `slot_f1_soft` as an internal diagnostic rather than strict recovery, production readiness, semantic-equivalence scoring, prediction repair, or prediction re-score
+
+### Requirement: Publish extract-price residual repair evidence
+The system SHALL publish public-safe evidence for the extract-price contract residual repair phase that separates strict train-split recovery from held-out or production claims.
+
+#### Scenario: Generate extract residual evidence pack
+- **WHEN** extract-price residual rerun predictions, metrics, prompt snapshot, prediction metadata, raw decoded summary, generation trace, residual diagnosis, and leak-scan results are available
+- **THEN** the manifest and report MUST link those sanitized artifacts and record `prediction_split=train`, `overfit_diagnostic=true`, `generalization_claim=false`, prediction source kind, release status, extract-price strict exact-match status, compact-query preservation status, and claim boundaries
+
+#### Scenario: Report extract residual families
+- **WHEN** the extract residual report is generated from real private-adapter train-split predictions
+- **THEN** it MUST state whether extract-price rows failed by task type, route, slots, normalized command, safety, confirmation, schema validity, or exact-match mismatch
+- **AND** it MUST compare those residuals with the prior compact-query rerun without treating before/after differences as held-out generalization
+
+#### Scenario: Keep evidence public-safe
+- **WHEN** extract residual evidence is prepared for commit
+- **THEN** leak-scan validation MUST reject raw private rows, local or remote private paths, secrets, private IP addresses, SSH details, raw logs, checkpoints, adapters, caches, oversized generated corpora, and private remote paths
+
+#### Scenario: Bound extract repair interpretation
+- **WHEN** public documentation or Human Briefs describe the extract residual repair result
+- **THEN** they MUST state that train-split public-sample evidence does not prove dev/test generalization, production readiness, checkpoint release, adapter release, public full-corpus release, or live-browser benchmark improvement
+
+### Requirement: Publish extract-price canonical wording rerun evidence
+The system SHALL publish public-safe evidence for the extract-price canonical wording rerun that separates strict train-split recovery from held-out or production claims.
+
+#### Scenario: Generate canonical wording evidence pack
+- **WHEN** canonical wording rerun predictions, metrics, prompt snapshot, prediction metadata, raw decoded summary, generation trace, residual diagnosis, manifest, report, Human Brief, and leak-scan results are available
+- **THEN** the manifest and report MUST link those sanitized artifacts and record `prediction_split=train`, `overfit_diagnostic=true`, `generalization_claim=false`, prediction source kind, release status, canonical target exact status, canonical normalized-command exact status, compact-query preservation status, and claim boundaries
+
+#### Scenario: Report canonical wording residual families
+- **WHEN** the canonical wording report is generated from real private-adapter train-split predictions
+- **THEN** it MUST state whether extract-price rows failed by `slots.target`, `normalized_command`, task type, route, safety, confirmation, schema validity, or exact-match mismatch
+- **AND** it MUST compare those residuals with the prior extract-price residual rerun without treating before/after differences as held-out generalization
+
+#### Scenario: Keep canonical wording evidence public-safe
+- **WHEN** canonical wording evidence is prepared for commit
+- **THEN** leak-scan validation MUST reject raw private rows, local or remote private paths, secrets, private IP addresses, SSH details, raw logs, checkpoints, adapters, caches, oversized generated corpora, and private remote paths
+
+#### Scenario: Bound canonical wording interpretation
+- **WHEN** public documentation or Human Briefs describe the canonical wording result
+- **THEN** they MUST state that train-split public-sample evidence does not prove dev/test generalization, production readiness, checkpoint release, adapter release, public full-corpus release, or live-browser benchmark improvement

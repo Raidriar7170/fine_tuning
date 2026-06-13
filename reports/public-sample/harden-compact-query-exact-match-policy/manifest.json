@@ -1,0 +1,53 @@
+{
+  "change_name": "harden-compact-query-exact-match-policy",
+  "claims": {
+    "a100_execution_performed": false,
+    "local_policy_and_data_hardening_only": true,
+    "model_quality_improvement_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false,
+    "strict_metric_relaxation_performed": false,
+    "training_or_prediction_rerun_performed": false
+  },
+  "counts": {
+    "decomposed_search_slots_pairs": 1,
+    "dpo_pairs": 46,
+    "sft_rows": 18,
+    "wrong_task_type_pairs": 6
+  },
+  "diagnostic_artifacts": {
+    "human_brief": "docs/human-briefs/2026-06-13-harden-compact-query-exact-match-policy.html",
+    "leak_scan": "reports/public-sample/harden-compact-query-exact-match-policy/leak_scan_result.json",
+    "manifest": "reports/public-sample/harden-compact-query-exact-match-policy/manifest.json",
+    "report": "reports/public-sample/harden-compact-query-exact-match-policy/hardening_summary.md",
+    "summary_json": "reports/public-sample/harden-compact-query-exact-match-policy/hardening_summary.json"
+  },
+  "evidence_kind": "compact_query_exact_match_policy_hardening_local",
+  "generated_at": "2026-06-13T04:55:00Z",
+  "open_spec_change": "openspec/changes/harden-compact-query-exact-match-policy",
+  "public_sample_manifest": "data/public-samples/manifest_public_sample.json",
+  "validation": {
+    "commands": [
+      {
+        "command": "PYTHONPATH=src pytest -q",
+        "result": "195 passed"
+      },
+      {
+        "command": "uv run ruff check .",
+        "result": "All checks passed"
+      },
+      {
+        "command": "uv run mypy src",
+        "result": "Success: no issues found in 16 source files"
+      },
+      {
+        "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
+        "result": "5 passed, 0 failed"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed"
+      }
+    ]
+  }
+}

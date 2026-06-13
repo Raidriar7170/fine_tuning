@@ -59,6 +59,21 @@ def test_validate_dpo_pairs_file_rejects_mislabeled_wrong_route_pair(tmp_path: P
         validate_dpo_pairs_file(path)
 
 
+def test_validate_dpo_pair_rejects_mislabeled_wrong_task_type_pair() -> None:
+    pair = DPOPair(
+        id="bad-task-type-label",
+        split="train",
+        input_text="搜酒店",
+        chosen_contract=_contract(task_type="search"),
+        rejected_contract=_contract(task_type="search", safety_reason="wrong_task_type"),
+        rejection_reason="wrong_task_type",
+        provenance={"source_id": "seed-1", "public_safe": True},
+    )
+
+    with pytest.raises(ValidationError, match="wrong_task_type"):
+        validate_dpo_pair(pair)
+
+
 def test_dpo_slice_summary_counts_rejection_categories() -> None:
     pairs = [
         DPOPair(
@@ -107,6 +122,189 @@ def test_validate_dpo_pair_accepts_decomposed_search_slot_negative() -> None:
     summary = summarize_dpo_slices([pair])
     assert summary["slot"]["count"] == 1
     assert summary["aggregate"]["rejection_categories"] == {"decomposed_search_slots": 1}
+
+
+def _extract_contract(
+    slots: dict[str, str] | None = None,
+    task_type: str = "extract",
+    normalized_command: str = "提取页面商品价格",
+) -> BrowserTaskContract:
+    return BrowserTaskContract(
+        task_type=task_type,
+        route="extract_page",
+        safety={"allow": True, "reason": "public_readonly"},
+        confirmation_required=False,
+        slots=slots or {"target": "商品价格"},
+        normalized_command=normalized_command,
+    )
+
+
+def test_validate_dpo_pair_accepts_extract_price_hard_negatives() -> None:
+    search_fallback = DPOPair(
+        id="extract-search-fallback",
+        split="train",
+        input_text="帮我看看这个东西现在卖多少钱",
+        chosen_contract=_extract_contract(),
+        rejected_contract=_contract(
+            task_type="search",
+            route="search_web",
+            query="商品价格",
+            safety_reason="extract_search_fallback",
+        ),
+        rejection_reason="extract_search_fallback",
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+    query_slot = DPOPair(
+        id="extract-query-slot",
+        split="train",
+        input_text="把页面上标价找出来",
+        chosen_contract=_extract_contract(),
+        rejected_contract=_extract_contract(slots={"query": "商品价格", "page_url": ""}),
+        rejection_reason="extract_query_slot",
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+
+    validate_dpo_pair(search_fallback)
+    validate_dpo_pair(query_slot)
+
+    summary = summarize_dpo_slices([search_fallback, query_slot])
+    assert summary["task_type"]["count"] == 1
+    assert summary["slot"]["count"] == 1
+    assert summary["aggregate"]["rejection_categories"] == {
+        "extract_query_slot": 1,
+        "extract_search_fallback": 1,
+    }
+
+
+def test_validate_dpo_pair_accepts_extract_price_canonical_wording_hard_negatives() -> None:
+    generic_wording = DPOPair(
+        id="extract-generic-price-wording",
+        split="train",
+        input_text="帮我看看这个东西现在卖多少钱",
+        chosen_contract=_extract_contract(),
+        rejected_contract=_extract_contract(slots={"target": "价格"}, normalized_command="页面价格"),
+        rejection_reason="extract_generic_price_wording",
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+    listed_wording = DPOPair(
+        id="extract-listed-price-wording",
+        split="train",
+        input_text="把页面上标价找出来",
+        chosen_contract=_extract_contract(),
+        rejected_contract=_extract_contract(slots={"target": "标价"}, normalized_command="提取页面标价"),
+        rejection_reason="extract_listed_price_wording",
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+    extra_particle = DPOPair(
+        id="extract-extra-particle-wording",
+        split="train",
+        input_text="帮我提取这个页面上的商品价格",
+        chosen_contract=_extract_contract(),
+        rejected_contract=_extract_contract(normalized_command="提取页面上的商品价格"),
+        rejection_reason="extract_extra_particle_wording",
+        provenance={"source_id": "seed-extract-price", "public_safe": True},
+    )
+
+    validate_dpo_pair(generic_wording)
+    validate_dpo_pair(listed_wording)
+    validate_dpo_pair(extra_particle)
+
+    summary = summarize_dpo_slices([generic_wording, listed_wording, extra_particle])
+    assert summary["slot"]["count"] == 2
+    assert summary["normalized_command"]["count"] == 1
+    assert summary["aggregate"]["rejection_categories"] == {
+        "extract_extra_particle_wording": 1,
+        "extract_generic_price_wording": 1,
+        "extract_listed_price_wording": 1,
+    }
+
+
+@pytest.mark.parametrize(
+    ("pair_kwargs", "message"),
+    [
+        (
+            {
+                "id": "bad-extract-search-fallback",
+                "split": "train",
+                "input_text": "帮我看看这个东西现在卖多少钱",
+                "chosen_contract": _extract_contract(),
+                "rejected_contract": _extract_contract(slots={"target": "价格"}),
+                "rejection_reason": "extract_search_fallback",
+                "provenance": {"source_id": "seed-extract-price", "public_safe": True},
+            },
+            "search/search_web",
+        ),
+        (
+            {
+                "id": "bad-extract-query-slot",
+                "split": "train",
+                "input_text": "把页面上标价找出来",
+                "chosen_contract": _extract_contract(),
+                "rejected_contract": _extract_contract(slots={"target": "价格"}),
+                "rejection_reason": "extract_query_slot",
+                "provenance": {"source_id": "seed-extract-price", "public_safe": True},
+            },
+            "query/page_url",
+        ),
+    ],
+)
+def test_validate_dpo_pair_rejects_malformed_extract_price_hard_negatives(
+    pair_kwargs: dict[str, object],
+    message: str,
+) -> None:
+    pair = DPOPair(**pair_kwargs)
+    with pytest.raises(ValidationError, match=message):
+        validate_dpo_pair(pair)
+
+
+@pytest.mark.parametrize(
+    ("pair_kwargs", "message"),
+    [
+        (
+            {
+                "id": "bad-extract-generic-price-wording",
+                "split": "train",
+                "input_text": "帮我看看这个东西现在卖多少钱",
+                "chosen_contract": _extract_contract(),
+                "rejected_contract": _extract_contract(),
+                "rejection_reason": "extract_generic_price_wording",
+                "provenance": {"source_id": "seed-extract-price", "public_safe": True},
+            },
+            "weak_pair",
+        ),
+        (
+            {
+                "id": "bad-extract-listed-price-wording",
+                "split": "train",
+                "input_text": "把页面上标价找出来",
+                "chosen_contract": _extract_contract(),
+                "rejected_contract": _extract_contract(slots={"target": "价格"}),
+                "rejection_reason": "extract_listed_price_wording",
+                "provenance": {"source_id": "seed-extract-price", "public_safe": True},
+            },
+            "标价",
+        ),
+        (
+            {
+                "id": "bad-extract-extra-particle-wording",
+                "split": "train",
+                "input_text": "帮我提取这个页面上的商品价格",
+                "chosen_contract": _extract_contract(),
+                "rejected_contract": _extract_contract(slots={"target": "价格"}, normalized_command="页面价格"),
+                "rejection_reason": "extract_extra_particle_wording",
+                "provenance": {"source_id": "seed-extract-price", "public_safe": True},
+            },
+            "preserve target",
+        ),
+    ],
+)
+def test_validate_dpo_pair_rejects_malformed_extract_price_canonical_wording_hard_negatives(
+    pair_kwargs: dict[str, object],
+    message: str,
+) -> None:
+    pair = DPOPair(**pair_kwargs)
+    with pytest.raises(ValidationError, match=message):
+        validate_dpo_pair(pair)
 
 
 @pytest.mark.parametrize(

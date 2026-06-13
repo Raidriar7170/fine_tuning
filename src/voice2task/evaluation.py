@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from voice2task.formatting import (
+    CONTRACT_CANONICAL_ONE_SHOT,
     FORMATTING_POLICY,
     PREDICTION_OUTPUT_BOUNDARY_RULES,
     format_sft_prediction_prompt,
@@ -76,6 +77,21 @@ def _prediction_to_contract(value: Any) -> BrowserTaskContract | None:
         return None
 
 
+def _char_f1(a: str, b: str) -> float:
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+    a_chars = list(a)
+    b_chars = list(b)
+    common = sum(min(a_chars.count(c), b_chars.count(c)) for c in set(a_chars) & set(b_chars))
+    precision = common / len(b_chars)
+    recall = common / len(a_chars)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
+
+
 def _slot_f1(gold: dict[str, Any], predicted: dict[str, Any]) -> float:
     gold_items = {(str(key), str(value)) for key, value in gold.items()}
     predicted_items = {(str(key), str(value)) for key, value in predicted.items()}
@@ -86,6 +102,27 @@ def _slot_f1(gold: dict[str, Any], predicted: dict[str, Any]) -> float:
     true_positive = len(gold_items & predicted_items)
     precision = true_positive / len(predicted_items)
     recall = true_positive / len(gold_items)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
+
+
+def _slot_f1_soft(gold: dict[str, Any], predicted: dict[str, Any]) -> float:
+    if not gold and not predicted:
+        return 1.0
+    if not gold or not predicted:
+        return 0.0
+    gold_keys = set(gold.keys())
+    pred_keys = set(predicted.keys())
+    matched_score = 0.0
+    for key in gold_keys & pred_keys:
+        cf1 = _char_f1(str(gold[key]), str(predicted[key]))
+        if cf1 >= 0.7:
+            matched_score += 1.0
+        elif cf1 >= 0.5:
+            matched_score += cf1
+    precision = matched_score / len(predicted) if predicted else 0.0
+    recall = matched_score / len(gold) if gold else 0.0
     if precision + recall == 0:
         return 0.0
     return 2 * precision * recall / (precision + recall)
@@ -106,6 +143,7 @@ def evaluate_predictions(rows: list[SFTDatasetRow], predictions: dict[str, Any])
     confirmation_matches = 0
     exact_matches = 0
     slot_scores: list[float] = []
+    slot_soft_scores: list[float] = []
     safety_tp = safety_fp = safety_fn = 0
     failure_slices: dict[str, dict[str, Any]] = {
         category: {"count": 0, "examples": []}
@@ -118,6 +156,7 @@ def evaluate_predictions(rows: list[SFTDatasetRow], predictions: dict[str, Any])
         if predicted is None:
             _add_failure(failure_slices, "schema", row.id)
             slot_scores.append(0.0)
+            slot_soft_scores.append(0.0)
             continue
         valid += 1
         if predicted.task_type == gold.task_type:
@@ -146,6 +185,7 @@ def evaluate_predictions(rows: list[SFTDatasetRow], predictions: dict[str, Any])
 
         slot_score = _slot_f1(gold.slots, predicted.slots)
         slot_scores.append(slot_score)
+        slot_soft_scores.append(_slot_f1_soft(gold.slots, predicted.slots))
         if slot_score < 1.0:
             _add_failure(failure_slices, "slot", row.id)
         if predicted.to_dict() == gold.to_dict():
@@ -163,6 +203,7 @@ def evaluate_predictions(rows: list[SFTDatasetRow], predictions: dict[str, Any])
         "safety_gold_stop_support": float(safety_tp + safety_fn),
         "confirmation_accuracy": confirmation_matches / total,
         "slot_f1": sum(slot_scores) / total,
+        "slot_f1_soft": sum(slot_soft_scores) / total,
         "contract_exact_match": exact_matches / total,
     }
     return EvaluationResult(metrics=metrics, failure_slices=failure_slices)
@@ -1096,7 +1137,8 @@ def _system_user_prefix(text: str) -> str:
 
 
 def _core_system_user_prefix(text: str) -> str:
-    return _system_user_prefix(text).replace(PREDICTION_OUTPUT_BOUNDARY_RULES, "")
+    core = _system_user_prefix(text).replace(PREDICTION_OUTPUT_BOUNDARY_RULES, "")
+    return core.replace(f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。", "")
 
 
 def _target_span(training_text: str, assistant_target: str) -> dict[str, Any]:

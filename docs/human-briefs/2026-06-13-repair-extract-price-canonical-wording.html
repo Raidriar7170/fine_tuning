@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>extract-price canonical wording 阶段简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; max-width: 920px; margin: 32px auto; padding: 0 20px; color: #20242a; }
+    h1 { font-size: 28px; }
+    h2 { margin-top: 28px; font-size: 18px; }
+    .status { padding: 12px 14px; border-left: 4px solid #16a34a; background: #f0fdf4; }
+    code { background: #f4f4f5; padding: 1px 4px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f7f7f8; }
+  </style>
+</head>
+<body>
+  <h1>extract-price canonical wording 阶段简报</h1>
+  <p class="status"><strong>一句话结论：</strong>7B A100 训练在 bounded public train split 上把 extract-price strict residual 消掉了：<code>contract_exact_match=1.0000</code>，extract-price <code>3/3</code> strict exact。</p>
+
+  <h2>当前状态</h2>
+  <p>阶段状态：archived；证据类型：public-sample train-split diagnostic；不是 dev/test 泛化、生产可用、checkpoint/adapter release 或 live-browser benchmark 结论。</p>
+
+  <h2>本阶段改变</h2>
+  <ul>
+    <li>新增 extract-price canonical wording policy：<code>多少钱/标价/页面上的商品价格</code> 必须落到 <code>slots.target="商品价格"</code> 与 <code>normalized_command="提取页面商品价格"</code>。</li>
+    <li>新增 3 类 DPO hard negative：generic <code>价格</code>、listed <code>标价</code>、extra-particle <code>提取页面上的商品价格</code>。</li>
+    <li>public DPO 从 48 对更新到 51 对；A100 7B train-split rerun 后只回传 sanitized evidence。</li>
+    <li>修复 prediction runtime 的 markdown fence suppression：只传单 token bad words，绕开 transformers 5.5.0 multi-token CUDA bug。</li>
+  </ul>
+
+  <h2>关键指标</h2>
+  <table>
+    <tr><th>指标</th><th>结果</th></tr>
+    <tr><td>json_valid_rate</td><td>1.0000</td></tr>
+    <tr><td>contract_exact_match</td><td>1.0000</td></tr>
+    <tr><td>slot_f1</td><td>1.0000</td></tr>
+    <tr><td>compact-query exact</td><td>3/3</td></tr>
+    <tr><td>extract strict exact</td><td>3/3</td></tr>
+    <tr><td>wrong price synonym / extra particle</td><td>0 / 0</td></tr>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/a100-extract-price-canonical-wording-rerun/extract_price_canonical_wording_rerun_diagnosis.json</code></li>
+    <li><code>reports/public-sample/a100-extract-price-canonical-wording-rerun/report.md</code></li>
+    <li><code>reports/public-sample/a100-extract-price-canonical-wording-rerun/manifest.json</code></li>
+    <li><code>openspec/changes/archive/2026-06-13-repair-extract-price-canonical-wording/</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <p>归档前与归档后验证均已通过：pytest 全量、ruff、mypy、public data validate、DPO check、OpenSpec strict、phase/post-archive leak scan 与 git diff check。最终 public leak scan 也已通过。</p>
+
+  <h2>剩余风险</h2>
+  <p>该结果仍是 train-split public sample 证据。它支持“当前 7B SFT 路径能在公开训练样本内学会 strict canonical extract-price 文案”，不支持“真实私有数据或 held-out split 泛化已经解决”。</p>
+
+  <h2>推荐下一步</h2>
+  <p>下一阶段再决定是否扩大到 dev/test 或私有样本验证，不要把这个 train-split 结果写成生产能力。</p>
+</body>
+</html>

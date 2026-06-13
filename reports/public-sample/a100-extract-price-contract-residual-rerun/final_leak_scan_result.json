@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T06:23:06.100402+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-extract-price-contract-residual-rerun",
+    "docs/human-briefs/2026-06-13-repair-extract-price-contract-residual.html",
+    "openspec/changes/archive/2026-06-13-repair-extract-price-contract-residual",
+    "configs/sft-a100-extract-price-contract-residual-rerun.json",
+    "configs/sft-a100-extract-price-contract-residual-prediction.json"
+  ]
+}

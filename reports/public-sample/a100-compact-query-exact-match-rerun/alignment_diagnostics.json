@@ -1,0 +1,100 @@
+{
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "field_level_public_sample_evidence_only": true,
+    "full_private_corpus_claim": false,
+    "invalid_predictions_remain_invalid": true,
+    "live_browser_benchmark_claim": false,
+    "production_readiness_claim": false
+  },
+  "diagnostic_kind": "browser_task_contract_alignment_mismatch",
+  "rows": [
+    {
+      "mismatches": [
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: target",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "object with keys: page_url, query",
+          "row_id": "seed-extract-price"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(8): 提取页面商品价格",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(9): 提取页面上商品价格",
+          "row_id": "seed-extract-price"
+        }
+      ],
+      "row_id": "seed-extract-price"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "task_type",
+          "gold_value_summary": "string(7): extract",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(6): search",
+          "row_id": "seed-extract-price-aug-1"
+        },
+        {
+          "field_path": "route",
+          "gold_value_summary": "string(12): extract_page",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(10): search_web",
+          "row_id": "seed-extract-price-aug-1"
+        },
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: target",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "object with keys: query",
+          "row_id": "seed-extract-price-aug-1"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(8): 提取页面商品价格",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(8): 搜索现在卖多少钱",
+          "row_id": "seed-extract-price-aug-1"
+        }
+      ],
+      "row_id": "seed-extract-price-aug-1"
+    },
+    {
+      "mismatches": [
+        {
+          "field_path": "slots",
+          "gold_value_summary": "object with keys: target",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "object with keys: query",
+          "row_id": "seed-extract-price-aug-2"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value_summary": "string(8): 提取页面商品价格",
+          "mismatch_category": "value_mismatch",
+          "prediction_value_summary": "string(8): 提取页面上的价格",
+          "row_id": "seed-extract-price-aug-2"
+        }
+      ],
+      "row_id": "seed-extract-price-aug-2"
+    }
+  ],
+  "summary": {
+    "field_mismatch_counts": {
+      "normalized_command": 3,
+      "route": 1,
+      "slots": 3,
+      "task_type": 1
+    },
+    "gold_row_count": 6,
+    "mismatch_category_counts": {
+      "value_mismatch": 8
+    },
+    "prediction_count": 6,
+    "row_mismatch_count": 3,
+    "schema_invalid_prediction_count": 0
+  }
+}

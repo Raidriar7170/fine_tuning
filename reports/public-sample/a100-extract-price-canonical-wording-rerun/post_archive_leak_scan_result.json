@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T06:43:15.129281+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-extract-price-canonical-wording-rerun",
+    "docs/human-briefs/2026-06-13-repair-extract-price-canonical-wording.html",
+    "configs/sft-a100-extract-price-canonical-wording-rerun.json",
+    "configs/sft-a100-extract-price-canonical-wording-prediction.json",
+    "openspec/changes/archive/2026-06-13-repair-extract-price-canonical-wording"
+  ]
+}

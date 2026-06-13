@@ -1,0 +1,12 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-13T05:50:31.668975+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-compact-query-exact-match-rerun",
+    "docs/human-briefs/2026-06-13-run-a100-compact-query-exact-match-rerun.html",
+    "configs/sft-a100-compact-query-exact-match-rerun.json",
+    "configs/sft-a100-compact-query-exact-match-prediction.json"
+  ]
+}

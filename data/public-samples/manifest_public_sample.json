@@ -1,18 +1,24 @@
 {
   "counts": {
-    "dpo_pairs": 27,
-    "seed_rows": 4,
-    "sft_rows": 12
+    "dpo_pairs": 51,
+    "seed_rows": 6,
+    "sft_rows": 18
   },
   "dpo_rejection_counts": {
     "decomposed_search_slots": 1,
-    "malformed_schema": 4,
-    "missing_confirmation": 2,
-    "missing_slot": 4,
-    "underspecified_request": 4,
-    "unsafe_allowance": 4,
-    "wrong_route": 4,
-    "wrong_slot": 4
+    "extract_extra_particle_wording": 1,
+    "extract_generic_price_wording": 1,
+    "extract_listed_price_wording": 1,
+    "extract_query_slot": 1,
+    "extract_search_fallback": 1,
+    "malformed_schema": 6,
+    "missing_confirmation": 3,
+    "missing_slot": 6,
+    "underspecified_request": 6,
+    "unsafe_allowance": 6,
+    "wrong_route": 6,
+    "wrong_slot": 6,
+    "wrong_task_type": 6
   },
   "files": {
     "dpo": "data/public-samples/dpo_public_sample.jsonl",
@@ -20,17 +26,17 @@
     "seed": "data/public-samples/seed_traces.jsonl",
     "sft": "data/public-samples/sft_public_sample.jsonl"
   },
-  "generated_at": "2026-06-08T10:35:11.147779+00:00",
-  "manifest_id": "public-sample-20260608T103511Z",
+  "generated_at": "2026-06-13T06:30:29.292650+00:00",
+  "manifest_id": "public-sample-20260613T063029Z",
   "mode": "public_sample",
   "public_safe": true,
   "source_summary": {
-    "seed_rows": 4,
+    "seed_rows": 6,
     "source": "sanitized_public_seed_fixture"
   },
   "split_counts": {
-    "dev": 3,
+    "dev": 6,
     "test": 6,
-    "train": 3
+    "train": 6
   }
 }

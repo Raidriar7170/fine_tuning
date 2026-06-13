@@ -3,7 +3,15 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from voice2task.schemas import ROUTES, TASK_TYPES, BrowserTaskContract, DPOPair, SFTDatasetRow, canonical_contract_json
+from voice2task.schemas import (
+    ROUTES,
+    TASK_TYPES,
+    BrowserTaskContract,
+    DPOPair,
+    SFTDatasetRow,
+    as_contract,
+    canonical_contract_json,
+)
 
 _TASK_TYPE_ENUM = ",".join(sorted(TASK_TYPES))
 _ROUTE_ENUM = ",".join(sorted(ROUTES))
@@ -11,8 +19,8 @@ CONTRACT_REQUIRED_FIELD_SKELETON = (
     "Browser Task Contract required skeleton:"
     '"task_type","route","safety","confirmation_required",'
     '"slots","normalized_command","language","contract_version"；'
-    "Required-field checklist；每次输出都必须包含全部 8 个顶层字段；"
-    "confirmation_required 必须是 boolean；低风险公开只读搜索通常为 false；"
+    "Required-field checklist；每次输出都必须包含全部 8 个顶层字段；confirmation_required 必须是 boolean；"
+    "低风险公开只读搜索通常为 false；"
 )
 CONTRACT_CANONICAL_ONE_SHOT = canonical_contract_json(
     BrowserTaskContract(
@@ -40,21 +48,37 @@ PREDICTION_OUTPUT_BOUNDARY_RULES = (
 )
 ROUTE_ONTOLOGY_RULES = (
     "route 是 Browser Task Contract execution channel(执行通道)；"
-    "route 不是 domain/topic/intent/URL/path。weather、shopping、email、media "
-    "放进 task_type, slots, normalized_command。"
+    "route 不是 domain/topic/intent/URL/path；"
+    "weather、shopping、email、media 放进 task_type, slots, normalized_command；"
     '天气请求示例: task_type="search", route="search_web", confirmation_required=false。'
 )
 PUBLIC_READONLY_SEARCH_CONTRACT_POLICY = (
     "public-readonly search contract policy: "
-    'task_type="search";route="search_web";'
-    "safety.allow=true;"
-    'safety.reason="public_readonly";confirmation_required=false；'
-    "task_type 必须是 search，不能是 search_web；"
-    "slots.query 使用紧凑查询短语如上海后天天气；"
-    "中文勿人工空格；"
-    "不要拆成 city/date/topic；该形态 rejected；"
-    "不是 slot normalization；"
-    "task_type 不能复用 route enum 值，search_web 不是 task_type。"
+    'task_type="search";route="search_web";safety.allow=true;safety.reason="public_readonly";'
+    "confirmation_required=false；task_type 必须是 search，不能是 search_web；task_type 不能复用 route enum 值，"
+    "search_web 不是 task_type；"
+    'compact exact-match: normalized_command="搜索" + <compact query phrase>;'
+    "slots.query=<same compact query phrase>；同一个紧凑查询短语；"
+    "slots.query 使用紧凑查询短语；不要额外插入“的”等 canonical target 没有的助词；中文勿人工空格；"
+    "accepted example: 上海后天天气；"
+    "rejected example: city/date/topic；不要拆成 city/date/topic；该形态 rejected；"
+    "不是 slot normalization。"
+)
+PUBLIC_READONLY_EXTRACT_CONTRACT_POLICY = (
+    "public-readonly extract-page contract policy: "
+    'task_type="extract";route="extract_page";safety.allow=true;safety.reason="public_readonly";'
+    "confirmation_required=false；slots.target=<canonical extraction target>；"
+    'normalized_command="提取页面" + <canonical extraction target>；'
+    "页面价格/标价/卖多少钱:不要转成 search/search_web；不要用 slots.query 或 page_url 表达抽取目标；"
+    "不是 evaluator normalization。"
+)
+EXTRACT_PRICE_CANONICAL_WORDING_POLICY = (
+    "extract-price canonical wording policy: "
+    "多少钱/标价/页面上的商品价格 -> "
+    'slots.target="商品价格";normalized_command="提取页面商品价格"；'
+    "页面价格/标价/提取页面上的商品价格 是 strict-wrong；"
+    "不要输出 slots.target=价格、slots.target=标价；"
+    "不是 evaluator normalization。"
 )
 NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
     "normalized_command 是 canonical Chinese intent phrase，不是 verbatim transcript 或 ASR text；"
@@ -64,12 +88,13 @@ NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
     "contract_exact_match 仍然 strict，不做 semantic-equivalence scoring、prediction repair 或 re-score。"
 )
 
-SYSTEM_PROMPT = (
+BASE_SYSTEM_PROMPT_PREFIX = (
     "V2T。"
     f"task_type enum:{_TASK_TYPE_ENUM}。"
     f"route enum:{_ROUTE_ENUM}；route 不是 URL/path；route 必须使用上面的 enum 值。"
     f"{ROUTE_ONTOLOGY_RULES}"
-    f"{PUBLIC_READONLY_SEARCH_CONTRACT_POLICY}"
+)
+BASE_SYSTEM_PROMPT_SUFFIX = (
     f"{NORMALIZED_COMMAND_CANONICALIZATION_POLICY}"
     "slots 必须是 JSON object，不是 array/list；"
     f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
@@ -77,7 +102,21 @@ SYSTEM_PROMPT = (
     f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
     "禁 GUI 动作。"
 )
+SYSTEM_PROMPT = f"{BASE_SYSTEM_PROMPT_PREFIX}{PUBLIC_READONLY_SEARCH_CONTRACT_POLICY}{BASE_SYSTEM_PROMPT_SUFFIX}"
+EXTRACT_SYSTEM_PROMPT = (
+    f"{BASE_SYSTEM_PROMPT_PREFIX}{PUBLIC_READONLY_EXTRACT_CONTRACT_POLICY}"
+    f"{EXTRACT_PRICE_CANONICAL_WORDING_POLICY}{BASE_SYSTEM_PROMPT_SUFFIX}"
+)
+TRAINING_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
+    f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
+    "",
+)
+EXTRACT_TRAINING_SYSTEM_PROMPT = EXTRACT_SYSTEM_PROMPT.replace(
+    f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
+    "",
+)
 PREDICTION_SYSTEM_PROMPT = f"{SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
+EXTRACT_PREDICTION_SYSTEM_PROMPT = f"{EXTRACT_SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
 
 FORMATTING_POLICY: dict[str, Any] = {
     "policy": "shared_contract_chat_template",
@@ -153,6 +192,16 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         and "上海后天天气" in prompt
         and "中文勿人工空格" in prompt
         and "不是 slot normalization" in prompt,
+        "compact_query_exact_match_policy_visible": "compact exact-match" in prompt
+        and 'normalized_command="搜索" + <compact query phrase>' in prompt
+        and "slots.query=<same compact query phrase>" in prompt,
+        "compact_query_same_phrase_alignment_visible": "同一个紧凑查询短语" in prompt
+        and "slots.query=<same compact query phrase>" in prompt,
+        "compact_query_extra_particle_avoidance_visible": "不要额外插入“的”" in prompt
+        and "canonical target 没有的助词" in prompt,
+        "compact_query_decomposed_slot_rejection_visible": "rejected example" in prompt
+        and "不要拆成 city/date/topic" in prompt
+        and all(slot_key in prompt for slot_key in ("city", "date", "topic")),
         "search_query_no_city_date_split_visible": "不要拆成 city/date/topic" in prompt
         and all(slot_key in prompt for slot_key in ("city", "date", "topic")),
         "decomposed_search_slots_rejected_visible": "不要拆成 city/date/topic" in prompt
@@ -166,7 +215,35 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         and "search_web 不是 task_type" in prompt,
         "public_readonly_task_type_search_not_search_web_visible": "task_type 必须是 search，不能是 search_web"
         in prompt,
+        "public_readonly_extract_policy_visible": "public-readonly extract-page contract policy" in prompt
+        and 'task_type="extract"' in prompt
+        and 'route="extract_page"' in prompt
+        and 'safety.reason="public_readonly"' in prompt
+        and "confirmation_required=false" in prompt,
+        "extract_target_slot_guidance_visible": "slots.target=<canonical extraction target>" in prompt
+        and 'normalized_command="提取页面" + <canonical extraction target>' in prompt,
+        "extract_search_fallback_rejection_visible": "不要转成 search/search_web" in prompt,
+        "extract_query_page_url_slot_rejection_visible": "不要用 slots.query 或 page_url 表达抽取目标" in prompt,
+        "extract_canonical_price_target_visible": 'slots.target="商品价格"' in prompt
+        and 'normalized_command="提取页面商品价格"' in prompt,
+        "extract_alias_to_canonical_price_visible": "多少钱/标价/页面上的商品价格" in prompt
+        and 'slots.target="商品价格"' in prompt,
+        "extract_wrong_price_synonym_rejection_visible": "页面价格/标价/提取页面上的商品价格 是 strict-wrong"
+        in prompt
+        and "slots.target=价格" in prompt
+        and "slots.target=标价" in prompt,
+        "extract_extra_particle_rejection_visible": "提取页面上的商品价格 是 strict-wrong" in prompt
+        or "normalized_command=页面价格、提取页面标价、提取页面上的商品价格" in prompt,
     }
+
+
+def prediction_prompt_constraint_summary() -> dict[str, bool]:
+    summaries = [
+        prompt_constraint_summary(PREDICTION_SYSTEM_PROMPT),
+        prompt_constraint_summary(EXTRACT_PREDICTION_SYSTEM_PROMPT),
+    ]
+    keys = set().union(*(summary.keys() for summary in summaries))
+    return {key: any(summary.get(key, False) for summary in summaries) for key in sorted(keys)}
 
 
 def prediction_output_boundary_summary(prompt: str = PREDICTION_SYSTEM_PROMPT) -> dict[str, bool]:
@@ -191,17 +268,28 @@ def _contract_json(contract: BrowserTaskContract | dict[str, Any]) -> str:
     return json.dumps(contract, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def _uses_extract_policy(row: SFTDatasetRow) -> bool:
+    contract = as_contract(row.target_contract)
+    return (
+        contract.task_type == "extract"
+        and contract.route == "extract_page"
+        and contract.safety.get("reason") == "public_readonly"
+    )
+
+
 def format_sft_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
+    system_prompt = EXTRACT_TRAINING_SYSTEM_PROMPT if _uses_extract_policy(row) else TRAINING_SYSTEM_PROMPT
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": row.input_text},
         {"role": "assistant", "content": canonical_contract_json(row.target_contract)},
     ]
 
 
 def format_sft_prompt_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
+    system_prompt = EXTRACT_PREDICTION_SYSTEM_PROMPT if _uses_extract_policy(row) else PREDICTION_SYSTEM_PROMPT
     return [
-        {"role": "system", "content": PREDICTION_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": row.input_text},
     ]
 

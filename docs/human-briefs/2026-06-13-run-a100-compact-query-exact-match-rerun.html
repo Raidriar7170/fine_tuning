@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>run-a100-compact-query-exact-match-rerun</title>
+  <style>
+    body { margin: 0; font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #202124; background: #f7f7f5; }
+    main { max-width: 920px; margin: 0 auto; padding: 40px 24px 56px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 17px; margin: 26px 0 8px; }
+    ul { margin: 8px 0 0 20px; padding: 0; }
+    code { background: #ececea; padding: 1px 5px; border-radius: 4px; }
+    .status { display: inline-block; margin: 8px 0 18px; padding: 4px 8px; border-radius: 6px; background: #e8eef8; color: #1f3f68; font-weight: 600; }
+    .note { border-left: 4px solid #6b8fbd; padding-left: 12px; background: #fff; }
+    a { color: #255f99; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>run-a100-compact-query-exact-match-rerun</h1>
+  <div class="status">状态：archived，post-archive validation passed</div>
+
+  <p class="note"><strong>一句话结论：</strong>7B A100 public-sample train-split rerun 已完成；compact-query/search 行 3/3 strict exact match，原先 <code>city/date/topic</code> 拆槽残差没有复现，但 6-row train split 总体 <code>contract_exact_match=0.5</code>，不能声明模型整体恢复。</p>
+
+  <h2>本阶段完成</h2>
+  <ul>
+    <li>旧的本地 hardening 阶段已归档，新阶段使用 <code>Qwen/Qwen2.5-7B-Instruct</code> 执行。</li>
+    <li>公司 VPN/proxy 开启后，A100 SSH preflight 成功；选择空闲 GPU 3，并显式设置 <code>CUDA_VISIBLE_DEVICES=3</code>。</li>
+    <li>远端已有 7B base model，因此私有 override 指向远端本地模型目录，没有重复下载权重。</li>
+    <li>完成 public-sample train split SFT rerun，生成新 LoRA adapter，但 adapter/checkpoint/raw log/cache/private override 均未复制进 git。</li>
+    <li>导出 train split 的 sanitized predictions、prompt snapshot、prediction metadata、raw decoded summary、generation trace、schema guard summary、metrics、manifest 和 report。</li>
+  </ul>
+
+  <h2>结果</h2>
+  <ul>
+    <li><code>json_valid_rate=1.0</code>，6/6 预测都是 schema-valid Browser Task Contract。</li>
+    <li><code>contract_exact_match=0.5</code>，<code>slot_f1=0.5</code>，<code>slot_f1_soft=0.5</code> 仅作 internal diagnostic。</li>
+    <li>compact-query/search 行：3/3 exact match，3/3 使用 compact <code>slots.query</code>，0 条拆成 <code>city/date/topic</code>。</li>
+    <li>剩余失败集中在 extract-price 三行：slot/normalized_command strict mismatch，其中一条误判成 search。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../openspec/changes/archive/2026-06-13-run-a100-compact-query-exact-match-rerun/proposal.md">archived proposal</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-13-run-a100-compact-query-exact-match-rerun/design.md">archived design</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-13-run-a100-compact-query-exact-match-rerun/tasks.md">archived tasks</a></li>
+    <li><a href="../../reports/public-sample/a100-compact-query-exact-match-rerun/report.md">A100 rerun report</a></li>
+    <li><a href="../../reports/public-sample/a100-compact-query-exact-match-rerun/manifest.json">A100 rerun manifest</a></li>
+    <li><a href="../../reports/public-sample/a100-compact-query-exact-match-rerun/compact_query_exact_match_rerun_diagnosis.json">compact-query diagnosis</a></li>
+    <li><a href="../../reports/public-sample/a100-compact-query-exact-match-rerun/metrics.json">metrics.json</a></li>
+  </ul>
+
+  <h2>边界</h2>
+  <ul>
+    <li>这是 A100 public-sample train-split diagnostic evidence，不是 dev/test generalization。</li>
+    <li>不 release checkpoint 或 adapter。</li>
+    <li>不放宽 parser / evaluator，不用 soft metric 替代 strict 结论。</li>
+    <li>不声明 production readiness、model recovery 或 live-browser benchmark improvement。</li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan --paths reports/public-sample/a100-compact-query-exact-match-rerun</code>：<code>ok=true</code></li>
+    <li><code>PYTHONPATH=src pytest -q</code>：<code>197 passed</code></li>
+    <li><code>uv run ruff check .</code>：passed</li>
+    <li><code>uv run mypy src</code>：passed</li>
+    <li>public data validation：<code>ok=true; sft_rows=18; dpo_pairs=46</code></li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：<code>5 passed, 0 failed</code></li>
+    <li>post-archive <code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：<code>4 passed, 0 failed</code></li>
+    <li>post-archive focused evidence tests：<code>2 passed</code></li>
+    <li>post-archive leak scan：<code>ok=true</code></li>
+    <li><code>git diff --check</code>：passed</li>
+  </ul>
+</main>
+</body>
+</html>

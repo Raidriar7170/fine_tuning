@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>harden-compact-query-exact-match-policy</title>
+  <style>
+    body { margin: 0; font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #202124; background: #f7f7f5; }
+    main { max-width: 960px; margin: 0 auto; padding: 40px 24px 56px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 17px; margin: 28px 0 8px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 0 20px; padding: 0; }
+    code { background: #ececea; padding: 1px 5px; border-radius: 4px; }
+    .status { display: inline-block; margin: 8px 0 18px; padding: 4px 8px; border-radius: 6px; background: #e5f2ea; color: #17492b; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 12px; }
+    .metric { border: 1px solid #deded9; border-radius: 8px; padding: 12px; background: #fff; }
+    .metric strong { display: block; font-size: 22px; }
+    a { color: #255f99; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>harden-compact-query-exact-match-policy</h1>
+  <div class="status">状态：applying，本地 P1 修复已验证，尚未 archive</div>
+
+  <p><strong>一句话结论：</strong>这次把公开样本同步、compact query prompt policy、DPO <code>wrong_task_type</code> 校验、PEFT merge 兼容、markdown fence 抑制和公开报告边界一起收口；没有运行 A100，也不声明模型恢复。</p>
+
+  <div class="grid">
+    <div class="metric"><strong>195</strong>pytest 全量通过</div>
+    <div class="metric"><strong>18 / 46</strong>public SFT rows / DPO pairs</div>
+    <div class="metric"><strong>5 / 0</strong>OpenSpec strict pass / fail</div>
+  </div>
+
+  <h2>本阶段改动</h2>
+  <ul>
+    <li>Public seed 从 4 扩到 6 后，重新生成 SFT/DPO/manifest，避免派生文件继续停在旧样本。</li>
+    <li>SFT prompt 明确 <code>normalized_command</code> 与 <code>slots.query</code> 使用同一个紧凑查询短语，不额外插入“的”，不拆成 <code>city/date/topic</code>。</li>
+    <li><code>wrong_task_type</code> hard negative 现在要求 rejected contract 实际改变 <code>task_type</code>。</li>
+    <li>Prediction 侧支持有能力才 <code>merge_and_unload</code>，不再要求 fake model 实现 PEFT-only 方法。</li>
+    <li>Markdown fence suppression 保留 multi-token <code>bad_words_ids</code>。</li>
+    <li><code>slot_f1_soft</code> 只作为 internal diagnostic，strict <code>slot_f1</code> 和 <code>contract_exact_match</code> 仍是主边界。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/harden-compact-query-exact-match-policy/hardening_summary.md">hardening_summary.md</a></li>
+    <li><a href="../../reports/public-sample/harden-compact-query-exact-match-policy/hardening_summary.json">hardening_summary.json</a></li>
+    <li><a href="../../reports/experiment_report.md">experiment_report.md</a></li>
+    <li><a href="../../openspec/changes/harden-compact-query-exact-match-policy/proposal.md">OpenSpec proposal</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>：<code>195 passed</code></li>
+    <li><code>uv run ruff check .</code>：通过</li>
+    <li><code>uv run mypy src</code>：通过</li>
+    <li>Public data validate：<code>ok=true; sft_rows=18; dpo_pairs=46</code></li>
+    <li>DPO check：<code>total_pairs=46; wrong_task_type=6; decomposed_search_slots=1</code></li>
+    <li>Leak scan：<code>ok=true; findings=[]</code></li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：<code>5 passed, 0 failed</code></li>
+    <li><code>git diff --check</code>：通过</li>
+  </ul>
+
+  <h2>剩余边界</h2>
+  <ul>
+    <li>尚未 archive 当前 OpenSpec change。</li>
+    <li>没有运行 A100、训练、预测重跑、checkpoint/adapter release、parser 放宽、prediction repair 或 re-score。</li>
+    <li>soft 指标仍不能替代 strict exact-match 结论。</li>
+  </ul>
+</main>
+</body>
+</html>

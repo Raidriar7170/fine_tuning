@@ -19,21 +19,23 @@
   },
   "counts": {
     "decomposed_search_slots_pairs": 1,
-    "dpo_pairs": 27,
-    "sft_rows": 12
+    "dpo_pairs": 46,
+    "sft_rows": 18
   },
   "diagnostic_artifacts": {
+    "final_leak_scan": "reports/public-sample/compact-query-slot-preservation/final_leak_scan_result.json",
     "human_brief": "docs/human-briefs/2026-06-08-repair-compact-query-slot-preservation.html",
     "leak_scan": "reports/public-sample/compact-query-slot-preservation/leak_scan_result.json",
     "manifest": "reports/public-sample/compact-query-slot-preservation/manifest.json",
     "phase_validation_leak_scan": "reports/public-sample/compact-query-slot-preservation/phase_validation_leak_scan_result.json",
     "post_archive_leak_scan": "reports/public-sample/compact-query-slot-preservation/post_archive_leak_scan_result.json",
-    "final_leak_scan": "reports/public-sample/compact-query-slot-preservation/final_leak_scan_result.json",
     "report": "reports/public-sample/compact-query-slot-preservation/compact_query_slot_preservation.md",
     "summary_json": "reports/public-sample/compact-query-slot-preservation/compact_query_slot_preservation.json"
   },
   "evidence_kind": "compact_query_slot_preservation_repair_local",
   "generated_at": "2026-06-08T10:43:20+00:00",
+  "public_sample_manifest_id": "public-sample-20260613T043923Z",
+  "public_sample_synced_at": "2026-06-13T04:48:19Z",
   "source_artifact_policy": {
     "no_private_raw_logs_or_adapters_read": true,
     "public_sample_artifacts_preserved": true,
@@ -52,19 +54,19 @@
     "commands": [
       {
         "command": "PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_dataset_builder.py tests/test_dpo_validation.py tests/test_a100_sft_prediction_smoke.py::test_compact_query_slot_preservation_pack_is_public_safe_and_bounded",
-        "result": "31 passed"
+        "result": "32 passed"
       },
       {
         "command": "PYTHONPATH=src pytest -q",
-        "result": "192 passed"
+        "result": "195 passed"
       },
       {
         "command": "PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public",
-        "result": "ok=true; sft_rows=12; dpo_pairs=27"
+        "result": "ok=true; sft_rows=18; dpo_pairs=46"
       },
       {
         "command": "PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl",
-        "result": "total_pairs=27; decomposed_search_slots=1"
+        "result": "total_pairs=46; decomposed_search_slots=1"
       },
       {
         "command": "uv run ruff check .",
@@ -76,7 +78,7 @@
       },
       {
         "command": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict",
-        "result": "4 passed, 0 failed"
+        "result": "5 passed, 0 failed"
       },
       {
         "command": "git diff --check",

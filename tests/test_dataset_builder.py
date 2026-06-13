@@ -54,6 +54,7 @@ def test_build_public_sample_dataset_writes_manifest_sft_and_dpo(tmp_path: Path)
     assert manifest.counts["sft_rows"] >= 3
     assert manifest.counts["dpo_pairs"] >= 6
     expected_categories = {
+        "wrong_task_type",
         "wrong_route",
         "unsafe_allowance",
         "missing_confirmation",
@@ -88,6 +89,10 @@ def test_build_public_sample_dataset_writes_manifest_sft_and_dpo(tmp_path: Path)
     assert normalized_by_id["seed-form"] == "填写邮箱并确认"
     assert normalized_by_id["seed-form-aug-1"] == "填写邮箱并确认"
     decomposed_pair = dpo_by_id["seed-search-decomposed_search_slots"]
+    wrong_task_type_pair = dpo_by_id["seed-search-wrong_task_type"]
+    assert wrong_task_type_pair["chosen_contract"]["task_type"] == "search"
+    assert wrong_task_type_pair["rejected_contract"]["task_type"] != "search"
+    assert wrong_task_type_pair["rejection_reason"] == "wrong_task_type"
     assert decomposed_pair["chosen_contract"]["slots"] == {"query": "北京明天天气"}
     assert decomposed_pair["rejected_contract"]["slots"] == {"city": "北京", "date": "明天", "topic": ""}
     assert decomposed_pair["rejection_reason"] == "decomposed_search_slots"
@@ -101,6 +106,76 @@ def test_build_public_sample_dataset_writes_manifest_sft_and_dpo(tmp_path: Path)
     )
     assert result.ok is True
     assert result.failures == []
+
+
+def test_build_public_sample_dataset_adds_extract_price_hard_negatives(tmp_path: Path) -> None:
+    seed_path = tmp_path / "extract-seed.jsonl"
+    output_dir = tmp_path / "public"
+    rows = [
+        {
+            "id": "seed-extract-price",
+            "split": "train",
+            "input_text": "帮我看看这个东西现在卖多少钱",
+            "target_contract": {
+                "task_type": "extract",
+                "route": "extract_page",
+                "safety": {"allow": True, "reason": "public_readonly"},
+                "confirmation_required": False,
+                "contract_version": "v1",
+                "language": "zh-CN",
+                "slots": {"target": "商品价格"},
+                "normalized_command": "提取页面商品价格",
+            },
+            "augmentations": ["把页面上标价找出来"],
+        }
+    ]
+    seed_path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8")
+
+    manifest = build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+    dpo_rows = [
+        json.loads(line)
+        for line in (output_dir / "dpo_public_sample.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    dpo_by_id = {row["id"]: row for row in dpo_rows}
+    assert manifest.dpo_rejection_counts["extract_search_fallback"] == 1
+    assert manifest.dpo_rejection_counts["extract_query_slot"] == 1
+    assert manifest.dpo_rejection_counts["extract_generic_price_wording"] == 1
+    assert manifest.dpo_rejection_counts["extract_listed_price_wording"] == 1
+    assert manifest.dpo_rejection_counts["extract_extra_particle_wording"] == 1
+
+    search_fallback = dpo_by_id["seed-extract-price-extract_search_fallback"]
+    assert search_fallback["chosen_contract"]["task_type"] == "extract"
+    assert search_fallback["chosen_contract"]["route"] == "extract_page"
+    assert search_fallback["chosen_contract"]["slots"] == {"target": "商品价格"}
+    assert search_fallback["rejected_contract"]["task_type"] == "search"
+    assert search_fallback["rejected_contract"]["route"] == "search_web"
+    assert search_fallback["rejected_contract"]["slots"] == {"query": "商品价格"}
+
+    query_slot = dpo_by_id["seed-extract-price-extract_query_slot"]
+    assert query_slot["chosen_contract"]["slots"] == {"target": "商品价格"}
+    assert query_slot["rejected_contract"]["task_type"] == "extract"
+    assert query_slot["rejected_contract"]["route"] == "extract_page"
+    assert query_slot["rejected_contract"]["slots"] == {"query": "商品价格", "page_url": ""}
+    assert "seed-extract-price-aug-1-extract_search_fallback" not in dpo_by_id
+
+    generic_wording = dpo_by_id["seed-extract-price-extract_generic_price_wording"]
+    assert generic_wording["chosen_contract"]["slots"] == {"target": "商品价格"}
+    assert generic_wording["chosen_contract"]["normalized_command"] == "提取页面商品价格"
+    assert generic_wording["rejected_contract"]["slots"] == {"target": "价格"}
+    assert generic_wording["rejected_contract"]["normalized_command"] == "页面价格"
+
+    listed_wording = dpo_by_id["seed-extract-price-extract_listed_price_wording"]
+    assert listed_wording["chosen_contract"]["slots"] == {"target": "商品价格"}
+    assert listed_wording["rejected_contract"]["slots"] == {"target": "标价"}
+    assert listed_wording["rejected_contract"]["normalized_command"] == "提取页面标价"
+
+    extra_particle = dpo_by_id["seed-extract-price-extract_extra_particle_wording"]
+    assert extra_particle["chosen_contract"]["slots"] == {"target": "商品价格"}
+    assert extra_particle["rejected_contract"]["slots"] == {"target": "商品价格"}
+    assert extra_particle["rejected_contract"]["normalized_command"] == "提取页面上的商品价格"
+    assert "seed-extract-price-aug-1-extract_generic_price_wording" not in dpo_by_id
 
 
 def test_build_local_private_corpus_writes_split_files_and_summary(tmp_path: Path) -> None:

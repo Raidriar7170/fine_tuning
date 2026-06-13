@@ -8,8 +8,8 @@ The public DPO sample now includes one `decomposed_search_slots` hard negative f
 
 ## Checks
 
-- Public sample SFT rows: `12`
-- Public sample DPO pairs: `27`
+- Public sample SFT rows: `18`
+- Public sample DPO pairs: `46`
 - `decomposed_search_slots` rejected pairs: `1`
 - Chosen compact slots: `{"query":"北京明天天气"}`
 - Rejected decomposed slots: `{"city":"北京","date":"明天","topic":""}`
@@ -31,10 +31,10 @@ The public DPO sample now includes one `decomposed_search_slots` hard negative f
 
 ## Validation
 
-- `PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_dataset_builder.py tests/test_dpo_validation.py tests/test_a100_sft_prediction_smoke.py::test_compact_query_slot_preservation_pack_is_public_safe_and_bounded`: `31 passed`.
-- `PYTHONPATH=src pytest -q`: `192 passed`.
-- `PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public`: `ok=true`, `sft_rows=12`, `dpo_pairs=27`.
-- `PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl`: `27` total pairs with `decomposed_search_slots=1`.
+- `PYTHONPATH=src pytest -q tests/test_formatting_training.py tests/test_dataset_builder.py tests/test_dpo_validation.py tests/test_a100_sft_prediction_smoke.py::test_compact_query_slot_preservation_pack_is_public_safe_and_bounded`: `32 passed`.
+- `PYTHONPATH=src pytest -q`: `195 passed`.
+- `PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public`: `ok=true`, `sft_rows=18`, `dpo_pairs=46`.
+- `PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl`: `46` total pairs with `decomposed_search_slots=1`.
 - `uv run ruff check .`: passed.
 - `uv run mypy src`: passed.
 - `OPENSPEC_TELEMETRY=0 openspec validate --all --strict`: `4 passed, 0 failed`.

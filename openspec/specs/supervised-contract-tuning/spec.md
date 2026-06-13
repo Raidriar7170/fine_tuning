@@ -905,3 +905,101 @@ The system SHALL support a bounded A100 prediction-only train-split rerun after 
 #### Scenario: Preserve rerun outputs honestly
 - **WHEN** the private adapter emits decomposed slots, invalid JSON, wrapper text, non-contract JSON, or any strict mismatch
 - **THEN** the prediction artifact and sidecars MUST preserve sanitized model output and strict failure status without replacing it with fixture-mode, rule-baseline, normalized, repaired, or gold contracts
+
+### Requirement: Harden compact-query exact-match prompt policy
+The system SHALL make the shared SFT training and trained-adapter prediction prompt explicitly align public-readonly search/weather `normalized_command` and `slots.query` target formatting without changing parser or evaluator semantics.
+
+#### Scenario: Serialize compact-query exact-match policy
+- **WHEN** SFT training text or a trained-adapter prediction prompt is rendered for a Browser Task Contract
+- **THEN** the model-visible system prompt MUST state that public-readonly search/weather contracts use `normalized_command="搜索" + <compact query phrase>` and `slots.query=<same compact query phrase>`
+- **AND** it MUST state that compact query phrases do not insert extra particles such as `的` when the canonical target phrase omits them
+- **AND** it MUST state that the model MUST NOT split the same search query into ad hoc `city`, `date`, `topic`, or similar keys
+- **AND** it MUST state that this is target-formatting guidance, not evaluator normalization, semantic-equivalence scoring, prediction repair, prediction replacement, or re-score
+
+#### Scenario: Show non-row-specific accepted and rejected examples
+- **WHEN** the prompt demonstrates compact-query exact-match formatting
+- **THEN** it MUST include non-row-specific examples showing an accepted compact `slots.query` contract shape and a rejected decomposed `city/date/topic` shape
+- **AND** the examples MUST NOT include row-specific gold target strings for the current prediction row unless those strings are already present in the user input
+
+#### Scenario: Surface compact-query exact-match policy metadata
+- **WHEN** prompt constraint metadata is recorded in prediction metadata, prompt snapshots, manifests, reports, or evidence packs
+- **THEN** it MUST include booleans for compact-query exact-match policy visibility, same-query-phrase alignment visibility, extra-particle avoidance visibility, and decomposed-slot rejection visibility
+
+#### Scenario: Bound local prompt-hardening interpretation
+- **WHEN** public documentation, reports, Human Briefs, or OpenSpec artifacts describe this prompt hardening
+- **THEN** they MUST state that the phase performs no A100 execution, training, prediction rerun, parser relaxation, strict evaluator metric replacement or relaxation, semantic-equivalence scoring, slot normalization, `normalized_command` normalization, prediction repair, prediction replacement, or prediction re-score
+- **AND** they MUST NOT claim held-out generalization, production readiness, model-quality improvement, model recovery, checkpoint release, adapter release, public full-corpus release, or live-browser benchmark improvement
+
+#### Scenario: Preserve SFT training sequence budget
+- **WHEN** SFT training text is rendered for public sample rows
+- **THEN** it MUST retain the compact-query exact-match target-formatting policy
+- **AND** it MAY omit prediction-only one-shot examples when needed to keep training text within the configured local sequence budget
+- **AND** trained-adapter prediction prompts MUST still retain prediction-only one-shot and output-boundary guidance
+
+### Requirement: Expose public extract-price contract policy in SFT prompts
+The system SHALL make SFT training and trained-adapter prediction prompts explicitly state the Browser Task Contract policy for current-page public price extraction while preserving gold-target boundaries.
+
+#### Scenario: Serialize extract policy in training text
+- **WHEN** the formatter converts an SFT dataset row into training text
+- **THEN** the rendered system prompt MUST state that current-page price extraction uses `task_type="extract"`, `route="extract_page"`, `safety.allow=true`, `safety.reason="public_readonly"`, `confirmation_required=false`, object-shaped `slots.target`, and a concise extract normalized command
+- **AND** it MUST state that the request MUST NOT be converted into public web search for price-like current-page extraction
+
+#### Scenario: Serialize extract policy in prediction prompts without gold contract
+- **WHEN** the formatter builds a trained-adapter prediction prompt
+- **THEN** the prompt MUST include the same extract-price policy
+- **AND** it MUST NOT include the full row-specific gold target contract or target-only slot values beyond policy text and strings already present in the user input
+
+#### Scenario: Surface extract prompt constraint metadata
+- **WHEN** prompt constraint metadata is recorded in prediction metadata, prompt snapshots, manifests, reports, or evidence packs
+- **THEN** it MUST include explicit booleans for extract-page policy visibility, extract target-slot guidance visibility, extract search-fallback rejection visibility, and extract query/page-url slot rejection visibility
+
+### Requirement: Run A100 extract-price contract residual train-split rerun
+The system SHALL support a bounded, explicitly authorized 7B A100 public-sample train-split rerun after extract-price contract policy repair while keeping all private runtime artifacts outside git.
+
+#### Scenario: Launch extract-price residual rerun
+- **WHEN** a developer launches the rerun with explicit A100 approval, a repo-external private override, an idle A100 GPU, and an approved private output root represented in public artifacts as `<a100_project_root>`
+- **THEN** the system MUST train on the current committed public-sample train rows with the extract-price prompt/data policy visible
+- **AND** prediction MUST use `prediction_split=train`, `overfit_diagnostic=true`, `generalization_claim=false`, and sanitized sidecar exports
+
+#### Scenario: Preserve compact-query behavior during extract repair
+- **WHEN** train-split predictions are evaluated for the extract-price residual rerun
+- **THEN** compact public-readonly search/weather train rows MUST be reported separately from extract-price train rows
+- **AND** the report MUST state whether compact-query strict exact match was preserved, regressed, or could not be evaluated
+
+#### Scenario: Keep private A100 artifacts private
+- **WHEN** the rerun completes or fails
+- **THEN** raw logs, checkpoints, adapters, model caches, private overrides, host details, SSH details, private paths, tokens, and private corpus rows MUST remain outside committed artifacts
+
+### Requirement: Expose extract-price canonical wording policy in SFT prompts
+The system SHALL make SFT training and trained-adapter prediction prompts explicitly state the canonical wording rule for current-page public price extraction while preserving prediction gold-target boundaries.
+
+#### Scenario: Serialize canonical wording policy
+- **WHEN** the formatter renders an SFT training text or prediction prompt for a public-safe extract-price row
+- **THEN** the system prompt MUST state that user wording such as `多少钱`, `标价`, and `页面上的商品价格` maps to `slots.target="商品价格"` and `normalized_command="提取页面商品价格"`
+- **AND** it MUST state that `价格`, `标价`, `页面价格`, and `提取页面上的商品价格` are strict-wrong target variants for this public contract
+
+#### Scenario: Preserve prediction gold boundary
+- **WHEN** the formatter builds a prediction prompt for an extract-price row
+- **THEN** the prompt MUST NOT include the full row-specific gold contract
+- **AND** it MUST NOT include row-specific target-only values except canonical policy text and strings already present in the user input
+
+#### Scenario: Surface canonical wording prompt metadata
+- **WHEN** prompt constraint metadata is recorded for prediction metadata, prompt snapshots, manifests, reports, or evidence packs
+- **THEN** it MUST include booleans for extract canonical商品价格 target visibility, alias-to-canonical mapping visibility, strict-wrong synonym rejection visibility, and extra-particle rejection visibility
+
+### Requirement: Run A100 extract-price canonical wording train-split rerun
+The system SHALL support a bounded, explicitly authorized 7B A100 public-sample train-split rerun after extract-price canonical wording repair while keeping all private runtime artifacts outside git.
+
+#### Scenario: Launch canonical wording rerun
+- **WHEN** a developer launches the rerun with explicit A100 approval, a repo-external private override, an idle A100 GPU, and an approved private output root represented in public artifacts as `<a100_project_root>`
+- **THEN** the system MUST train on the current public-sample train rows with the canonical extract-price wording policy and hard negatives available
+- **AND** prediction MUST use `prediction_split=train`, `overfit_diagnostic=true`, `generalization_claim=false`, and sanitized sidecar exports
+
+#### Scenario: Preserve prior fixed behavior during canonical wording repair
+- **WHEN** train-split predictions are evaluated for the canonical wording rerun
+- **THEN** compact public-readonly search/weather rows and extract-price task/route shape MUST be reported separately
+- **AND** the report MUST state whether compact-query exact match, extract task/route correctness, extract target exact match, and extract normalized-command exact match were recovered, preserved, regressed, or could not be evaluated
+
+#### Scenario: Keep private A100 artifacts private
+- **WHEN** the canonical wording rerun completes or fails
+- **THEN** raw logs, checkpoints, adapters, model caches, private overrides, host details, SSH details, private paths, tokens, and private corpus rows MUST remain outside committed artifacts

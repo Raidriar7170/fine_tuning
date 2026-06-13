@@ -1,0 +1,89 @@
+{
+  "target_total_seeds": 240,
+  "augmentations_per_seed": 3,
+  "batch_size": 10,
+  "categories": [
+    {
+      "task_type": "search",
+      "route": "search_web",
+      "count": 60,
+      "safety": {"allow": true, "reason": "public_readonly"},
+      "confirmation_required": false,
+      "sub_scenarios": [
+        {"name": "天气", "count": 10, "slot_template": {"query": "<城市+日期+天气>"}, "examples": ["帮我搜索北京明天的天气", "查一下上海今天热不热", "搜深圳这周末天气怎么样"]},
+        {"name": "新闻", "count": 10, "slot_template": {"query": "<新闻话题>"}, "examples": ["帮我搜一下今天的新闻", "看看最近有什么热点", "搜搜关于AI的最新消息"]},
+        {"name": "购物", "count": 10, "slot_template": {"query": "<商品+属性>"}, "examples": ["帮我搜一下iPhone16的价格", "搜索机械键盘推荐", "查查哪款耳机性价比高"]},
+        {"name": "知识", "count": 10, "slot_template": {"query": "<问题/概念>"}, "examples": ["搜一下Python怎么安装", "帮我查查光合作用是什么", "搜搜怎么做红烧肉"]},
+        {"name": "本地服务", "count": 10, "slot_template": {"query": "<地点+服务>"}, "examples": ["帮我找找附近的医院", "搜一下望京哪家火锅好吃", "查查最近的地铁站怎么走"]},
+        {"name": "娱乐", "count": 10, "slot_template": {"query": "<娱乐内容>"}, "examples": ["搜搜最近有什么好看的电影", "帮我查一下世界杯赛程", "搜一下周杰伦新专辑"]}
+      ]
+    },
+    {
+      "task_type": "navigate",
+      "route": "open_url",
+      "count": 50,
+      "safety": {"allow": true, "reason": "public_readonly"},
+      "confirmation_required": false,
+      "sub_scenarios": [
+        {"name": "社交", "count": 10, "slot_template": {"url": "https://<domain>"}, "examples": ["打开微博", "帮我打开知乎首页", "去B站看看"]},
+        {"name": "新闻", "count": 10, "slot_template": {"url": "https://<domain>"}, "examples": ["打开新浪新闻", "帮我打开澎湃", "去看看腾讯新闻"]},
+        {"name": "工具", "count": 10, "slot_template": {"url": "https://<domain>"}, "examples": ["打开谷歌翻译", "帮我打开百度地图", "去GitHub看看"]},
+        {"name": "政府", "count": 10, "slot_template": {"url": "https://<domain>"}, "examples": ["打开国家税务局网站", "帮我打开教育部官网", "去看看北京市政府网站"]},
+        {"name": "电商", "count": 10, "slot_template": {"url": "https://<domain>"}, "examples": ["打开淘宝", "帮我打开京东", "去拼多多看看"]}
+      ]
+    },
+    {
+      "task_type": "form_fill",
+      "route": "fill_form",
+      "count": 45,
+      "safety": {"allow": true, "reason": "requires_confirmation"},
+      "confirmation_required": true,
+      "sub_scenarios": [
+        {"name": "登录", "count": 10, "slot_template": {"field": "<字段名>", "value": "<值>"}, "examples": ["帮我填用户名admin", "在登录框里输入我的邮箱", "把密码填进去"]},
+        {"name": "注册", "count": 10, "slot_template": {"field": "<字段名>", "value": "<值>"}, "examples": ["帮我填注册表单的手机号", "在姓名栏填张三", "把地址填进去"]},
+        {"name": "联系", "count": 10, "slot_template": {"field": "<字段名>", "value": "<值>"}, "examples": ["在反馈表里写有bug", "帮我填联系邮箱", "在留言栏写谢谢"]},
+        {"name": "设置", "count": 10, "slot_template": {"field": "<字段名>", "value": "<值>"}, "examples": ["把昵称改成小明", "帮我把语言设置成中文", "在个人简介里写程序员"]},
+        {"name": "多字段", "count": 5, "slot_template": {"fields": [{"field": "<字段1>", "value": "<值1>"}, {"field": "<字段2>", "value": "<值2>"}]}, "examples": ["帮我填姓名和电话", "把用户名和密码都填了"]}
+      ]
+    },
+    {
+      "task_type": "extract",
+      "route": "extract_page",
+      "count": 35,
+      "safety": {"allow": true, "reason": "public_readonly"},
+      "confirmation_required": false,
+      "sub_scenarios": [
+        {"name": "价格", "count": 8, "slot_template": {"target": "<提取目标>"}, "examples": ["帮我看看这个商品多少钱", "把页面上的价格提取出来", "看看这个东西现在什么价"]},
+        {"name": "文本", "count": 8, "slot_template": {"target": "<提取目标>"}, "examples": ["帮我把这篇文章的标题复制下来", "提取页面上的作者名", "把正文内容抓下来"]},
+        {"name": "表格", "count": 8, "slot_template": {"target": "<提取目标>"}, "examples": ["帮我把表格里的数据提取出来", "看看排名第一是谁", "把成绩单上的分数抓出来"]},
+        {"name": "元数据", "count": 6, "slot_template": {"target": "<提取目标>"}, "examples": ["帮我看看这个页面的标题", "提取一下发布日期", "看看有多少条评论"]},
+        {"name": "结构化", "count": 5, "slot_template": {"target": "<提取目标>"}, "examples": ["帮我把商品参数整理出来", "提取所有链接地址", "把联系方式都找出来"]}
+      ]
+    },
+    {
+      "task_type": "clarify",
+      "route": "clarify",
+      "count": 25,
+      "safety": {"allow": true, "reason": "ambiguous_request"},
+      "confirmation_required": true,
+      "sub_scenarios": [
+        {"name": "模糊目标", "count": 8, "slot_template": {"ambiguity": "<模糊点描述>"}, "examples": ["帮我打开那个", "搜一下那个东西", "帮我弄一下"]},
+        {"name": "缺少信息", "count": 8, "slot_template": {"missing_info": "<缺失信息描述>"}, "examples": ["帮我搜一下", "打开网站", "帮我填表单"]},
+        {"name": "多义指令", "count": 9, "slot_template": {"interpretations": "<可能的解读>"}, "examples": ["帮我查账户", "打开那个应用", "帮我处理一下邮件"]}
+      ]
+    },
+    {
+      "task_type": "blocked",
+      "route": "deny",
+      "count": 25,
+      "safety": {"allow": false, "reason": "<specific_unsafe_reason>"},
+      "confirmation_required": true,
+      "sub_scenarios": [
+        {"name": "支付", "count": 8, "slot_template": {"reason": "<拒绝原因>"}, "examples": ["帮我付款", "用我的信用卡买这个", "帮我转账给某某"]},
+        {"name": "账号凭证", "count": 7, "slot_template": {"reason": "<拒绝原因>"}, "examples": ["帮我把密码发给他", "用我的账号帮别人登录", "把我的验证码告诉他"]},
+        {"name": "隐私", "count": 5, "slot_template": {"reason": "<拒绝原因>"}, "examples": ["帮我查别人的信息", "监控他的浏览记录", "看看他的聊天记录"]},
+        {"name": "有害操作", "count": 5, "slot_template": {"reason": "<拒绝原因>"}, "examples": ["帮我下载盗版软件", "帮我刷好评", "帮我注册假账号"]}
+      ]
+    }
+  ]
+}

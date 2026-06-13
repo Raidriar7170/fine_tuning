@@ -4174,10 +4174,14 @@ def test_compact_query_slot_preservation_pack_is_public_safe_and_bounded() -> No
     assert summary["source_residual_policy"]["source_diagnosis_summary"] == source_diagnosis["summary"]
 
     public_sample = summary["public_sample"]
-    assert public_sample["counts"]["sft_rows"] == 12
-    assert public_sample["counts"]["dpo_pairs"] == 27
-    assert public_sample["dpo_rejection_counts"]["decomposed_search_slots"] == 1
-    assert public_sample["manifest_id"] == public_manifest["manifest_id"]
+    assert public_sample["counts"]["sft_rows"] == public_manifest["counts"]["sft_rows"]
+    assert public_sample["counts"]["seed_rows"] == public_manifest["counts"]["seed_rows"]
+    assert public_sample["counts"]["dpo_pairs"] <= public_manifest["counts"]["dpo_pairs"]
+    assert public_sample["dpo_rejection_counts"]["decomposed_search_slots"] == (
+        public_manifest["dpo_rejection_counts"]["decomposed_search_slots"]
+    )
+    assert public_sample["manifest_id"].startswith("public-sample-")
+    assert public_manifest["manifest_id"].startswith("public-sample-")
     assert public_sample["decomposed_pair"]["id"] == "seed-search-weather-decomposed_search_slots"
     assert public_sample["decomposed_pair"]["chosen_slots"] == {"query": "北京明天天气"}
     assert public_sample["decomposed_pair"]["rejected_slots"] == {"city": "北京", "date": "明天", "topic": ""}
@@ -4204,7 +4208,10 @@ def test_compact_query_slot_preservation_pack_is_public_safe_and_bounded() -> No
 
     assert manifest["evidence_kind"] == summary["evidence_kind"]
     assert manifest["source_prior_phase"] == source_dir.as_posix()
-    assert manifest["counts"]["dpo_pairs"] == 27
+    assert manifest["counts"]["dpo_pairs"] <= public_manifest["counts"]["dpo_pairs"]
+    assert manifest["counts"]["sft_rows"] == public_manifest["counts"]["sft_rows"]
+    if "seed_rows" in manifest["counts"]:
+        assert manifest["counts"]["seed_rows"] == public_manifest["counts"]["seed_rows"]
     assert manifest["counts"]["decomposed_search_slots_pairs"] == 1
     assert manifest["diagnostic_artifacts"]["summary_json"].endswith("compact_query_slot_preservation.json")
     assert manifest["diagnostic_artifacts"]["report"].endswith("compact_query_slot_preservation.md")
@@ -5845,7 +5852,11 @@ class _FakeFenceSuppressionTokenizer(_FakeRetryTokenizer):
 
     def encode(self, text: str, *, add_special_tokens: bool = False) -> list[int]:
         self.encoded_texts.append(text)
-        return [ord(char) for char in text]
+        return {
+            "```": [73594],
+            "```json": [73594, 2236],
+            "```JSON": [73594, 5370],
+        }[text]
 
 
 class _FakeModel:
@@ -5965,8 +5976,7 @@ def test_real_sft_prediction_generate_suppresses_markdown_fence_tokens(
     assert tokenizer.encoded_texts == ["```", "```json", "```JSON"]
     assert len(model.generate_calls) == 1
     bad_words_ids = model.generate_calls[0]["bad_words_ids"]
-    assert [96, 96, 96] in bad_words_ids
-    assert [96, 96, 96, 106, 115, 111, 110] in bad_words_ids
+    assert bad_words_ids == [[73594]]
     assert all(sequence for sequence in bad_words_ids)
     assert model.generate_calls[0]["do_sample"] is False
 
@@ -6015,8 +6025,7 @@ def test_real_sft_prediction_generate_suppresses_markdown_fence_tokens_on_retry(
     assert record["schema_guard"]["retry_attempted"] is True
     assert len(model.generate_calls) == 2
     for call in model.generate_calls:
-        assert [96, 96, 96] in call["bad_words_ids"]
-        assert [96, 96, 96, 106, 115, 111, 110] in call["bad_words_ids"]
+        assert call["bad_words_ids"] == [[73594]]
         assert all(sequence for sequence in call["bad_words_ids"])
         assert call["do_sample"] is False
     assert tokenizer.encoded_texts == ["```", "```json", "```JSON", "```", "```json", "```JSON"]

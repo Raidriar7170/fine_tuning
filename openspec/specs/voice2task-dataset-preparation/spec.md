@@ -84,3 +84,73 @@ The public sample DPO builder SHALL reject decomposed public-readonly search/wea
 #### Scenario: Limit decomposed slot negative scope
 - **WHEN** DPO pairs are generated for non-search contracts or search contracts without compact public-readonly `slots.query`
 - **THEN** the builder MUST NOT invent `city/date/topic` rejected slots for those rows
+
+### Requirement: Keep public sample artifacts synchronized after seed expansion
+The system SHALL regenerate public sample SFT, DPO, and manifest artifacts whenever committed public seed traces change.
+
+#### Scenario: Regenerate derived public sample artifacts
+- **WHEN** `data/public-samples/seed_traces.jsonl` is expanded or edited
+- **THEN** `sft_public_sample.jsonl`, `dpo_public_sample.jsonl`, and `manifest_public_sample.json` MUST be regenerated from the same seed file
+- **AND** the manifest counts MUST match the generated SFT and DPO JSONL row counts
+- **AND** the generated artifacts MUST remain public-safe
+
+### Requirement: Encode public extract-price targets canonically
+The public sample dataset SHALL encode current-page price extraction requests with a canonical extract-page contract target instead of search fallback or generic query slots.
+
+#### Scenario: Build public extract-price rows
+- **WHEN** the public sample dataset is generated or inspected for the current extract-price seed and its schema-preserving augmentations
+- **THEN** those rows MUST use `task_type="extract"` and `route="extract_page"`
+- **AND** they MUST use `safety.allow=true`, `safety.reason="public_readonly"`, and `confirmation_required=false`
+- **AND** they MUST use `slots={"target":"商品价格"}` and `normalized_command="提取页面商品价格"`
+- **AND** they MUST NOT encode the target as `slots.query`, `slots.page_url`, or a public web search route
+
+### Requirement: Generate extract-price hard negatives
+The public sample DPO builder SHALL generate extract-specific hard negatives that reject search fallback and query/page-url slot shapes for current-page price extraction targets.
+
+#### Scenario: Build extract search-fallback hard negative
+- **WHEN** DPO pairs are generated for a public-safe `extract`/`extract_page` row whose chosen contract uses `slots.target`
+- **THEN** the builder MUST include a rejected contract with a distinct rejection reason for extract search fallback
+- **AND** the rejected contract MUST change the output toward a plausible but wrong `search`/`search_web` contract
+- **AND** the chosen contract MUST retain `task_type="extract"`, `route="extract_page"`, `slots.target`, and the canonical normalized command
+
+#### Scenario: Build extract query-slot hard negative
+- **WHEN** DPO pairs are generated for a public-safe `extract`/`extract_page` row whose chosen contract uses `slots.target`
+- **THEN** the builder MUST include a rejected contract with a distinct rejection reason for query-slot extraction drift
+- **AND** the rejected contract MUST replace the accepted `slots.target` shape with a wrong query/page-url style slot shape
+- **AND** the chosen contract MUST retain `slots.target` and the canonical normalized command
+
+#### Scenario: Limit extract hard-negative scope
+- **WHEN** DPO pairs are generated for non-extract contracts or extract contracts without a public-safe target slot
+- **THEN** the builder MUST NOT invent extract-price search-fallback or query-slot rejected contracts for those rows
+
+### Requirement: Generate extract-price canonical wording hard negatives
+The public sample DPO builder SHALL generate extract-price canonical wording hard negatives that reject strict-wrong target synonyms while preserving the canonical accepted contract.
+
+#### Scenario: Build generic price wording negative
+- **WHEN** DPO pairs are generated for a public-safe `extract`/`extract_page` row whose accepted contract uses `slots.target="商品价格"` and `normalized_command="提取页面商品价格"`
+- **THEN** the builder MUST include a rejected contract whose rejection reason identifies generic price target wording
+- **AND** the rejected contract MUST use a plausible but strict-wrong target such as `slots.target="价格"` or `normalized_command="页面价格"`
+- **AND** the chosen contract MUST retain `slots.target="商品价格"` and `normalized_command="提取页面商品价格"`
+
+#### Scenario: Build listed-price wording negative
+- **WHEN** DPO pairs are generated for a public-safe `extract`/`extract_page` row whose accepted contract uses the canonical商品价格 target
+- **THEN** the builder MUST include a rejected contract whose rejection reason identifies listed-price wording drift
+- **AND** the rejected contract MUST use a plausible but strict-wrong target such as `slots.target="标价"` or `normalized_command="提取页面标价"`
+- **AND** the chosen contract MUST retain the canonical accepted contract
+
+#### Scenario: Build extra-particle normalized-command negative
+- **WHEN** DPO pairs are generated for a public-safe `extract`/`extract_page` row whose accepted contract uses the canonical商品价格 target
+- **THEN** the builder MUST include a rejected contract whose rejection reason identifies extra-particle extract wording
+- **AND** the rejected contract MUST preserve task, route, safety, confirmation, and `slots.target` while changing `normalized_command` to a strict-wrong wording such as `提取页面上的商品价格`
+
+#### Scenario: Limit canonical wording negatives
+- **WHEN** DPO pairs are generated for non-extract contracts, non-public rows, or extract rows whose accepted target is not canonical商品价格
+- **THEN** the builder MUST NOT invent extract-price canonical wording hard negatives for those rows
+
+### Requirement: Keep extract-price public targets canonical after wording repair
+The public sample dataset SHALL keep the original extract-price seed and schema-preserving augmentations aligned to the same canonical accepted contract.
+
+#### Scenario: Inspect extract-price public rows after regeneration
+- **WHEN** public sample SFT artifacts are regenerated for the canonical wording phase
+- **THEN** all extract-price public rows MUST use `task_type="extract"`, `route="extract_page"`, `slots={"target":"商品价格"}`, and `normalized_command="提取页面商品价格"`
+- **AND** they MUST NOT use accepted targets such as `价格`, `标价`, `页面价格`, or `提取页面上的商品价格`

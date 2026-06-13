@@ -1,0 +1,221 @@
+{
+  "artifacts": {
+    "alignment_diagnostics": "reports/public-sample/a100-compact-query-exact-match-rerun/alignment_diagnostics.json",
+    "constrained_decoding_diagnosis": "reports/public-sample/a100-compact-query-exact-match-rerun/constrained_decoding_diagnosis.json",
+    "generation_trace": "reports/public-sample/a100-compact-query-exact-match-rerun/generation_trace.jsonl",
+    "metrics": "reports/public-sample/a100-compact-query-exact-match-rerun/metrics.json",
+    "prediction_metadata": "reports/public-sample/a100-compact-query-exact-match-rerun/prediction_metadata.json",
+    "predictions": "reports/public-sample/a100-compact-query-exact-match-rerun/predictions.jsonl",
+    "prompt_snapshot": "reports/public-sample/a100-compact-query-exact-match-rerun/prompt_snapshot.json",
+    "raw_decoded_summary": "reports/public-sample/a100-compact-query-exact-match-rerun/raw_decoded_summary.jsonl",
+    "schema_guard_summary": "reports/public-sample/a100-compact-query-exact-match-rerun/schema_guard_summary.json",
+    "train_split_gold": "reports/public-sample/a100-compact-query-exact-match-rerun/train_split_gold.jsonl"
+  },
+  "claims": {
+    "a100_public_sample_train_split_diagnostic": true,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_relaxation": false,
+    "held_out_generalization_claim": false,
+    "model_recovery_claim": false,
+    "normalized_command_normalization": false,
+    "parser_relaxation": false,
+    "prediction_repair_or_replacement": false,
+    "prediction_rescore": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "slot_normalization": false
+  },
+  "compact_query_rows": [
+    {
+      "gold_normalized_command": "搜索北京明天天气",
+      "gold_route": "search_web",
+      "gold_slots": {
+        "query": "北京明天天气"
+      },
+      "gold_task_type": "search",
+      "predicted_normalized_command": "搜索北京明天天气",
+      "predicted_route": "search_web",
+      "predicted_slots": {
+        "query": "北京明天天气"
+      },
+      "predicted_task_type": "search",
+      "row_id": "seed-search-weather",
+      "schema_valid": true,
+      "source_id": "seed-search-weather",
+      "strict_contract_exact_match": true,
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    },
+    {
+      "gold_normalized_command": "搜索北京明天天气",
+      "gold_route": "search_web",
+      "gold_slots": {
+        "query": "北京明天天气"
+      },
+      "gold_task_type": "search",
+      "predicted_normalized_command": "搜索北京明天天气",
+      "predicted_route": "search_web",
+      "predicted_slots": {
+        "query": "北京明天天气"
+      },
+      "predicted_task_type": "search",
+      "row_id": "seed-search-weather-aug-1",
+      "schema_valid": true,
+      "source_id": "seed-search-weather",
+      "strict_contract_exact_match": true,
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    },
+    {
+      "gold_normalized_command": "搜索北京明天天气",
+      "gold_route": "search_web",
+      "gold_slots": {
+        "query": "北京明天天气"
+      },
+      "gold_task_type": "search",
+      "predicted_normalized_command": "搜索北京明天天气",
+      "predicted_route": "search_web",
+      "predicted_slots": {
+        "query": "北京明天天气"
+      },
+      "predicted_task_type": "search",
+      "row_id": "seed-search-weather-aug-2",
+      "schema_valid": true,
+      "source_id": "seed-search-weather",
+      "strict_contract_exact_match": true,
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    }
+  ],
+  "dataset_manifest_id": "public-sample-20260613T043923Z",
+  "evidence_kind": "a100_compact_query_exact_match_rerun_diagnosis",
+  "generated_at": "2026-06-13T05:43:29.049170+00:00",
+  "metrics": {
+    "confirmation_accuracy": 1.0,
+    "contract_exact_match": 0.5,
+    "json_valid_rate": 1.0,
+    "route_accuracy": 0.8333333333333334,
+    "safety_gold_stop_support": 0.0,
+    "safety_precision": 1.0,
+    "safety_predicted_stop_support": 0.0,
+    "safety_recall": 1.0,
+    "slot_f1": 0.5,
+    "slot_f1_soft": 0.5,
+    "task_type_accuracy": 0.8333333333333334
+  },
+  "non_compact_residual_rows": [
+    {
+      "gold_normalized_command": "提取页面商品价格",
+      "gold_route": "extract_page",
+      "gold_slots": {
+        "target": "商品价格"
+      },
+      "gold_task_type": "extract",
+      "predicted_normalized_command": "提取页面上商品价格",
+      "predicted_route": "extract_page",
+      "predicted_slots": {
+        "page_url": "",
+        "query": "商品价格"
+      },
+      "predicted_task_type": "extract",
+      "row_id": "seed-extract-price",
+      "schema_valid": true,
+      "source_id": "seed-extract-price",
+      "strict_contract_exact_match": false,
+      "uses_compact_query_slot": false,
+      "uses_decomposed_city_date_topic_slots": false
+    },
+    {
+      "gold_normalized_command": "提取页面商品价格",
+      "gold_route": "extract_page",
+      "gold_slots": {
+        "target": "商品价格"
+      },
+      "gold_task_type": "extract",
+      "predicted_normalized_command": "搜索现在卖多少钱",
+      "predicted_route": "search_web",
+      "predicted_slots": {
+        "query": "现在卖多少钱"
+      },
+      "predicted_task_type": "search",
+      "row_id": "seed-extract-price-aug-1",
+      "schema_valid": true,
+      "source_id": "seed-extract-price",
+      "strict_contract_exact_match": false,
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    },
+    {
+      "gold_normalized_command": "提取页面商品价格",
+      "gold_route": "extract_page",
+      "gold_slots": {
+        "target": "商品价格"
+      },
+      "gold_task_type": "extract",
+      "predicted_normalized_command": "提取页面上的价格",
+      "predicted_route": "extract_page",
+      "predicted_slots": {
+        "query": "价格"
+      },
+      "predicted_task_type": "extract",
+      "row_id": "seed-extract-price-aug-2",
+      "schema_valid": true,
+      "source_id": "seed-extract-price",
+      "strict_contract_exact_match": false,
+      "uses_compact_query_slot": true,
+      "uses_decomposed_city_date_topic_slots": false
+    }
+  ],
+  "prediction_source_kind": "private_a100_adapter",
+  "prediction_split": "train",
+  "prior_comparison": {
+    "compact_query_residual_family_status": "improved_on_search_weather_train_rows",
+    "comparison_boundary": "strict public train-split diagnostic only; not held-out generalization",
+    "overall_model_recovery_status": "not_claimed_due_remaining_extract_residuals",
+    "prior_summary": {
+      "field_mismatch_counts": {
+        "slots": 1
+      },
+      "residual_row_count": 1,
+      "residual_row_ids": [
+        "seed-search-weather-aug-1"
+      ],
+      "schema_invalid_prediction_count": 0,
+      "strict_metric_boundary": {
+        "contract_exact_match": 0.6666666666666666,
+        "json_valid_rate": 1.0,
+        "slot_f1": 0.6666666666666666
+      },
+      "validated_output_schema_valid_count": 3
+    },
+    "source_artifacts": {
+      "alignment_diagnostics": "reports/public-sample/a100-first-pass-fence-suppression-rerun/alignment_diagnostics.json",
+      "metrics": "reports/public-sample/a100-first-pass-fence-suppression-rerun/metrics.json",
+      "prediction_metadata": "reports/public-sample/a100-first-pass-fence-suppression-rerun/prediction_metadata.json",
+      "predictions": "reports/public-sample/a100-first-pass-fence-suppression-rerun/predictions.jsonl",
+      "schema_guard_summary": "reports/public-sample/a100-first-pass-fence-suppression-rerun/schema_guard_summary.json",
+      "source_rerun": "reports/public-sample/a100-first-pass-fence-suppression-rerun",
+      "train_split_gold": "reports/public-sample/a100-first-pass-fence-suppression-rerun/train_split_gold.jsonl"
+    },
+    "source_prior_phase": "reports/public-sample/a100-first-pass-fence-suppression-rerun"
+  },
+  "summary": {
+    "compact_query_compact_slot_count": 3,
+    "compact_query_decomposed_slot_count": 0,
+    "compact_query_exact_match_count": 3,
+    "compact_query_rows": 3,
+    "non_compact_extract_residual_row_count": 3,
+    "overall_interpretation": "compact_query_residual_improved_but_overall_train_split_not_fully_recovered",
+    "prediction_count": 6,
+    "prior_compact_query_residual_resolved_count": 1,
+    "prior_compact_query_residual_row_ids": [
+      "seed-search-weather-aug-1"
+    ],
+    "schema_valid_prediction_count": 6,
+    "slot_f1_soft_internal_only": 0.5,
+    "strict_contract_exact_match": 0.5,
+    "strict_slot_f1": 0.5,
+    "train_gold_row_count": 6
+  }
+}
