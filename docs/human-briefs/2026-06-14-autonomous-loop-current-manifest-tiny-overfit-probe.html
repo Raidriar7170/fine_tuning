@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Autonomous Loop Report - Tiny Overfit Probe</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; background: #f6f7fb; color: #1b2433; }
+    main { max-width: 1040px; margin: 0 auto; padding: 32px 24px 52px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .panel { background: white; border: 1px solid #d8dee8; border-radius: 8px; padding: 18px 20px; }
+    .stop { border-left: 4px solid #b45309; background: #fff8eb; padding: 12px 14px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d8dee8; }
+    td { border-bottom: 1px solid #e7ebf1; padding: 9px 11px; }
+    code { background: #eef1f6; padding: 1px 5px; border-radius: 4px; }
+    a { color: #155eef; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop Report: Current Manifest Tiny-Overfit Probe</h1>
+  <section class="panel"><strong>一句话结论：</strong>本轮完成并归档 7B current-manifest 3-row tiny-overfit phase；3 条 train-internal prediction 全部 strict exact match，但下一步转向 held-out/dev-test 诊断会改变证据边界，需要用户确认。</section>
+
+  <h2>停止原因</h2>
+  <div class="stop">Hard stop #2: recommended next step changes the evidence boundary and success criteria from train-internal memorization sanity check to held-out/dev-test generalization diagnosis. This needs user confirmation before the auto loop continues.</div>
+
+  <h2>已完成阶段</h2>
+  <ul>
+    <li>OpenSpec archived: <code>openspec/changes/archive/2026-06-13-run-current-manifest-tiny-overfit-probe/</code></li>
+    <li>Phase commit: <code>4c99a0d</code></li>
+    <li>Base model: <code>Qwen/Qwen2.5-7B-Instruct</code></li>
+    <li>Rows: <code>seed-search-weather, seed-search-weather-aug-1, seed-search-weather-aug-2</code></li>
+  </ul>
+
+  <h2>结果指标</h2>
+  <table><tbody><tr><td>contract_exact_match</td><td>1.0</td></tr><tr><td>json_valid_rate</td><td>1.0</td></tr><tr><td>task_type_accuracy</td><td>1.0</td></tr><tr><td>route_accuracy</td><td>1.0</td></tr><tr><td>slot_f1</td><td>1.0</td></tr><tr><td>prediction_count</td><td>3</td></tr></tbody></table>
+
+  <h2>验证命令</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_a100_sft_smoke.py tests/test_a100_sft_prediction_smoke.py</code>: 137 passed</li>
+    <li><code>openspec validate --all --strict</code>: 4 passed</li>
+    <li><code>voice2task-report leak-scan ...</code>: no findings</li>
+    <li><code>git diff --check</code>: passed</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/current-manifest-tiny-overfit-probe/manifest.json">Evidence manifest</a></li>
+    <li><a href="../../reports/public-sample/current-manifest-tiny-overfit-probe/report.md">Evidence report</a></li>
+    <li><a href="2026-06-14-run-current-manifest-tiny-overfit-probe.html">Phase Human Brief</a></li>
+    <li><a href="../../openspec/specs/supervised-contract-tuning/spec.md">Supervised tuning spec</a></li>
+    <li><a href="../../openspec/specs/contract-evaluation/spec.md">Contract evaluation spec</a></li>
+  </ul>
+
+  <h2>Auto Integration</h2>
+  <ul>
+    <li>Status: staged and committed locally.</li>
+    <li>Push: skipped because branch <code>main</code> has no upstream configured.</li>
+    <li>External review: skipped; this was a bounded evidence/ML diagnostic with clean local validation and no public wording expansion beyond the phase brief.</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>Current target: not explicitly defined as MVP/v1/release; repo source describes first-phase speech-to-contract normalization.</li>
+    <li>Advanced: proved current 7B SFT path can memorize 3 current train contracts when label path is inspectable.</li>
+    <li>Remaining gaps: dev/test generalization, private-corpus scaling, DPO value, release packaging, and downstream execution smoke for non-train rows.</li>
+  </ul>
+
+  <h2>不要夸大的结论</h2>
+  <p>This is not model recovery, not held-out quality, not production readiness, not a checkpoint or adapter release, and not a live-browser benchmark improvement.</p>
+
+  <h2>推荐下一步</h2>
+  <p>Open a new bounded OpenSpec phase for current 7B adapter held-out/dev-test prediction diagnosis, keeping it prediction-only first and preserving train-vs-held-out boundaries.</p>
+</main>
+</body>
+</html>
