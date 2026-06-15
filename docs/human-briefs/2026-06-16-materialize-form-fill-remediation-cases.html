@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task form_fill remediation candidate materialization</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { margin: 0 0 10px; font-size: 28px; }
+    h2 { margin: 24px 0 10px; font-size: 18px; }
+    p, li { line-height: 1.7; }
+    .summary { padding: 18px 20px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .metric { padding: 14px 16px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .metric strong { display: block; font-size: 24px; margin-bottom: 4px; }
+    code { padding: 2px 5px; border-radius: 4px; background: #e9eef6; }
+    a { color: #2457a7; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task form_fill remediation candidate materialization</h1>
+  <p class="summary">结论：本阶段把已设计的 <code>form_fill</code> remediation cases 物化为独立候选数据集；没有合并正式 public sample、没有训练、没有预测，也没有改变评估口径。</p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="metric"><strong>materialized</strong>阶段状态</div>
+    <div class="metric"><strong>3</strong>case groups</div>
+    <div class="metric"><strong>9</strong>candidate seed rows</div>
+    <div class="metric"><strong>9</strong>candidate SFT rows</div>
+  </div>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>读取上一阶段 <code>form_fill_remediation_case_design.json</code>，fail-closed 校验 3 个已设计 case group。</li>
+    <li>生成 standalone candidate seed 文件和 candidate SFT JSONL；所有 row 都保持 <code>train</code> split。</li>
+    <li>按现有 form-fill canonical policy，把 confirmation-required target 规范为 <code>填写...并确认</code>，并在 provenance 中保留 source expected pattern。</li>
+  </ul>
+
+  <h2>关键产物</h2>
+  <ul>
+    <li><a href="../../data/public-samples/form_fill_remediation_seed_candidates.jsonl">candidate seed JSONL</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-materialized-candidates/sft_candidate_rows.jsonl">candidate SFT JSONL</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-materialized-candidates/form_fill_remediation_materialization.md">materialization Markdown</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-materialized-candidates/form_fill_remediation_materialization.json">materialization JSON</a></li>
+    <li><a href="../../openspec/changes/materialize-form-fill-remediation-cases/proposal.md">OpenSpec proposal</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python3 -m pytest -q tests/test_form_fill_remediation_materialization.py</code>：3 passed。</li>
+    <li><code>PYTHONPATH=src python3 -m pytest -q</code>：321 passed。</li>
+    <li><code>ruff check src tests scripts</code>：All checks passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：5 passed, 0 failed。</li>
+    <li><code>voice2task.cli.report leak-scan ...</code>：ok，0 findings。</li>
+    <li><code>git diff --check</code>：通过，无 whitespace errors。</li>
+  </ul>
+
+  <h2>不要过度解读</h2>
+  <ul>
+    <li>这不是 held-out recovery 或 model recovery 证明；<code>contract_exact_match</code> 仍是主指标。</li>
+    <li>这些 candidate rows 还没有合并进正式 public sample，也没有用于任何训练。</li>
+    <li><code>slot_f1_soft</code> 仍然只是 diagnostic，不是主指标。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <p>当前项目阶段目标未在仓库中显式定义。本阶段推进的是证据链中的 candidate materialization 层：从设计-only artifact 进入可测试候选数据，但仍未进入训练或 formal sample merge。</p>
+
+  <h2>推荐下一步</h2>
+  <p>在下一个 bounded OpenSpec 阶段运行本地 candidate integration check，验证新候选数据能被公开数据构建/报告链消费，同时继续保持不训练、不合并、不声称恢复。</p>
+</main>
+</body>
+</html>

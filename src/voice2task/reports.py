@@ -2616,6 +2616,131 @@ def write_slot_value_generalization_materialization_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
 
 
+def write_form_fill_remediation_materialization_report(
+    materialization: dict[str, Any],
+    output_dir: Path,
+    sft_rows: list[dict[str, Any]],
+    title: str = "Voice2Task form-fill remediation materialized candidates",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "form_fill_remediation_materialization.json"
+    markdown_path = output_dir / "form_fill_remediation_materialization.md"
+    manifest_path = output_dir / "manifest.json"
+    sft_path = output_dir / "sft_candidate_rows.jsonl"
+    safe_materialization = _sanitize_report_value(materialization)
+    safe_sft_rows = _sanitize_report_value(sft_rows)
+    write_json(json_path, safe_materialization)
+    write_jsonl(sft_path, safe_sft_rows)
+
+    manifest = {
+        "evidence_kind": safe_materialization["evidence_kind"],
+        "materialization_status": safe_materialization["materialization_status"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_case_design": safe_materialization["source_case_design"],
+        "summary": safe_materialization["summary"],
+        "execution_scope": safe_materialization["execution_scope"],
+        "claims": safe_materialization["claims"],
+        "artifact_policy": {
+            "candidate_data_only": True,
+            "formal_public_sample_files_modified": False,
+            "new_candidate_data_generated": True,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "prediction_run": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+        },
+        "diagnostic_artifacts": {
+            "candidate_seed": safe_materialization["artifact_files"]["candidate_seed"],
+            "candidate_sft": (
+                "reports/public-sample/form-fill-remediation-materialized-candidates/"
+                "sft_candidate_rows.jsonl"
+            ),
+            "materialization": (
+                "reports/public-sample/form-fill-remediation-materialized-candidates/"
+                "form_fill_remediation_materialization.json"
+            ),
+            "markdown": (
+                "reports/public-sample/form-fill-remediation-materialized-candidates/"
+                "form_fill_remediation_materialization.md"
+            ),
+            "manifest": "reports/public-sample/form-fill-remediation-materialized-candidates/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_materialization["summary"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is candidate data only: it materializes reviewed form-fill remediation cases into a "
+            "standalone public-safe candidate dataset, not merged into seed_traces.jsonl and not used as "
+            "training evidence yet."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Candidate rows are not formal public sample rows yet.",
+        "- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.",
+        "- No DPO pairs, SFT training, prediction run, or A100 execution is performed.",
+        "- strict `contract_exact_match` remains primary.",
+        "- Soft slot F1 and semantic equivalence remain diagnostic-only.",
+        "- This is not a model recovery, held-out recovery, checkpoint, adapter, production, or live-browser claim.",
+        "",
+        "## Summary",
+        "",
+        f"- Candidate groups: `{summary['candidate_group_count']}`",
+        f"- Candidate seed rows: `{summary['candidate_seed_rows']}`",
+        f"- Candidate SFT rows: `{summary['candidate_sft_rows']}`",
+        f"- Formal public sample seed rows: `{summary['formal_public_sample_seed_rows']}`",
+        f"- Formal public sample SFT rows: `{summary['formal_public_sample_sft_rows']}`",
+        f"- Formal public sample DPO pairs: `{summary['formal_public_sample_dpo_pairs']}`",
+        f"- Public sample modified: `{summary['public_sample_modified']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Candidate Case Groups",
+        "",
+    ]
+    for group in safe_materialization.get("candidate_case_groups", []):
+        lines.extend(
+            [
+                f"### `{group['case_group_id']}`",
+                "",
+                f"- Source bucket: `{group['source_bucket']}`",
+                f"- Candidate seeds: `{group['candidate_seed_ids']}`",
+                f"- Candidate SFT rows: `{group['candidate_sft_row_ids']}`",
+                f"- Source field paths: `{group['source_field_paths']}`",
+                f"- Source expected normalized-command patterns: "
+                f"`{group['source_expected_normalized_command_patterns']}`",
+                f"- Policy guidance: `{group['policy_guidance_id']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Recommended Next Step",
+            "",
+            (
+                "Run a later bounded OpenSpec phase for a local candidate integration check or a formal merge/probe "
+                "decision. Keep DPO, evaluator relaxation, A100 training, and model-quality claims separate unless "
+                "explicitly scoped."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
+
+
 def write_family_stratified_generalization_report(
     evidence: dict[str, Any],
     output_dir: Path,

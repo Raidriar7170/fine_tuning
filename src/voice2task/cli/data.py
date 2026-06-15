@@ -9,6 +9,7 @@ from voice2task.dataset import (
     build_public_sample_dataset,
     family_stratified_public_sample_merge_evidence,
     materialize_family_stratified_generalization_candidates,
+    materialize_form_fill_remediation_candidates,
     materialize_slot_value_generalization_candidates,
     merge_family_stratified_candidates_into_public_sample,
     merge_slot_value_candidates_into_public_sample,
@@ -43,6 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
     slot_value_parser.add_argument("--case-design", type=Path, required=True)
     slot_value_parser.add_argument("--seed-output", type=Path, required=True)
     slot_value_parser.add_argument("--output", type=Path, required=True)
+
+    form_fill_parser = subcommands.add_parser("materialize-form-fill-remediation-candidates")
+    form_fill_parser.add_argument("--case-design", type=Path, required=True)
+    form_fill_parser.add_argument("--seed-output", type=Path, required=True)
+    form_fill_parser.add_argument("--output", type=Path, required=True)
 
     family_parser = subcommands.add_parser("materialize-family-stratified-candidates")
     family_parser.add_argument("--seed-output", type=Path, required=True)
@@ -97,6 +103,21 @@ def main(argv: list[str] | None = None) -> int:
             "paths": {name: path.as_posix() for name, path in paths.items()},
             "summary": materialization_manifest["summary"],
             "execution_scope": materialization_manifest["execution_scope"],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "materialize-form-fill-remediation-candidates":
+        paths = materialize_form_fill_remediation_candidates(
+            case_design_path=args.case_design,
+            seed_output_path=args.seed_output,
+            output_dir=args.output,
+        )
+        manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+        payload = {
+            "ok": True,
+            "paths": {name: path.as_posix() for name, path in paths.items()},
+            "summary": manifest["summary"],
+            "execution_scope": manifest["execution_scope"],
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
         return 0

@@ -42,6 +42,11 @@ EXTRACT_PRICE_CANONICAL_NORMALIZED_COMMAND = "提取页面商品价格"
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FORMAL_PUBLIC_MANIFEST_PATH = REPO_ROOT / "data" / "public-samples" / "manifest_public_sample.json"
+_FORM_FILL_REMEDIATION_GROUP_IDS = (
+    "form-fill-clarify-boundary-protection",
+    "form-fill-confirmation-marker-preservation",
+    "form-fill-field-specificity-preservation",
+)
 
 _SLOT_VALUE_CANDIDATE_CASES: dict[str, dict[str, Any]] = {
     "blocked-payment-normalized-command-paraphrase": {
@@ -1483,6 +1488,262 @@ def materialize_slot_value_generalization_candidates(
     from voice2task.reports import write_slot_value_generalization_materialization_report
 
     paths = write_slot_value_generalization_materialization_report(
+        materialization,
+        output_dir=output_dir,
+        sft_rows=[row.to_dict() for row in candidate_sft_rows],
+    )
+    return {"seed": seed_output_path, **paths}
+
+
+def _require_reviewed_form_fill_case_groups(case_design: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    if case_design.get("evidence_kind") != "form_fill_remediation_case_design":
+        raise ValueError("case design must be form_fill_remediation_case_design evidence")
+    if case_design.get("design_status") != "design_only_not_materialized":
+        raise ValueError("case design must be design_only_not_materialized before candidate materialization")
+    summary = case_design.get("summary")
+    if not isinstance(summary, dict) or summary.get("target") != "form_fill":
+        raise ValueError("case design summary must target form_fill")
+
+    groups = {
+        str(group.get("case_group_id")): group
+        for group in case_design.get("case_groups", [])
+        if isinstance(group, dict)
+    }
+    required = set(_FORM_FILL_REMEDIATION_GROUP_IDS)
+    missing = sorted(required - set(groups))
+    extra = sorted(set(groups) - required)
+    if missing:
+        raise ValueError(f"missing reviewed form-fill case groups: {', '.join(missing)}")
+    if extra:
+        raise ValueError(f"unreviewed form-fill case groups are not materialized in this phase: {', '.join(extra)}")
+
+    case_count = 0
+    for case_group_id in _FORM_FILL_REMEDIATION_GROUP_IDS:
+        group = groups[case_group_id]
+        candidate_cases = group.get("candidate_cases")
+        if not isinstance(candidate_cases, list) or len(candidate_cases) != 3:
+            raise ValueError(f"{case_group_id} must contain exactly three candidate cases")
+        if group.get("public_sample_materialized") is not False:
+            raise ValueError(f"{case_group_id} must not already be materialized into the public sample")
+        case_count += len(candidate_cases)
+    if case_count != 9 or summary.get("candidate_case_count") != 9:
+        raise ValueError("form-fill remediation materialization expects exactly nine reviewed cases")
+    return groups
+
+
+def _canonical_form_fill_normalized_command(field: str) -> str:
+    command = f"填写{field}"
+    if command.endswith("并确认"):
+        return command
+    return f"{command}并确认"
+
+
+def _form_fill_remediation_target_contract(case: dict[str, Any]) -> dict[str, Any]:
+    expected_slots = case.get("expected_slots")
+    if not isinstance(expected_slots, dict) or set(expected_slots) != {"field"}:
+        raise ValueError(f"form-fill case {case.get('case_id')} must define exactly slots.field")
+    field = str(expected_slots["field"])
+    expected_contract = case.get("expected_contract")
+    if isinstance(expected_contract, dict):
+        expected = {
+            "confirmation_required": True,
+            "route": "fill_form",
+            "safety.reason": "requires_confirmation",
+            "task_type": "form_fill",
+        }
+        for key, value in expected.items():
+            if expected_contract.get(key) != value:
+                raise ValueError(f"form-fill case {case.get('case_id')} has incompatible expected_contract.{key}")
+    return _contract(
+        task_type="form_fill",
+        route="fill_form",
+        safety_reason="requires_confirmation",
+        allow=True,
+        confirmation_required=True,
+        slots={"field": field},
+        normalized_command=_canonical_form_fill_normalized_command(field),
+    )
+
+
+def _form_fill_remediation_candidate_seed_rows(
+    case_design: dict[str, Any],
+    source_design_ref: str,
+) -> list[dict[str, Any]]:
+    groups = _require_reviewed_form_fill_case_groups(case_design)
+    rows: list[dict[str, Any]] = []
+    for case_group_id in _FORM_FILL_REMEDIATION_GROUP_IDS:
+        group = groups[case_group_id]
+        for case in group["candidate_cases"]:
+            case_id = str(case.get("case_id"))
+            if not case_id or case_id == "None":
+                raise ValueError(f"{case_group_id} contains a candidate case without case_id")
+            row = {
+                "id": f"candidate-form-fill-remediation-{case_id}",
+                "split": "train",
+                "input_text": str(case["input_intent"]),
+                "target_contract": _form_fill_remediation_target_contract(case),
+                "augmentations": [],
+                "provenance": {
+                    "source_mode": "form_fill_remediation_candidate_seed",
+                    "public_safe": True,
+                    "candidate_status": "standalone_not_formal_public_sample",
+                    "opsx_auto_self_reviewed": True,
+                    "source_case_group_id": case_group_id,
+                    "source_case_id": case_id,
+                    "source_bucket": group["source_bucket"],
+                    "source_design": source_design_ref,
+                    "source_expected_normalized_command_pattern": str(
+                        case["expected_normalized_command_pattern"]
+                    ),
+                    "source_expected_slots": dict(case["expected_slots"]),
+                    "policy_guidance_id": group["policy_guidance_id"],
+                    "source_representative_row_refs": list(group["source_representative_row_refs"]),
+                },
+            }
+            validate_public_record(row)
+            rows.append(row)
+    observed_ids = {row["id"] for row in rows}
+    if len(observed_ids) != len(rows):
+        raise ValueError("form-fill remediation candidate seed IDs must be unique")
+    return rows
+
+
+def _form_fill_remediation_candidate_sft_rows(seed_rows: list[dict[str, Any]]) -> list[SFTDatasetRow]:
+    rows: list[SFTDatasetRow] = []
+    for seed in seed_rows:
+        seed_provenance = seed["provenance"]
+        rows.append(
+            SFTDatasetRow(
+                id=seed["id"],
+                split=seed["split"],
+                input_text=seed["input_text"],
+                target_contract=seed["target_contract"],
+                provenance={
+                    "source_id": seed["id"],
+                    "source_mode": "form_fill_remediation_candidate",
+                    "public_safe": True,
+                    "augmentation": "original",
+                    "candidate_status": seed_provenance["candidate_status"],
+                    "opsx_auto_self_reviewed": seed_provenance["opsx_auto_self_reviewed"],
+                    "source_case_group_id": seed_provenance["source_case_group_id"],
+                    "source_case_id": seed_provenance["source_case_id"],
+                    "source_bucket": seed_provenance["source_bucket"],
+                    "source_design": seed_provenance["source_design"],
+                },
+            )
+        )
+    return rows
+
+
+def _form_fill_remediation_materialization_summary(
+    *,
+    candidate_seed_rows: list[dict[str, Any]],
+    candidate_sft_rows: list[SFTDatasetRow],
+    formal_public_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    formal_counts = formal_public_manifest["counts"]
+    return {
+        "candidate_group_count": len(_FORM_FILL_REMEDIATION_GROUP_IDS),
+        "candidate_seed_rows": len(candidate_seed_rows),
+        "candidate_sft_rows": len(candidate_sft_rows),
+        "formal_public_sample_seed_rows": formal_counts["seed_rows"],
+        "formal_public_sample_sft_rows": formal_counts["sft_rows"],
+        "formal_public_sample_dpo_pairs": formal_counts["dpo_pairs"],
+        "public_sample_modified": False,
+        "recommended_next_step": "run_local_form_fill_candidate_integration_check",
+    }
+
+
+def materialize_form_fill_remediation_candidates(
+    *,
+    case_design_path: Path,
+    seed_output_path: Path,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Write standalone candidate data from the reviewed form-fill remediation case design."""
+
+    case_design = read_json(case_design_path)
+    formal_public_manifest = read_json(FORMAL_PUBLIC_MANIFEST_PATH)
+    source_design_ref = _safe_artifact_ref(case_design_path)
+    candidate_seed_rows = _form_fill_remediation_candidate_seed_rows(case_design, source_design_ref)
+    candidate_sft_rows = _form_fill_remediation_candidate_sft_rows(candidate_seed_rows)
+    for row in candidate_sft_rows:
+        validate_public_record(row.to_dict())
+
+    write_jsonl(seed_output_path, candidate_seed_rows)
+    materialization = {
+        "evidence_kind": "form_fill_remediation_materialization",
+        "materialization_status": "candidate_dataset_materialized",
+        "source_case_design": {
+            "path": source_design_ref,
+            "evidence_kind": case_design["evidence_kind"],
+            "design_status": case_design["design_status"],
+            "summary": case_design["summary"],
+        },
+        "summary": _form_fill_remediation_materialization_summary(
+            candidate_seed_rows=candidate_seed_rows,
+            candidate_sft_rows=candidate_sft_rows,
+            formal_public_manifest=formal_public_manifest,
+        ),
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_candidate_data_generated": True,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "training_run": False,
+            "prediction_run": False,
+            "dpo_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_generalization_recovered": False,
+            "model_recovery_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "candidate_case_groups": [
+            {
+                "case_group_id": case_group_id,
+                "source_bucket": groups["source_bucket"],
+                "candidate_seed_ids": [
+                    seed["id"]
+                    for seed in candidate_seed_rows
+                    if seed["provenance"]["source_case_group_id"] == case_group_id
+                ],
+                "candidate_sft_row_ids": [
+                    row.id
+                    for row in candidate_sft_rows
+                    if row.provenance["source_case_group_id"] == case_group_id
+                ],
+                "source_field_paths": groups["source_field_paths"],
+                "source_representative_row_refs": groups["source_representative_row_refs"],
+                "policy_guidance_id": groups["policy_guidance_id"],
+                "source_expected_normalized_command_patterns": [
+                    str(case["expected_normalized_command_pattern"])
+                    for case in groups["candidate_cases"]
+                ],
+            }
+            for case_group_id, groups in _require_reviewed_form_fill_case_groups(case_design).items()
+        ],
+        "artifact_files": {
+            "candidate_seed": _safe_artifact_ref(seed_output_path),
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization_json": "form_fill_remediation_materialization.json",
+            "materialization_markdown": "form_fill_remediation_materialization.md",
+            "manifest": "manifest.json",
+        },
+    }
+
+    from voice2task.reports import write_form_fill_remediation_materialization_report
+
+    paths = write_form_fill_remediation_materialization_report(
         materialization,
         output_dir=output_dir,
         sft_rows=[row.to_dict() for row in candidate_sft_rows],

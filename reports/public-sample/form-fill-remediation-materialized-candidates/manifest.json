@@ -1,0 +1,96 @@
+{
+  "artifact_policy": {
+    "candidate_data_only": true,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "dpo_pairs_generated": false,
+    "evaluator_metric_change": false,
+    "formal_public_sample_files_modified": false,
+    "host_details_omitted": true,
+    "new_candidate_data_generated": true,
+    "prediction_repair_or_replacement": false,
+    "prediction_run": false,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "public_sample_modified": false,
+    "raw_logs_copied_to_git": false,
+    "seed_traces_modified": false,
+    "ssh_details_omitted": true,
+    "training_run": false
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_recovered": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false,
+    "strict_contract_exact_match_primary_metric": true
+  },
+  "diagnostic_artifacts": {
+    "candidate_seed": "data/public-samples/form_fill_remediation_seed_candidates.jsonl",
+    "candidate_sft": "reports/public-sample/form-fill-remediation-materialized-candidates/sft_candidate_rows.jsonl",
+    "manifest": "reports/public-sample/form-fill-remediation-materialized-candidates/manifest.json",
+    "markdown": "reports/public-sample/form-fill-remediation-materialized-candidates/form_fill_remediation_materialization.md",
+    "materialization": "reports/public-sample/form-fill-remediation-materialized-candidates/form_fill_remediation_materialization.json"
+  },
+  "evidence_kind": "form_fill_remediation_materialization",
+  "execution_scope": {
+    "a100_execution": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "local_public_sample_only": true,
+    "new_candidate_data_generated": true,
+    "prediction_run": false,
+    "public_sample_modified": false,
+    "seed_traces_modified": false,
+    "training_run": false
+  },
+  "generated_at": "2026-06-15T21:46:27.105132+00:00",
+  "materialization_status": "candidate_dataset_materialized",
+  "source_case_design": {
+    "design_status": "design_only_not_materialized",
+    "evidence_kind": "form_fill_remediation_case_design",
+    "path": "reports/public-sample/form-fill-remediation-case-design/form_fill_remediation_case_design.json",
+    "summary": {
+      "candidate_case_count": 9,
+      "case_group_count": 3,
+      "covered_bucket_field_counts": {
+        "clarify_boundary_confusion": 8,
+        "confirmation_marker_missing_or_reordered": 23,
+        "field_name_specificity_drift": 18
+      },
+      "covered_bucket_row_counts": {
+        "clarify_boundary_confusion": 2,
+        "confirmation_marker_missing_or_reordered": 23,
+        "field_name_specificity_drift": 16
+      },
+      "new_data_generated": false,
+      "public_sample_modified": false,
+      "recommended_next_step": "review_then_materialize_independent_candidate_dataset_in_later_change",
+      "source_count_consistency": {
+        "computed_residual_fields": 49,
+        "computed_residual_rows": 29,
+        "expected_residual_fields": 49,
+        "expected_residual_rows": 29,
+        "ok": true
+      },
+      "source_residual_field_count": 49,
+      "source_residual_row_count": 29,
+      "target": "form_fill",
+      "target_task_family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field"
+    }
+  },
+  "summary": {
+    "candidate_group_count": 3,
+    "candidate_seed_rows": 9,
+    "candidate_sft_rows": 9,
+    "formal_public_sample_dpo_pairs": 661,
+    "formal_public_sample_seed_rows": 77,
+    "formal_public_sample_sft_rows": 231,
+    "public_sample_modified": false,
+    "recommended_next_step": "run_local_form_fill_candidate_integration_check"
+  }
+}
