@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop Closeout - Slot Value Generalization Candidates</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9e0ea;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --warn: #a16207;
+      --bad: #b91c1c;
+      --good: #047857;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #fff7ed; color: var(--warn); border: 1px solid #fed7aa; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .good { color: var(--good); font-weight: 600; }
+    .bad { color: var(--bad); font-weight: 600; }
+    .small { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop Closeout: Slot Value Generalization Candidates</h1>
+  <div class="status">状态：stopped，需要用户确认下一阶段数据策略</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本轮 `/opsx auto` 完成并归档了一个小阶段：把已审阅的 4 个 slot value 泛化 case group 物化为独立候选数据集；循环在下一步“是否合入训练数据或启动 probe”处停止，因为这会改变训练数据面和成功标准。</p>
+  </section>
+
+  <section class="grid" aria-label="loop metrics">
+    <div class="metric"><b>1</b><span>archived phase</span></div>
+    <div class="metric"><b>4</b><span>candidate seed rows</span></div>
+    <div class="metric"><b>12</b><span>candidate SFT rows</span></div>
+    <div class="metric"><b class="bad">0</b><span>A100 / DPO / prediction runs</span></div>
+  </section>
+
+  <h2>停止原因</h2>
+  <p><strong>Exact stop condition:</strong> `/opsx auto` hard stop #2. 下一步推荐动作会改变训练数据面、成功标准和模型质量证据边界：要么把 candidate merge 入 formal public sample 并重建训练数据，要么启动 local/A100 SFT probe。这不再是当前 materialization 阶段内的自动延续。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：first-phase speech-to-contract normalization。</li>
+    <li>目标来源：<a href="../../CONTEXT.md">CONTEXT.md</a> 定义 first-phase 能力是中文 spoken/ASR command 到 Browser Task Contract；<a href="../../README.md">README.md</a> 说明 committed data 是 public sample 和 smoke-test 资产，不是完整私有语料或 release claim。</li>
+    <li>本轮推进：把“需要数据泛化”的下一步从抽象策略变成可审阅的候选数据资产，且保持 formal public sample 不变。</li>
+    <li>剩余差距：候选数据未合入正式 public sample；没有 dev/test prediction rerun；没有 strict exact 改善证据；没有 DPO hard negatives；没有 adapter/checkpoint release。</li>
+    <li>next-stage plan：开新 OpenSpec 阶段，由用户确认是 merge candidates into formal public sample，还是先跑 bounded SFT probe。</li>
+  </ul>
+
+  <h2>完成的 Phase</h2>
+  <table>
+    <thead><tr><th>phase</th><th>结果</th><th>关键产物</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>materialize-slot-value-generalization-candidates</code></td>
+        <td>archived</td>
+        <td>4 candidate seed rows, 12 candidate SFT rows, public-safe report, Human Brief, synced spec requirement</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../data/public-samples/slot_value_generalization_seed_candidates.jsonl">candidate seed JSONL</a></li>
+    <li><a href="../../reports/public-sample/slot-value-generalization-materialized-candidates/manifest.json">materialization manifest</a></li>
+    <li><a href="../../reports/public-sample/slot-value-generalization-materialized-candidates/slot_value_generalization_materialization.md">materialization Markdown</a></li>
+    <li><a href="../../docs/human-briefs/2026-06-15-materialize-slot-value-generalization-candidates.html">phase Human Brief</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-15-materialize-slot-value-generalization-candidates/tasks.md">archived OpenSpec tasks</a></li>
+    <li><a href="../../openspec/specs/voice2task-dataset-preparation/spec.md">synced dataset-preparation spec</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>：<code>255 passed</code>。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>：<code>ok=true</code>，30 SFT / 90 DPO。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>：90 DPO pairs，category distribution readable。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan ...</code>：<code>ok=true</code>，0 findings。</li>
+    <li><code>openspec validate --all --strict</code>：4 specs passed after archive。</li>
+    <li><code>git diff --check</code>：无输出。</li>
+  </ul>
+
+  <h2>Auto Integration</h2>
+  <ul>
+    <li>Target branch：<code>main</code>。</li>
+    <li>Staged and committed phase changes：<code>c997e63 Archive slot value generalization candidates</code>。</li>
+    <li>Merge/submit：not applicable，当前就是 <code>main</code>。</li>
+    <li>Push：skipped，repo 当前没有 configured remote/upstream。</li>
+    <li>External review：not run；本阶段是 local public-safe data materialization，scope 小且本地验证/主线程 reviewer pass 已覆盖。</li>
+  </ul>
+
+  <h2>Reviewer 结论</h2>
+  <ul>
+    <li>Must Fix：none。</li>
+    <li>Should Fix：archive 后更新 Human Brief 状态和 OpenSpec 链接，已完成。</li>
+    <li>Nice to Have：后续可以把 candidate merge/probe 策略拆成独立 OpenSpec proposal。</li>
+    <li>Re-plan Needed：No。</li>
+    <li>Final Verdict：phase complete and archived；next phase needs user confirmation。</li>
+  </ul>
+
+  <h2>不要夸大的点</h2>
+  <ul>
+    <li>本轮不是模型质量提升证据，不能说已经达到初始语气目标。</li>
+    <li>没有训练、没有 prediction rerun、没有 A100、没有 DPO。</li>
+    <li>formal public sample 未改：仍是 10 seed / 30 SFT / 90 DPO。</li>
+    <li>strict <code>contract_exact_match</code> 仍是主指标；soft slot F1 和 semantic equivalence 只作为诊断。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>需要你手动确认一个方向：A. 合入候选 seed 到 formal public sample 并重建 SFT/DPO，再做 held-out prediction；或 B. 保持 formal public sample 不变，先用 candidate set 做一个更小的 SFT probe。我的建议是先选 B，风险更小，能先验证这些候选是否真的提供学习信号。</p>
+  <p class="small">Generated from OpenSpec archive, materialization evidence, validation output, and phase Human Brief.</p>
+</main>
+</body>
+</html>
