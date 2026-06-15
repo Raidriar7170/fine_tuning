@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Slot Value Generalization Candidate Materialization Brief</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9e0ea;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --warn: #a16207;
+      --bad: #b91c1c;
+      --good: #047857;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #fffbeb; color: var(--warn); border: 1px solid #fde68a; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .good { color: var(--good); font-weight: 600; }
+    .bad { color: var(--bad); font-weight: 600; }
+    .small { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Slot Value Generalization Candidate Materialization</h1>
+  <div class="status">状态：archived，候选数据已物化并归档</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本阶段把上一阶段审过的 4 个 slot value 泛化 case group 物化成独立候选数据集：4 条 candidate seed，展开 12 条 candidate SFT rows；没有改正式 public sample，没有训练，也没有声称模型恢复。</p>
+  </section>
+
+  <section class="grid" aria-label="key metrics">
+    <div class="metric"><b>4</b><span>candidate seed rows</span></div>
+    <div class="metric"><b>12</b><span>candidate SFT rows</span></div>
+    <div class="metric"><b class="good">0</b><span>formal public sample files modified</span></div>
+    <div class="metric"><b class="bad">0</b><span>training / DPO / prediction runs</span></div>
+  </section>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：first-phase speech-to-contract normalization。</li>
+    <li>目标来源：<a href="../../CONTEXT.md">CONTEXT.md</a> 定义 first-phase capability 是中文 spoken/ASR command 到 Browser Task Contract；<a href="../../README.md">README.md</a> 说明 committed data 只是 public sample，不是 released checkpoint 或完整私有语料。</li>
+    <li>本阶段推进：把“需要数据泛化”落成独立、可复现、public-safe 的候选数据资产，为后续是否 merge 或跑小 SFT probe 提供明确输入。</li>
+    <li>剩余差距：候选数据尚未进入 formal public sample；没有 A100 rerun；没有 dev/test strict exact 改善证据；没有 DPO hard negatives。</li>
+    <li>下一阶段计划：需要用户确认是否把候选集 merge 入 formal public sample，或先做一个更小的 local/A100 SFT probe。这个决定会改变训练数据面和成功标准，所以不在本阶段自动推进。</li>
+  </ul>
+
+  <h2>本阶段产物</h2>
+  <table>
+    <thead><tr><th>artifact</th><th>用途</th><th>边界</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../../data/public-samples/slot_value_generalization_seed_candidates.jsonl">candidate seed JSONL</a></td><td>4 条独立候选 seed</td><td>不合入 <code>seed_traces.jsonl</code></td></tr>
+      <tr><td><a href="../../reports/public-sample/slot-value-generalization-materialized-candidates/sft_candidate_rows.jsonl">candidate SFT rows</a></td><td>12 条 schema-compatible SFT candidate</td><td>不生成 DPO pairs</td></tr>
+      <tr><td><a href="../../reports/public-sample/slot-value-generalization-materialized-candidates/slot_value_generalization_materialization.json">materialization JSON</a></td><td>机器可读 summary / claims / scope</td><td>无训练、无预测、无 evaluator 改动</td></tr>
+      <tr><td><a href="../../reports/public-sample/slot-value-generalization-materialized-candidates/manifest.json">manifest</a></td><td>公开证据索引与 artifact policy</td><td>public-safe only</td></tr>
+      <tr><td><a href="../../openspec/changes/archive/2026-06-15-materialize-slot-value-generalization-candidates/tasks.md">OpenSpec tasks</a></td><td>阶段任务清单</td><td>已归档</td></tr>
+    </tbody>
+  </table>
+
+  <h2>候选覆盖</h2>
+  <table>
+    <thead><tr><th>case group</th><th>candidate seed</th><th>canonical target</th></tr></thead>
+    <tbody>
+      <tr><td><code>form-email-slot-value-language-variant</code></td><td><code>candidate-form-email-canonical-field</code></td><td><code>{"field":"邮箱"}</code>, <code>填写邮箱并确认</code></td></tr>
+      <tr><td><code>clarify-ambiguous-slot-value-canonical-phrase</code></td><td><code>candidate-clarify-ambiguous-canonical-scope</code></td><td><code>目标不明确，未指定具体网站或页面</code></td></tr>
+      <tr><td><code>navigate-open-url-normalized-command-paraphrase</code></td><td><code>candidate-navigate-open-url-canonical-command</code></td><td><code>https://example.com</code>, <code>打开示例网站</code></td></tr>
+      <tr><td><code>blocked-payment-normalized-command-paraphrase</code></td><td><code>candidate-blocked-payment-canonical-command</code></td><td><code>unsafe_payment</code>, <code>拒绝代替用户付款</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_slot_value_generalization_materialization.py</code>：<code>3 passed</code>。</li>
+    <li><code>PYTHONPATH=src pytest -q tests/test_dataset_builder.py tests/test_slot_value_generalization_case_design.py tests/test_slot_value_generalization_materialization.py</code>：<code>10 passed</code>。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>：<code>ok=true</code>，30 SFT / 90 DPO。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>：90 pairs，既有 DPO 分布保持可读。</li>
+    <li><code>openspec validate --all --strict</code>：5 items passed。</li>
+  </ul>
+
+  <h2>不要夸大的点</h2>
+  <ul>
+    <li>这不是模型水平提升证据，不证明已经达到一开始想要的语气或 dev/test held-out recovery。</li>
+    <li>这不是正式训练数据 merge；formal public sample 仍是 10 seed / 30 SFT / 90 DPO。</li>
+    <li>没有 DPO、没有 A100、没有 prediction rerun、没有 evaluator 放宽。</li>
+    <li>strict <code>contract_exact_match</code> 仍然是主指标；soft slot F1 和语义等价仍然只可作为诊断。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>建议停在用户确认点：下一步可以开一个小阶段，二选一决定数据策略。更保守的是先把 candidate 数据接到一个 local/A100 tiny SFT probe；更直接的是把 4 条 seed 合入 formal public sample 并重建 SFT/DPO，再跑一次 held-out prediction。两者都会改变训练数据面，需单独确认。</p>
+  <p class="small">Generated from <code>reports/public-sample/slot-value-generalization-materialized-candidates</code> and OpenSpec change <code>materialize-slot-value-generalization-candidates</code>.</p>
+</main>
+</body>
+</html>

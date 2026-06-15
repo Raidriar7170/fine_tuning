@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from voice2task.evaluation import EvaluationResult
-from voice2task.io import write_json
+from voice2task.io import write_json, write_jsonl
 from voice2task.schemas import PRIVATE_IP_RE, PRIVATE_PATH_RE, SECRET_RE
 
 PRIVATE_REPORT_PATH_RE = re.compile(r"(/(?:mnt/data|Users|root|tmp|private)/[^\s\"')]+)")
@@ -1821,6 +1821,126 @@ def write_slot_value_generalization_case_design_report(
     )
     markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
+def write_slot_value_generalization_materialization_report(
+    materialization: dict[str, Any],
+    output_dir: Path,
+    sft_rows: list[dict[str, Any]],
+    title: str = "Voice2Task slot value generalization materialized candidates",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "slot_value_generalization_materialization.json"
+    markdown_path = output_dir / "slot_value_generalization_materialization.md"
+    manifest_path = output_dir / "manifest.json"
+    sft_path = output_dir / "sft_candidate_rows.jsonl"
+    safe_materialization = _sanitize_report_value(materialization)
+    safe_sft_rows = _sanitize_report_value(sft_rows)
+    write_json(json_path, safe_materialization)
+    write_jsonl(sft_path, safe_sft_rows)
+
+    manifest = {
+        "evidence_kind": safe_materialization["evidence_kind"],
+        "materialization_status": safe_materialization["materialization_status"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_case_design": safe_materialization["source_case_design"],
+        "summary": safe_materialization["summary"],
+        "execution_scope": safe_materialization["execution_scope"],
+        "claims": safe_materialization["claims"],
+        "artifact_policy": {
+            "candidate_data_only": True,
+            "formal_public_sample_files_modified": False,
+            "new_candidate_data_generated": True,
+            "public_sample_modified": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "prediction_run": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+        },
+        "diagnostic_artifacts": {
+            "candidate_seed": safe_materialization["artifact_files"]["candidate_seed"],
+            "candidate_sft": "reports/public-sample/slot-value-generalization-materialized-candidates/sft_candidate_rows.jsonl",
+            "materialization": (
+                "reports/public-sample/slot-value-generalization-materialized-candidates/"
+                "slot_value_generalization_materialization.json"
+            ),
+            "markdown": (
+                "reports/public-sample/slot-value-generalization-materialized-candidates/"
+                "slot_value_generalization_materialization.md"
+            ),
+            "manifest": "reports/public-sample/slot-value-generalization-materialized-candidates/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_materialization["summary"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is candidate data only: it materializes reviewed slot value generalization cases into a "
+            "standalone public-safe candidate dataset, not merged into seed_traces.jsonl and not used as "
+            "training evidence yet."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Candidate rows are not formal public sample rows yet.",
+        "- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.",
+        "- No DPO pairs, SFT training, prediction run, or A100 execution is performed.",
+        "- strict `contract_exact_match` remains primary.",
+        "- Soft slot F1 and semantic equivalence remain diagnostic-only.",
+        "- This is not a model recovery, held-out recovery, checkpoint, adapter, production, or live-browser claim.",
+        "",
+        "## Summary",
+        "",
+        f"- Candidate groups: `{summary['candidate_group_count']}`",
+        f"- Candidate seed rows: `{summary['candidate_seed_rows']}`",
+        f"- Candidate SFT rows: `{summary['candidate_sft_rows']}`",
+        f"- Formal public sample seed rows: `{summary['formal_public_sample_seed_rows']}`",
+        f"- Formal public sample SFT rows: `{summary['formal_public_sample_sft_rows']}`",
+        f"- Formal public sample DPO pairs: `{summary['formal_public_sample_dpo_pairs']}`",
+        f"- Public sample modified: `{summary['public_sample_modified']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Candidate Case Groups",
+        "",
+    ]
+    for group in safe_materialization.get("candidate_case_groups", []):
+        lines.extend(
+            [
+                f"### `{group['case_group_id']}`",
+                "",
+                f"- Candidate seed: `{group['candidate_seed_id']}`",
+                f"- Candidate SFT rows: `{group['candidate_sft_row_ids']}`",
+                f"- Source family: `{group['source_family_id']}`",
+                f"- Residual bucket: `{group['residual_bucket']}`",
+                f"- Affected fields: `{group['affected_field_paths']}`",
+                f"- Canonical gold values: `{group['canonical_gold_values']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Recommended Next Step",
+            "",
+            (
+                "Decide in a later bounded OpenSpec phase whether to merge the candidates into the formal public "
+                "sample or run a small local/A100 SFT probe. That later phase should keep DPO, evaluator relaxation, "
+                "and model-quality claims separate unless explicitly approved."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
 
 
 def write_source_diagnostics_report(

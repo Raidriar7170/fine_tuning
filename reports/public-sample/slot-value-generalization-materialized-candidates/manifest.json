@@ -1,0 +1,77 @@
+{
+  "artifact_policy": {
+    "candidate_data_only": true,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "dpo_pairs_generated": false,
+    "evaluator_metric_change": false,
+    "formal_public_sample_files_modified": false,
+    "host_details_omitted": true,
+    "new_candidate_data_generated": true,
+    "prediction_repair_or_replacement": false,
+    "prediction_run": false,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "public_sample_modified": false,
+    "raw_logs_copied_to_git": false,
+    "ssh_details_omitted": true,
+    "training_run": false
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_recovered": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false,
+    "strict_contract_exact_match_primary_metric": true
+  },
+  "diagnostic_artifacts": {
+    "candidate_seed": "data/public-samples/slot_value_generalization_seed_candidates.jsonl",
+    "candidate_sft": "reports/public-sample/slot-value-generalization-materialized-candidates/sft_candidate_rows.jsonl",
+    "manifest": "reports/public-sample/slot-value-generalization-materialized-candidates/manifest.json",
+    "markdown": "reports/public-sample/slot-value-generalization-materialized-candidates/slot_value_generalization_materialization.md",
+    "materialization": "reports/public-sample/slot-value-generalization-materialized-candidates/slot_value_generalization_materialization.json"
+  },
+  "evidence_kind": "slot_value_generalization_materialization",
+  "execution_scope": {
+    "a100_execution": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "local_public_sample_only": true,
+    "new_candidate_data_generated": true,
+    "prediction_run": false,
+    "public_sample_modified": false,
+    "training_run": false
+  },
+  "generated_at": "2026-06-15T02:54:16.107466+00:00",
+  "materialization_status": "candidate_dataset_materialized",
+  "source_case_design": {
+    "design_status": "design_only_not_materialized",
+    "evidence_kind": "slot_value_generalization_case_design",
+    "path": "reports/public-sample/slot-value-generalization-case-design/slot_value_generalization_case_design.json",
+    "summary": {
+      "candidate_group_count": 4,
+      "covered_residual_bucket_counts": {
+        "normalized_command_paraphrase_drift": 4,
+        "slot_value_canonical_phrase_drift": 3,
+        "slot_value_language_variant": 3
+      },
+      "new_data_generated": false,
+      "public_sample_modified": false,
+      "recommended_next_step": "materialize_reviewed_cases_in_later_openspec_change"
+    }
+  },
+  "summary": {
+    "candidate_group_count": 4,
+    "candidate_seed_rows": 4,
+    "candidate_sft_rows": 12,
+    "formal_public_sample_dpo_pairs": 90,
+    "formal_public_sample_seed_rows": 10,
+    "formal_public_sample_sft_rows": 30,
+    "public_sample_modified": false,
+    "recommended_next_step": "decide_candidate_merge_or_local_sft_probe"
+  }
+}

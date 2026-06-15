@@ -4,7 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
-from voice2task.dataset import build_local_private_corpus, build_public_sample_dataset
+from voice2task.dataset import (
+    build_local_private_corpus,
+    build_public_sample_dataset,
+    materialize_slot_value_generalization_candidates,
+)
 from voice2task.dpo import summarize_dpo_slices, validate_dpo_pairs_file
 from voice2task.validation import validate_dataset_artifacts
 
@@ -29,6 +33,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     dpo_parser = subcommands.add_parser("dpo-check")
     dpo_parser.add_argument("--dpo", type=Path, required=True)
+
+    slot_value_parser = subcommands.add_parser("materialize-slot-value-candidates")
+    slot_value_parser.add_argument("--case-design", type=Path, required=True)
+    slot_value_parser.add_argument("--seed-output", type=Path, required=True)
+    slot_value_parser.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -55,6 +64,21 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "dpo-check":
         pairs = validate_dpo_pairs_file(args.dpo)
         print(json.dumps(summarize_dpo_slices(pairs), ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "materialize-slot-value-candidates":
+        paths = materialize_slot_value_generalization_candidates(
+            case_design_path=args.case_design,
+            seed_output_path=args.seed_output,
+            output_dir=args.output,
+        )
+        manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+        payload = {
+            "ok": True,
+            "paths": {name: path.as_posix() for name, path in paths.items()},
+            "summary": manifest["summary"],
+            "execution_scope": manifest["execution_scope"],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
 

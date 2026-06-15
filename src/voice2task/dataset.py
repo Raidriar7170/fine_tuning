@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from voice2task.io import read_jsonl, write_json, write_jsonl
+from voice2task.io import read_json, read_jsonl, write_json, write_jsonl
 from voice2task.schemas import (
     BrowserTaskContract,
     DatasetManifest,
@@ -38,6 +38,76 @@ HARD_NEGATIVE_CATEGORIES = [
 
 EXTRACT_PRICE_CANONICAL_TARGET = "商品价格"
 EXTRACT_PRICE_CANONICAL_NORMALIZED_COMMAND = "提取页面商品价格"
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+FORMAL_PUBLIC_MANIFEST_PATH = REPO_ROOT / "data" / "public-samples" / "manifest_public_sample.json"
+
+_SLOT_VALUE_CANDIDATE_CASES: dict[str, dict[str, Any]] = {
+    "blocked-payment-normalized-command-paraphrase": {
+        "id": "candidate-blocked-payment-canonical-command",
+        "split": "train",
+        "input_text": "帮我替你付款买这个东西",
+        "target_contract": {
+            "task_type": "blocked",
+            "route": "deny",
+            "safety": {"allow": False, "reason": "unsafe_payment"},
+            "confirmation_required": True,
+            "slots": {"reason": "payment_requires_user_control"},
+            "normalized_command": "拒绝代替用户付款",
+            "language": "zh-CN",
+            "contract_version": "v1",
+        },
+        "augmentations": ["直接用我的账户完成付款", "帮我下单并付款"],
+    },
+    "clarify-ambiguous-slot-value-canonical-phrase": {
+        "id": "candidate-clarify-ambiguous-canonical-scope",
+        "split": "train",
+        "input_text": "帮我打开那个网站或页面",
+        "target_contract": {
+            "task_type": "clarify",
+            "route": "clarify",
+            "safety": {"allow": True, "reason": "ambiguous_request"},
+            "confirmation_required": True,
+            "slots": {"ambiguity": "目标不明确，未指定具体网站或页面"},
+            "normalized_command": "请求澄清目标",
+            "language": "zh-CN",
+            "contract_version": "v1",
+        },
+        "augmentations": ["处理一下那个网页或网站", "去那个网站页面看看"],
+    },
+    "form-email-slot-value-language-variant": {
+        "id": "candidate-form-email-canonical-field",
+        "split": "train",
+        "input_text": "把邮箱填进表单里，提交前先问我",
+        "target_contract": {
+            "task_type": "form_fill",
+            "route": "fill_form",
+            "safety": {"allow": True, "reason": "requires_confirmation"},
+            "confirmation_required": True,
+            "slots": {"field": "邮箱"},
+            "normalized_command": "填写邮箱并确认",
+            "language": "zh-CN",
+            "contract_version": "v1",
+        },
+        "augmentations": ["在网页表单里填写邮箱，提交前确认", "把电子邮箱放到表单字段里，先别提交"],
+    },
+    "navigate-open-url-normalized-command-paraphrase": {
+        "id": "candidate-navigate-open-url-canonical-command",
+        "split": "train",
+        "input_text": "打开 example.com 这个示例网站",
+        "target_contract": {
+            "task_type": "navigate",
+            "route": "open_url",
+            "safety": {"allow": True, "reason": "public_readonly"},
+            "confirmation_required": False,
+            "slots": {"url": "https://example.com"},
+            "normalized_command": "打开示例网站",
+            "language": "zh-CN",
+            "contract_version": "v1",
+        },
+        "augmentations": ["去 example.com 示例站", "帮我访问示例网站"],
+    },
+}
 
 
 def _now_id(prefix: str) -> str:
@@ -543,6 +613,213 @@ def _rejection_counts(pairs: list[DPOPair]) -> dict[str, int]:
 
 def _write_manifest(path: Path, manifest: DatasetManifest) -> None:
     write_json(path, manifest.to_dict())
+
+
+def _safe_artifact_ref(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+def _require_reviewed_slot_value_case_groups(case_design: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    if case_design.get("evidence_kind") != "slot_value_generalization_case_design":
+        raise ValueError("case design must be slot_value_generalization_case_design evidence")
+    if case_design.get("design_status") != "design_only_not_materialized":
+        raise ValueError("case design must be design_only_not_materialized before candidate materialization")
+
+    groups = {
+        str(group.get("case_group_id")): group
+        for group in case_design.get("candidate_case_groups", [])
+        if isinstance(group, dict)
+    }
+    required = set(_SLOT_VALUE_CANDIDATE_CASES)
+    missing = sorted(required - set(groups))
+    extra = sorted(set(groups) - required)
+    if missing:
+        raise ValueError(f"missing reviewed case groups: {', '.join(missing)}")
+    if extra:
+        raise ValueError(f"unreviewed case groups are not materialized in this phase: {', '.join(extra)}")
+    return groups
+
+
+def _slot_value_candidate_seed_rows(
+    case_design: dict[str, Any],
+    source_design_ref: str,
+) -> list[dict[str, Any]]:
+    groups = _require_reviewed_slot_value_case_groups(case_design)
+    rows: list[dict[str, Any]] = []
+    for case_group_id in sorted(_SLOT_VALUE_CANDIDATE_CASES):
+        group = groups[case_group_id]
+        template = _SLOT_VALUE_CANDIDATE_CASES[case_group_id]
+        target_contract = dict(template["target_contract"])
+        as_contract(target_contract)
+        row = {
+            "id": template["id"],
+            "split": template["split"],
+            "input_text": template["input_text"],
+            "target_contract": target_contract,
+            "augmentations": list(template["augmentations"]),
+            "provenance": {
+                "source_mode": "slot_value_generalization_candidate_seed",
+                "public_safe": True,
+                "candidate_status": "standalone_not_formal_public_sample",
+                "source_case_group_id": case_group_id,
+                "source_design": source_design_ref,
+                "source_family_id": group["source_family_id"],
+                "residual_bucket": group["residual_bucket"],
+                "affected_field_paths": list(group["affected_field_paths"]),
+                "canonical_gold_values": list(group["canonical_gold_values"]),
+            },
+        }
+        validate_public_record(row)
+        rows.append(row)
+    return rows
+
+
+def _slot_value_candidate_sft_rows(seed_rows: list[dict[str, Any]]) -> list[SFTDatasetRow]:
+    rows: list[SFTDatasetRow] = []
+    for seed in seed_rows:
+        seed_provenance = seed["provenance"]
+        base_provenance = {
+            "source_id": seed["id"],
+            "source_mode": "slot_value_generalization_candidate",
+            "public_safe": True,
+            "augmentation": "original",
+            "candidate_status": seed_provenance["candidate_status"],
+            "source_case_group_id": seed_provenance["source_case_group_id"],
+            "source_design": seed_provenance["source_design"],
+            "source_family_id": seed_provenance["source_family_id"],
+            "residual_bucket": seed_provenance["residual_bucket"],
+        }
+        base = SFTDatasetRow(
+            id=seed["id"],
+            split=seed["split"],
+            input_text=seed["input_text"],
+            target_contract=seed["target_contract"],
+            provenance=base_provenance,
+        )
+        rows.append(base)
+        for index, paraphrase in enumerate(seed.get("augmentations", []), start=1):
+            rows.append(
+                SFTDatasetRow(
+                    id=f"{seed['id']}-aug-{index}",
+                    split=seed["split"],
+                    input_text=paraphrase,
+                    target_contract=base.target_contract,
+                    provenance={
+                        **base_provenance,
+                        "source_mode": "schema_preserving_augmentation",
+                        "augmentation": f"paraphrase-{index}",
+                    },
+                )
+            )
+    return rows
+
+
+def _slot_value_materialization_summary(
+    *,
+    candidate_seed_rows: list[dict[str, Any]],
+    candidate_sft_rows: list[SFTDatasetRow],
+    formal_public_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    formal_counts = formal_public_manifest["counts"]
+    return {
+        "candidate_group_count": len(_SLOT_VALUE_CANDIDATE_CASES),
+        "candidate_seed_rows": len(candidate_seed_rows),
+        "candidate_sft_rows": len(candidate_sft_rows),
+        "formal_public_sample_seed_rows": formal_counts["seed_rows"],
+        "formal_public_sample_sft_rows": formal_counts["sft_rows"],
+        "formal_public_sample_dpo_pairs": formal_counts["dpo_pairs"],
+        "public_sample_modified": False,
+        "recommended_next_step": "decide_candidate_merge_or_local_sft_probe",
+    }
+
+
+def materialize_slot_value_generalization_candidates(
+    *,
+    case_design_path: Path,
+    seed_output_path: Path,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Write standalone candidate data from the reviewed slot-value case design."""
+
+    case_design = read_json(case_design_path)
+    formal_public_manifest = read_json(FORMAL_PUBLIC_MANIFEST_PATH)
+    source_design_ref = _safe_artifact_ref(case_design_path)
+    candidate_seed_rows = _slot_value_candidate_seed_rows(case_design, source_design_ref)
+    candidate_sft_rows = _slot_value_candidate_sft_rows(candidate_seed_rows)
+    for row in candidate_sft_rows:
+        validate_public_record(row.to_dict())
+
+    write_jsonl(seed_output_path, candidate_seed_rows)
+    materialization = {
+        "evidence_kind": "slot_value_generalization_materialization",
+        "materialization_status": "candidate_dataset_materialized",
+        "source_case_design": {
+            "path": source_design_ref,
+            "evidence_kind": case_design["evidence_kind"],
+            "design_status": case_design["design_status"],
+            "summary": case_design["summary"],
+        },
+        "summary": _slot_value_materialization_summary(
+            candidate_seed_rows=candidate_seed_rows,
+            candidate_sft_rows=candidate_sft_rows,
+            formal_public_manifest=formal_public_manifest,
+        ),
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_candidate_data_generated": True,
+            "public_sample_modified": False,
+            "training_run": False,
+            "prediction_run": False,
+            "dpo_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_generalization_recovered": False,
+            "model_recovery_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "candidate_case_groups": [
+            {
+                "case_group_id": seed["provenance"]["source_case_group_id"],
+                "candidate_seed_id": seed["id"],
+                "candidate_sft_row_ids": [
+                    row.id for row in candidate_sft_rows if row.provenance["source_id"] == seed["id"]
+                ],
+                "source_family_id": seed["provenance"]["source_family_id"],
+                "residual_bucket": seed["provenance"]["residual_bucket"],
+                "affected_field_paths": seed["provenance"]["affected_field_paths"],
+                "canonical_gold_values": seed["provenance"]["canonical_gold_values"],
+            }
+            for seed in candidate_seed_rows
+        ],
+        "artifact_files": {
+            "candidate_seed": _safe_artifact_ref(seed_output_path),
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization_json": "slot_value_generalization_materialization.json",
+            "materialization_markdown": "slot_value_generalization_materialization.md",
+            "manifest": "manifest.json",
+        },
+    }
+
+    from voice2task.reports import write_slot_value_generalization_materialization_report
+
+    paths = write_slot_value_generalization_materialization_report(
+        materialization,
+        output_dir=output_dir,
+        sft_rows=[row.to_dict() for row in candidate_sft_rows],
+    )
+    return {"seed": seed_output_path, **paths}
 
 
 def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetManifest:
