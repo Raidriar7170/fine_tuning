@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop Closeout - Hardened Canonical Policy Rerun</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5d6878;
+      --line: #d8dee8;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --warn: #b45309;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #fff7ed; color: var(--warn); border: 1px solid #fed7aa; font-weight: 600; }
+    .summary { border-left: 4px solid var(--warn); padding: 10px 14px; background: #fffbeb; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 20px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .note { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop Closeout</h1>
+  <div class="status">状态：blocked hard stop</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本轮自动阶段已完成并归档 hardened canonical policy prediction-only rerun 的准备与 blocked evidence；循环停止原因是 A100 上缺少本阶段必须复用的 <code>a100-merged-slot-value-heldout-eval</code> source adapter，不能继续产生真实 7B rerun 指标。</p>
+  </section>
+
+  <section class="grid" aria-label="loop summary">
+    <div class="metric"><b>1</b><span>OpenSpec phase archived</span></div>
+    <div class="metric"><b>282</b><span>pytest cases passed</span></div>
+    <div class="metric"><b>blocked</b><span>source adapter missing</span></div>
+  </section>
+
+  <h2>已完成阶段</h2>
+  <ul>
+    <li><code>run-a100-hardened-canonical-policy-rerun</code>：新增 prediction-only A100 configs、hardened rerun report writer、fail-closed tests、blocked evidence、Human Brief，并归档到 OpenSpec archive。</li>
+    <li>阶段提交：<code>f133b9c Archive hardened canonical policy rerun</code>。</li>
+  </ul>
+
+  <h2>为什么停止</h2>
+  <p>这是 hard stop，不是普通完成后停下：远端 SSH、批准目录、GPU preflight、dry-run prompt flags 都可继续观察，但 required source adapter 不存在。继续运行会被迫改用其它 adapter 或重新训练，都会改变本阶段 scope 和指标解释。</p>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code> -> <code>282 passed</code>。</li>
+    <li><code>uv run ruff check .</code> -> pass。</li>
+    <li><code>uv run mypy src</code> -> pass。</li>
+    <li><code>openspec validate --all --strict</code> -> pass。</li>
+    <li><code>voice2task.cli.report leak-scan ...</code> -> <code>ok: true</code>。</li>
+    <li><code>git diff --check</code> -> pass before phase commit。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="2026-06-15-run-a100-hardened-canonical-policy-rerun.html">阶段 Human Brief</a></li>
+    <li><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun/manifest.json">blocked evidence manifest</a></li>
+    <li><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun/report.md">blocked evidence report</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-15-run-a100-hardened-canonical-policy-rerun/tasks.md">archived OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <p>当前最新真实模型效果仍来自上一轮 merged slot-value evidence：train strict exact 100%、dev 50%、test 83.3%。本轮没有产生新 observed metrics，因此不能更新“模型距离最初目标”的判断。</p>
+
+  <h2>下一步计划</h2>
+  <p>先恢复或重新生成 <code>a100-merged-slot-value-heldout-eval</code> adapter 到批准远端目录，再重跑本阶段的 prediction-only train/dev/test eval。恢复 adapter 之前，不建议开数据泛化或训练扩展阶段。</p>
+
+  <h2>不要夸大的点</h2>
+  <ul>
+    <li>没有真实 hardened-policy 7B rerun 指标。</li>
+    <li>没有 checkpoint/adapter release、production-readiness、private-corpus generalization 或 live-browser benchmark claim。</li>
+    <li>dry-run prompt flags 只证明当前代码的 prompt metadata 可见，不等同于真实模型预测证据。</li>
+  </ul>
+
+  <p class="note">Generated from archived OpenSpec artifacts, public-safe evidence, validation output, and guarded integration status.</p>
+</main>
+</body>
+</html>
