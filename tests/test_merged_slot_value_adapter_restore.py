@@ -9,7 +9,13 @@ from voice2task.leak_scan import scan_paths
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_MANIFEST = REPO_ROOT / "data" / "public-samples" / "manifest_public_sample.json"
-PRIOR_MERGED_MANIFEST = REPO_ROOT / "reports" / "public-sample" / "a100-merged-slot-value-heldout-eval" / "manifest.json"
+PRIOR_MERGED_MANIFEST = (
+    REPO_ROOT
+    / "reports"
+    / "public-sample"
+    / "a100-merged-slot-value-heldout-eval"
+    / "manifest.json"
+)
 
 
 def _write_json(path: Path, payload: dict) -> Path:

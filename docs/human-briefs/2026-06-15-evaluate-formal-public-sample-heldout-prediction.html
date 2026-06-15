@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formal Public Held-out Prediction Brief</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #596575;
+      --line: #d8dee8;
+      --panel: #f6f8fb;
+      --accent: #2563eb;
+      --ok: #166534;
+      --warn: #b45309;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #eff6ff; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .callout { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; color: var(--warn); }
+    .small { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Formal public sample held-out prediction</h1>
+  <div class="status">状态：observed，prediction-only 证据已生成</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>新 formal public sample 上，7B adapter 的 dev/test 输出已经稳定为 schema-valid JSON，但 strict <code>contract_exact_match</code> 只有约三成，离一开始的“稳定映射到目标 contract 语气/格式”还有明显差距。</p>
+  </section>
+
+  <section class="grid" aria-label="key metrics">
+    <div class="metric"><b>69</b><span>dev prediction rows</span></div>
+    <div class="metric"><b>69</b><span>test prediction rows</span></div>
+    <div class="metric"><b>30.4%</b><span>dev strict exact</span></div>
+    <div class="metric"><b>29.0%</b><span>test strict exact</span></div>
+  </section>
+
+  <h2>当前指标</h2>
+  <table>
+    <thead>
+      <tr><th>split</th><th>rows</th><th>contract_exact_match</th><th>slot_f1</th><th>slot_f1_soft</th><th>json_valid_rate</th><th>residual rows</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>dev</td><td>69</td><td>0.3043</td><td>0.3913</td><td>0.7315</td><td>1.0000</td><td>48</td></tr>
+      <tr><td>test</td><td>69</td><td>0.2899</td><td>0.5072</td><td>0.7609</td><td>1.0000</td><td>49</td></tr>
+    </tbody>
+  </table>
+
+  <h2>这阶段做了什么</h2>
+  <ul>
+    <li>基于当前 manifest <code>public-sample-20260615T111316Z</code> 创建 dev/test prediction config template。</li>
+    <li>在 A100 上使用已有 7B adapter 只跑 prediction export；没有启动 SFT 或 DPO 训练。</li>
+    <li>导入 sanitized predictions、metadata、gold rows、metrics、schema diagnostics、alignment diagnostics、raw decoded summary 和 generation trace。</li>
+    <li>生成顶层 evidence manifest/report，并通过 public leak scan。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/manifest.json">evidence manifest</a></li>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/formal_public_heldout_prediction.json">machine-readable evidence</a></li>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/report.md">human-readable report</a></li>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/dev/metrics.json">dev metrics</a></li>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/test/metrics.json">test metrics</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-15-evaluate-formal-public-sample-heldout-prediction/tasks.md">OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>不要夸大的点</h2>
+  <div class="callout">
+    <p>这不是 held-out recovery。JSON validity 是 100%，说明输出边界更稳；但 strict exact 仍约 30%，主要残差仍在 slot、route/task_type 和 safety 细节。<code>slot_f1_soft</code> 只能说明近似能力，不能替代 strict metric。</p>
+  </div>
+
+  <h2>推荐下一步</h2>
+  <p>先做 residual family diagnosis：按 family/field path 聚合这 97 个 dev/test strict residual，判断是 slot canonicalization、family coverage、prompt policy，还是需要下一轮 targeted SFT/DPO 数据。不要直接开大 DPO。</p>
+  <p class="small">Generated from public-safe evidence under <code>reports/public-sample/a100-formal-public-heldout-prediction</code>.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,69 @@
+{
+  "failure_slices": {
+    "confirmation": {
+      "count": 1,
+      "examples": [
+        "family-clarify-dev-1-aug-2"
+      ]
+    },
+    "route": {
+      "count": 10,
+      "examples": [
+        "family-clarify-dev-1-aug-2",
+        "family-clarify-dev-3",
+        "family-clarify-dev-3-aug-1",
+        "family-clarify-dev-3-aug-2",
+        "family-extract-dev-2-aug-1"
+      ]
+    },
+    "safety": {
+      "count": 3,
+      "examples": [
+        "family-blocked_payment-dev-1",
+        "family-blocked_payment-dev-1-aug-1",
+        "family-blocked_payment-dev-2-aug-2"
+      ]
+    },
+    "schema": {
+      "count": 0,
+      "examples": []
+    },
+    "slot": {
+      "count": 42,
+      "examples": [
+        "seed-clarify-ambiguous",
+        "seed-clarify-ambiguous-aug-1",
+        "seed-clarify-ambiguous-aug-2",
+        "family-search-dev-1-aug-1",
+        "family-search-dev-2-aug-1"
+      ]
+    },
+    "task_type": {
+      "count": 10,
+      "examples": [
+        "family-clarify-dev-1-aug-2",
+        "family-clarify-dev-3",
+        "family-clarify-dev-3-aug-1",
+        "family-clarify-dev-3-aug-2",
+        "family-extract-dev-2-aug-1"
+      ]
+    },
+    "unknown": {
+      "count": 0,
+      "examples": []
+    }
+  },
+  "metrics": {
+    "confirmation_accuracy": 0.9855072463768116,
+    "contract_exact_match": 0.30434782608695654,
+    "json_valid_rate": 1.0,
+    "route_accuracy": 0.855072463768116,
+    "safety_gold_stop_support": 9.0,
+    "safety_precision": 1.0,
+    "safety_predicted_stop_support": 6.0,
+    "safety_recall": 0.6666666666666666,
+    "slot_f1": 0.391304347826087,
+    "slot_f1_soft": 0.7315387631291138,
+    "task_type_accuracy": 0.855072463768116
+  }
+}

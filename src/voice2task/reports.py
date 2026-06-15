@@ -2881,6 +2881,205 @@ def write_merged_slot_value_heldout_eval_report(
     return {"json": json_path, "manifest": manifest_path, "report": report_path}
 
 
+def _formal_public_observed_interpretation(split_results: dict[str, dict[str, Any]]) -> str:
+    if not split_results:
+        return "formal_public_heldout_prediction_blocked"
+    heldout_exact = {split: float(split_results[split]["contract_exact_match"]) for split in ("dev", "test")}
+    if all(value >= 1.0 for value in heldout_exact.values()):
+        return "formal_public_heldout_strict_exact_recovered"
+    if any(value > 0.0 for value in heldout_exact.values()):
+        return "formal_public_heldout_partial_signal"
+    return "formal_public_heldout_no_strict_exact_recovery"
+
+
+def write_formal_public_heldout_prediction_report(
+    *,
+    public_manifest: dict[str, Any],
+    output_dir: Path,
+    run_status: str,
+    blocked_reason: str | None = None,
+    metrics_by_split: dict[str, dict[str, Any]] | None = None,
+    prediction_metadata_by_split: dict[str, dict[str, Any]] | None = None,
+    artifact_paths_by_split: dict[str, dict[str, str]] | None = None,
+    leak_scan_result: dict[str, Any] | None = None,
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "formal_public_heldout_prediction.json"
+    manifest_path = output_dir / "manifest.json"
+    report_path = output_dir / "report.md"
+    metrics_by_split = metrics_by_split or {}
+    prediction_metadata_by_split = prediction_metadata_by_split or {}
+    artifact_paths_by_split = artifact_paths_by_split or {}
+    if run_status not in {"observed", "blocked"}:
+        raise ValueError(f"unsupported formal public heldout prediction run status: {run_status}")
+    if run_status == "blocked" and not (blocked_reason or "").strip():
+        raise ValueError("blocked formal public heldout prediction requires a blocked_reason")
+    if run_status == "observed":
+        missing = [
+            split
+            for split in ("dev", "test")
+            if split not in metrics_by_split or split not in prediction_metadata_by_split
+        ]
+        if missing:
+            raise ValueError(f"observed formal public heldout prediction missing splits: {', '.join(missing)}")
+
+    split_results = (
+        {
+            split: _merged_split_result(
+                split=split,
+                metrics_payload=metrics_by_split[split],
+                prediction_metadata=prediction_metadata_by_split[split],
+                public_manifest=public_manifest,
+                metrics_path=Path(artifact_paths_by_split.get(split, {}).get("metrics", "not_provided")),
+                prediction_metadata_path=Path(
+                    artifact_paths_by_split.get(split, {}).get("prediction_metadata", "not_provided")
+                ),
+            )
+            for split in ("dev", "test")
+        }
+        if run_status == "observed"
+        else {}
+    )
+    interpretation = _formal_public_observed_interpretation(split_results)
+    heldout_recovered = interpretation == "formal_public_heldout_strict_exact_recovered"
+    evidence = {
+        "evidence_kind": "a100_formal_public_heldout_prediction",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "run_status": run_status,
+        "blocked_reason": blocked_reason if run_status == "blocked" else None,
+        "base_model": "Qwen/Qwen2.5-7B-Instruct",
+        "source_adapter_runtime": "a100-merged-slot-value-heldout-eval",
+        "dataset_manifest_id": public_manifest.get("manifest_id"),
+        "formal_public_sample_counts": public_manifest.get("counts", {}),
+        "formal_public_sample_split_counts": public_manifest.get("split_counts", {}),
+        "formal_public_sample_source_summary": public_manifest.get("source_summary", {}),
+        "training_status": "prediction_only_no_training",
+        "prediction_splits": ["dev", "test"],
+        "primary_evidence_splits": ["dev", "test"],
+        "split_results": split_results,
+        "overall_interpretation": interpretation,
+        "artifact_paths_by_split": artifact_paths_by_split,
+        "leak_scan_result": leak_scan_result or {},
+        "claims": {
+            "prediction_only": True,
+            "training_performed": False,
+            "data_changed": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_primary_metric": False,
+            "soft_slot_f1_primary_metric": False,
+            "prediction_repair_or_rescore": False,
+            "prediction_repair_or_replacement": False,
+            "held_out_generalization_recovered": heldout_recovered,
+            "model_recovery_claim": False,
+            "private_corpus_generalization_claim": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+            "public_full_corpus_release_claim": False,
+        },
+        "artifact_policy": {
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "remote_caches_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "private_corpus_rows_omitted": True,
+        },
+        "prediction_metadata_by_split": _sanitize_report_value(prediction_metadata_by_split),
+    }
+    safe_evidence = _sanitize_report_value(evidence)
+    write_json(json_path, safe_evidence)
+    manifest = {
+        "evidence_kind": safe_evidence["evidence_kind"],
+        "generated_at": safe_evidence["generated_at"],
+        "run_status": safe_evidence["run_status"],
+        "blocked_reason": safe_evidence["blocked_reason"],
+        "dataset_manifest_id": safe_evidence["dataset_manifest_id"],
+        "formal_public_sample_counts": safe_evidence["formal_public_sample_counts"],
+        "formal_public_sample_split_counts": safe_evidence["formal_public_sample_split_counts"],
+        "source_adapter_runtime": safe_evidence["source_adapter_runtime"],
+        "training_status": safe_evidence["training_status"],
+        "prediction_splits": safe_evidence["prediction_splits"],
+        "primary_evidence_splits": safe_evidence["primary_evidence_splits"],
+        "split_results": safe_evidence["split_results"],
+        "overall_interpretation": safe_evidence["overall_interpretation"],
+        "claims": safe_evidence["claims"],
+        "artifact_policy": safe_evidence["artifact_policy"],
+        "diagnostic_artifacts": {
+            "evidence": _public_report_artifact_path(output_dir, "formal_public_heldout_prediction.json"),
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
+            "report": _public_report_artifact_path(output_dir, "report.md"),
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    lines = [
+        "# A100 formal public held-out prediction",
+        "",
+        (
+            "Status: prediction-only current-manifest held-out evidence. This phase does not train, mutate data, "
+            "repair predictions, normalize slots, or change evaluator semantics."
+        ),
+        "",
+        "## Scope",
+        "",
+        f"- Dataset manifest: `{safe_evidence['dataset_manifest_id']}`",
+        f"- Run status: `{safe_evidence['run_status']}`",
+        f"- Source adapter runtime: `{safe_evidence['source_adapter_runtime']}`",
+        f"- Overall interpretation: `{safe_evidence['overall_interpretation']}`",
+    ]
+    if run_status == "blocked":
+        lines.extend(
+            [
+                f"- Blocked reason: `{safe_evidence['blocked_reason']}`",
+                "",
+                "## Blocked Status",
+                "",
+                (
+                    "Blocked before private prediction. No model-quality metrics, held-out recovery claim, "
+                    "or adapter release claim is made from this artifact."
+                ),
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "",
+                "## Split Results",
+                "",
+                "| split | rows | contract_exact_match | slot_f1 | slot_f1_soft | json_valid_rate | residual rows |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for split in ("dev", "test"):
+            result = safe_evidence["split_results"][split]
+            lines.append(
+                f"| {split} | {result['prediction_count']} | {result['contract_exact_match']:.4f} | "
+                f"{result['slot_f1']:.4f} | {result['slot_f1_soft']:.4f} | "
+                f"{result['json_valid_rate']:.4f} | {result['residual_row_count']} |"
+            )
+    lines.extend(
+        [
+            "",
+            "## Boundary",
+            "",
+            "- Strict `contract_exact_match` remains primary.",
+            "- `slot_f1_soft` is diagnostic only.",
+            "- Predictions are not repaired, replaced, normalized, or re-scored.",
+            (
+                "- This is not held-out recovery unless dev/test strict exact both reach `1.0`; it is not a "
+                "checkpoint release, adapter release, production-readiness claim, private-corpus generalization "
+                "claim, public full-corpus release, or live-browser benchmark claim."
+            ),
+        ]
+    )
+    report_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "manifest": manifest_path, "markdown": report_path, "report": report_path}
+
+
 def _prior_merged_exact(prior_merged_manifest: dict[str, Any]) -> dict[str, float]:
     if prior_merged_manifest.get("evidence_kind") != "a100_merged_slot_value_heldout_eval":
         raise ValueError("prior merged manifest must be a100_merged_slot_value_heldout_eval evidence")
