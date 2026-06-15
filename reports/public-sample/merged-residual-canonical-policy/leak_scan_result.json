@@ -1,0 +1,11 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-15T07:23:27.363650+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/merged-residual-canonical-policy",
+    "docs/human-briefs/2026-06-15-harden-merged-residual-canonical-policy.html",
+    "openspec/changes/archive/2026-06-15-harden-merged-residual-canonical-policy"
+  ]
+}

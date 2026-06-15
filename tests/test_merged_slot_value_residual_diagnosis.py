@@ -246,3 +246,85 @@ def test_merged_slot_value_residual_cli_filters_gold_rows_by_requested_split(tmp
     assert diagnosis["summary"]["residual_row_count"] == 2
     assert diagnosis["aggregates"]["by_split_residual_rows"] == {"dev": 1, "test": 1}
     assert scan_paths([output_dir]).ok is True
+
+
+def test_merged_residual_canonical_policy_evidence_is_public_safe_and_bounded() -> None:
+    source_dir = Path("reports/public-sample/merged-slot-value-residual-diagnosis")
+    evidence_dir = Path("reports/public-sample/merged-residual-canonical-policy")
+    human_brief_path = Path("docs/human-briefs/2026-06-15-harden-merged-residual-canonical-policy.html")
+    change_dirs = [
+        Path("openspec/changes/harden-merged-residual-canonical-policy"),
+        Path("openspec/changes/archive/2026-06-15-harden-merged-residual-canonical-policy"),
+    ]
+    expected_artifacts = {
+        "canonical_policy_summary.json",
+        "canonical_policy_summary.md",
+        "manifest.json",
+        "leak_scan_result.json",
+    }
+
+    assert evidence_dir.exists()
+    assert expected_artifacts <= {path.name for path in evidence_dir.iterdir()}
+    assert human_brief_path.exists()
+    existing_change_dirs = [path for path in change_dirs if path.exists()]
+    assert existing_change_dirs
+
+    summary = json.loads((evidence_dir / "canonical_policy_summary.json").read_text(encoding="utf-8"))
+    manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
+    report = (evidence_dir / "canonical_policy_summary.md").read_text(encoding="utf-8")
+    human_brief = human_brief_path.read_text(encoding="utf-8")
+    leak_scan = json.loads((evidence_dir / "leak_scan_result.json").read_text(encoding="utf-8"))
+    source_diagnosis = json.loads(
+        (source_dir / "merged_slot_value_residual_diagnosis.json").read_text(encoding="utf-8")
+    )
+    serialized = "\n".join(
+        [
+            json.dumps(summary, ensure_ascii=False, sort_keys=True),
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+            json.dumps(leak_scan, ensure_ascii=False, sort_keys=True),
+            report,
+            human_brief,
+        ]
+    )
+
+    assert summary["evidence_kind"] == "merged_residual_canonical_policy_local"
+    assert summary["source_prior_phase"] == source_dir.as_posix()
+    assert summary["source_residual_counts"] == source_diagnosis["summary"]["residual_category_counts"]
+    assert summary["targeted_residual_policy_counts"] == {
+        "clarify_ambiguity_canonical_phrase": 3,
+        "unsafe_payment_canonical_command": 1,
+    }
+    assert summary["prompt_constraints"]["clarify_ambiguity_canonical_phrase_visible"] is True
+    assert summary["prompt_constraints"]["unsafe_payment_canonical_command_visible"] is True
+    assert summary["claims"]["local_prompt_policy_hardening_only"] is True
+    assert summary["claims"]["a100_execution_performed"] is False
+    assert summary["claims"]["training_or_prediction_rerun_performed"] is False
+    assert summary["claims"]["evaluator_metric_change"] is False
+    assert summary["claims"]["held_out_recovery_claim"] is False
+
+    assert manifest["evidence_kind"] == "merged_residual_canonical_policy_local"
+    assert manifest["source_artifacts"]["merged_residual_diagnosis"].endswith(
+        "merged_slot_value_residual_diagnosis.json"
+    )
+    assert manifest["diagnostic_artifacts"]["canonical_policy_summary"].endswith("canonical_policy_summary.json")
+    assert manifest["diagnostic_artifacts"]["canonical_policy_report"].endswith("canonical_policy_summary.md")
+    assert manifest["diagnostic_artifacts"]["leak_scan"].endswith("leak_scan_result.json")
+    assert manifest["claims"]["held_out_recovery_claim"] is False
+
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert "local prompt/policy hardening only" in report
+    assert "No A100 execution was performed" in report
+    assert "strict `contract_exact_match` remains primary" in report
+    assert "pytest: `274 passed`" in report
+    assert "ruff: `All checks passed!`" in report
+    assert "mypy: `Success: no issues found in 16 source files`" in report
+    assert "本地 prompt/policy hardening" in human_brief
+    assert "不使用 A100" in human_brief
+    assert "不改 evaluator metrics" in human_brief
+    assert "274 passed" in human_brief
+    assert "All checks passed!" in human_brief
+    assert "/mnt/data/" not in serialized
+    assert "/Users/" not in serialized
+    assert "volcano" not in serialized
+    assert scan_paths([evidence_dir, human_brief_path, *existing_change_dirs]).ok is True

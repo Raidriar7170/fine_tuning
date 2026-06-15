@@ -510,6 +510,8 @@ def test_sft_prompts_expose_heldout_residual_repair_policy_without_gold_target()
 
     for text in (training_text, prediction_prompt):
         assert "public navigation canonical policy" in text
+        assert 'task_type="navigate";route="open_url"' in text
+        assert 'safety.reason="public_readonly"' in text
         assert 'route="open_url"' in text
         assert "slots.url 必须使用 canonical URL" in text
         assert "ambiguous clarify policy" in text
@@ -518,6 +520,8 @@ def test_sft_prompts_expose_heldout_residual_repair_policy_without_gold_target()
         assert "form confirmation policy" in text
         assert 'task_type="form_fill";route="fill_form"' in text
         assert 'safety.reason="requires_confirmation"' in text
+        assert "confirmation_required=true" in text
+        assert "slots.field 保存字段名" in text
         assert "unsafe payment block policy" in text
         assert 'task_type="blocked";route="deny"' in text
         assert 'safety.allow=false;safety.reason="unsafe_payment"' in text
@@ -530,6 +534,62 @@ def test_sft_prompts_expose_heldout_residual_repair_policy_without_gold_target()
     assert summary["ambiguous_clarify_policy_visible"] is True
     assert summary["form_confirmation_policy_visible"] is True
     assert summary["unsafe_payment_block_policy_visible"] is True
+
+
+def test_sft_prompts_expose_merged_residual_canonical_policy_without_gold_target() -> None:
+    clarify_row = SFTDatasetRow(
+        id="sft-merged-residual-clarify-1",
+        split="dev",
+        input_text="帮我处理一下那个",
+        target_contract=BrowserTaskContract(
+            task_type="clarify",
+            route="clarify",
+            safety={"allow": False, "reason": "ambiguous_request"},
+            confirmation_required=True,
+            slots={"ambiguity": "row-specific-ambiguity-token"},
+            normalized_command="请求补充目标",
+        ),
+        provenance={"source_id": "seed-clarify-ambiguous", "public_safe": True},
+    )
+    blocked_row = SFTDatasetRow(
+        id="sft-merged-residual-payment-1",
+        split="test",
+        input_text="帮我直接下单买东西",
+        target_contract=BrowserTaskContract(
+            task_type="blocked",
+            route="deny",
+            safety={"allow": False, "reason": "unsafe_payment"},
+            confirmation_required=True,
+            slots={"reason": "row-specific-payment-token"},
+            normalized_command="row-specific-payment-command",
+        ),
+        provenance={"source_id": "seed-block-purchase", "public_safe": True},
+    )
+
+    rendered_texts = [
+        formatting.format_sft_training_text(clarify_row, tokenizer=None),
+        formatting.format_sft_prediction_prompt(clarify_row, tokenizer=None),
+        formatting.format_sft_training_text(blocked_row, tokenizer=None),
+        formatting.format_sft_prediction_prompt(blocked_row, tokenizer=None),
+    ]
+    prediction_prompt = formatting.format_sft_prediction_prompt(blocked_row, tokenizer=None)
+    summary = formatting.prompt_constraint_summary(prediction_prompt)
+
+    for text in rendered_texts:
+        assert "merged residual canonical policy" in text
+        assert 'slots.ambiguity="目标不明确，未指定具体网站或页面"' in text
+        assert "未指定具体页面/未指定具体操作 是 strict-wrong" in text
+        assert 'normalized_command="拒绝代替用户付款"' in text
+        assert 'normalized_command="拒绝代替用户下单" 是 strict-wrong' in text
+        assert "不是 evaluator normalization" in text
+        assert "prediction repair 或 re-score" in text
+    assert "row-specific-ambiguity-token" in rendered_texts[0]
+    assert "row-specific-ambiguity-token" not in rendered_texts[1]
+    assert "row-specific-payment-token" in rendered_texts[2]
+    assert "row-specific-payment-token" not in rendered_texts[3]
+    assert "row-specific-payment-command" not in rendered_texts[3]
+    assert summary["clarify_ambiguity_canonical_phrase_visible"] is True
+    assert summary["unsafe_payment_canonical_command_visible"] is True
 
 
 def test_public_sample_sft_training_text_stays_within_runtime_sequence_budget() -> None:
@@ -564,11 +624,19 @@ def test_public_sample_prediction_prompt_policy_examples_do_not_include_gold_tar
         system_prompt = formatting.format_sft_prompt_messages(row)[0]["content"]
         prediction_prompt = formatting.format_sft_prediction_prompt(row, tokenizer=None)
         query = row.target_contract.slots.get("query")
+        allowed_shared_policy_texts = (
+            formatting.EXTRACT_PRICE_CANONICAL_WORDING_POLICY,
+            formatting.HELDOUT_RESIDUAL_REPAIR_POLICY,
+        )
 
         if row.target_contract.normalized_command in system_prompt:
-            assert row.target_contract.normalized_command in formatting.EXTRACT_PRICE_CANONICAL_WORDING_POLICY
-            assert row.target_contract.task_type == "extract"
-            assert row.target_contract.slots == {"target": "商品价格"}
+            assert any(row.target_contract.normalized_command in policy for policy in allowed_shared_policy_texts)
+            if row.target_contract.normalized_command in formatting.EXTRACT_PRICE_CANONICAL_WORDING_POLICY:
+                assert row.target_contract.task_type == "extract"
+                assert row.target_contract.slots == {"target": "商品价格"}
+            else:
+                assert row.target_contract.task_type == "blocked"
+                assert row.target_contract.safety["reason"] == "unsafe_payment"
         else:
             assert row.target_contract.normalized_command not in system_prompt
         if isinstance(query, str):
@@ -577,10 +645,9 @@ def test_public_sample_prediction_prompt_policy_examples_do_not_include_gold_tar
                 assert query not in prediction_prompt
         if (
             row.target_contract.normalized_command in prediction_prompt
-            and row.target_contract.normalized_command in formatting.EXTRACT_PRICE_CANONICAL_WORDING_POLICY
+            and any(row.target_contract.normalized_command in policy for policy in allowed_shared_policy_texts)
         ):
-            assert row.target_contract.task_type == "extract"
-            assert row.target_contract.slots == {"target": "商品价格"}
+            assert row.target_contract.task_type in {"blocked", "extract"}
         elif row.target_contract.normalized_command not in row.input_text:
             assert row.target_contract.normalized_command not in prediction_prompt
 

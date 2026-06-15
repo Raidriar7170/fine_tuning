@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task merged residual canonical policy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #17202a; background: #f7f8fa; }
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 12px; }
+    h2 { font-size: 18px; margin: 26px 0 10px; }
+    p, li { line-height: 1.65; }
+    code { background: #eef1f5; padding: 1px 5px; border-radius: 4px; }
+    .summary { background: #ffffff; border: 1px solid #d9dee7; border-radius: 8px; padding: 18px 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .metric { background: #ffffff; border: 1px solid #d9dee7; border-radius: 8px; padding: 14px 16px; }
+    .warn { border-left: 4px solid #bd5b00; padding-left: 12px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>merged residual canonical policy</h1>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本阶段完成本地 prompt/policy hardening：把 merge 后剩余的 ambiguous clarify canonical phrase 和 unsafe payment canonical command 写入模型可见 policy；这不是训练、不是 A100 rerun，也不是模型已经恢复的证据。</p>
+  </section>
+
+  <h2>当前状态</h2>
+  <p>状态：archived。本阶段只改 prompt policy、OpenSpec delta、public-safe evidence 与这份 Human Brief；不使用 A100。</p>
+
+  <h2>这轮改了什么</h2>
+  <ul>
+    <li>在 residual repair prompt 中明确 <code>slots.ambiguity="目标不明确，未指定具体网站或页面"</code>。</li>
+    <li>在 unsafe payment policy 中明确 <code>normalized_command="拒绝代替用户付款"</code>。</li>
+    <li>新增 prompt constraint flags，方便后续 prediction metadata/evidence 证明 hardened policy 可见。</li>
+    <li>生成 public-safe evidence：<a href="../../reports/public-sample/merged-residual-canonical-policy/canonical_policy_summary.md">canonical policy summary</a>。</li>
+  </ul>
+
+  <h2>关键数字</h2>
+  <div class="grid">
+    <div class="metric"><strong>剩余 residual rows</strong><br><code>4</code></div>
+    <div class="metric"><strong>clarify phrase residual</strong><br><code>3</code></div>
+    <div class="metric"><strong>payment command residual</strong><br><code>1</code></div>
+    <div class="metric"><strong>A100 execution</strong><br><code>false</code></div>
+  </div>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code>：274 passed。</li>
+    <li><code>ruff check .</code>：All checks passed!</li>
+    <li><code>mypy src</code>：Success: no issues found in 16 source files。</li>
+    <li><code>openspec validate --all --strict</code>：5 passed, 0 failed。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan ...</code>：pass。</li>
+    <li><code>git diff --check</code>：pass。</li>
+  </ul>
+
+  <h2>不要过度声称</h2>
+  <p class="warn">本地 prompt/policy hardening 不证明 held-out generalization 恢复，不证明模型语气/格式已达到最初目标，不改 evaluator metrics，也不把 soft slot F1 当主指标。</p>
+
+  <h2>推荐下一步</h2>
+  <p>归档本阶段后，单独开一个 7B A100 prediction/evaluation rerun 阶段，用 hardened prompt policy 重新测 train/dev/test strict metrics。</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "evaluator_metric_change": false,
+    "host_details_omitted": true,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "raw_predictions_copied_to_git": false,
+    "slot_normalization": false
+  },
+  "claims": {
+    "a100_execution_performed": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_metric_change": false,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "local_prompt_policy_hardening_only": true,
+    "model_quality_improvement_claim": false,
+    "prediction_repair_or_rescore_performed": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_scoring_performed": false,
+    "slot_normalization_performed": false,
+    "training_or_prediction_rerun_performed": false
+  },
+  "diagnostic_artifacts": {
+    "canonical_policy_report": "reports/public-sample/merged-residual-canonical-policy/canonical_policy_summary.md",
+    "canonical_policy_summary": "reports/public-sample/merged-residual-canonical-policy/canonical_policy_summary.json",
+    "leak_scan": "reports/public-sample/merged-residual-canonical-policy/leak_scan_result.json"
+  },
+  "evidence_kind": "merged_residual_canonical_policy_local",
+  "generated_at": "2026-06-15T00:00:00Z",
+  "prompt_constraints": {
+    "ambiguous_clarify_policy_visible": true,
+    "clarify_ambiguity_canonical_phrase_visible": true,
+    "unsafe_payment_block_policy_visible": true,
+    "unsafe_payment_canonical_command_visible": true
+  },
+  "source_artifacts": {
+    "merged_residual_diagnosis": "reports/public-sample/merged-slot-value-residual-diagnosis/merged_slot_value_residual_diagnosis.json",
+    "source_manifest": "reports/public-sample/merged-slot-value-residual-diagnosis/manifest.json"
+  },
+  "source_prior_phase": "reports/public-sample/merged-slot-value-residual-diagnosis",
+  "validation": {
+    "diff_check": "pass",
+    "leak_scan": "pass",
+    "max_public_sample_training_text_chars": 2039,
+    "mypy": "Success: no issues found in 16 source files",
+    "openspec_validate_all_strict": "pass",
+    "pytest": "274 passed",
+    "ruff": "All checks passed!"
+  }
+}

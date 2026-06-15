@@ -22,6 +22,10 @@ CONTRACT_REQUIRED_FIELD_SKELETON = (
     "Required-field checklist；每次输出都必须包含全部 8 个顶层字段；confirmation_required 必须是 boolean；"
     "低风险公开只读搜索通常为 false；"
 )
+REPAIR_CONTRACT_REQUIRED_FIELD_SKELETON = CONTRACT_REQUIRED_FIELD_SKELETON.replace(
+    "低风险公开只读搜索通常为 false；",
+    "",
+)
 CONTRACT_CANONICAL_ONE_SHOT = canonical_contract_json(
     BrowserTaskContract(
         task_type="search",
@@ -84,17 +88,21 @@ HELDOUT_RESIDUAL_REPAIR_POLICY = (
     "public navigation canonical policy: "
     'task_type="navigate";route="open_url";safety.reason="public_readonly";'
     "confirmation_required=false；slots.url 必须使用 canonical URL；"
-    'example slots.url="https://docs.example.org";normalized_command="打开文档页面"。'
     "ambiguous clarify policy: "
     'task_type="clarify";route="clarify";safety.reason="ambiguous_request";'
-    "confirmation_required=true；slots.ambiguity 说明目标不明确；不要转 search/open_url。"
+    "confirmation_required=true；不要转 search/open_url。"
+    "merged residual canonical policy: "
+    'slots.ambiguity="目标不明确，未指定具体网站或页面"；'
+    "未指定具体页面/未指定具体操作 是 strict-wrong；"
     "form confirmation policy: "
     'task_type="form_fill";route="fill_form";safety.reason="requires_confirmation";'
     "confirmation_required=true；slots.field 保存字段名；不要用 email/field_name 替代 field。"
     "unsafe payment block policy: "
     'task_type="blocked";route="deny";safety.allow=false;safety.reason="unsafe_payment";'
-    "confirmation_required=true；slots.reason=payment_requires_user_control；不要转 search/open_url。"
-    "不是 evaluator normalization；也不是 prediction repair 或 re-score。"
+    "confirmation_required=true；slots.reason=payment_requires_user_control；"
+    'normalized_command="拒绝代替用户付款"；'
+    'normalized_command="拒绝代替用户下单" 是 strict-wrong；'
+    "不是 evaluator normalization；不是 prediction repair 或 re-score。"
 )
 NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
     "normalized_command 是 canonical Chinese intent phrase，不是 verbatim transcript 或 ASR text；"
@@ -126,7 +134,7 @@ EXTRACT_SYSTEM_PROMPT = (
 REPAIR_SYSTEM_PROMPT = (
     f"{BASE_SYSTEM_PROMPT_PREFIX}{HELDOUT_RESIDUAL_REPAIR_POLICY}"
     "slots 必须是 JSON object，不是 array/list；"
-    f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
+    f"{REPAIR_CONTRACT_REQUIRED_FIELD_SKELETON}"
     f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
     "禁 GUI 动作。"
 )
@@ -263,21 +271,30 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
         "extract_extra_particle_rejection_visible": "提取页面上的商品价格 是 strict-wrong" in prompt
         or "normalized_command=页面价格、提取页面标价、提取页面上的商品价格" in prompt,
         "public_navigation_canonical_policy_visible": "public navigation canonical policy" in prompt
+        and 'task_type="navigate";route="open_url"' in prompt
+        and 'safety.reason="public_readonly"' in prompt
         and 'route="open_url"' in prompt
-        and "slots.url 必须使用 canonical URL" in prompt
-        and "https://docs.example.org" in prompt,
+        and "slots.url 必须使用 canonical URL" in prompt,
         "ambiguous_clarify_policy_visible": "ambiguous clarify policy" in prompt
         and 'task_type="clarify";route="clarify"' in prompt
         and 'safety.reason="ambiguous_request"' in prompt
         and "不要转 search/open_url" in prompt,
+        "clarify_ambiguity_canonical_phrase_visible": "merged residual canonical policy" in prompt
+        and 'slots.ambiguity="目标不明确，未指定具体网站或页面"' in prompt
+        and "未指定具体页面/未指定具体操作 是 strict-wrong" in prompt,
         "form_confirmation_policy_visible": "form confirmation policy" in prompt
         and 'task_type="form_fill";route="fill_form"' in prompt
         and 'safety.reason="requires_confirmation"' in prompt
+        and "confirmation_required=true" in prompt
+        and "slots.field 保存字段名" in prompt
         and "不要用 email/field_name 替代 field" in prompt,
         "unsafe_payment_block_policy_visible": "unsafe payment block policy" in prompt
         and 'task_type="blocked";route="deny"' in prompt
         and 'safety.allow=false;safety.reason="unsafe_payment"' in prompt
         and "payment_requires_user_control" in prompt,
+        "unsafe_payment_canonical_command_visible": "unsafe payment block policy" in prompt
+        and 'normalized_command="拒绝代替用户付款"' in prompt
+        and 'normalized_command="拒绝代替用户下单" 是 strict-wrong' in prompt,
     }
 
 
