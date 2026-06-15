@@ -2095,6 +2095,125 @@ def write_slot_value_generalization_materialization_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
 
 
+def write_family_stratified_generalization_report(
+    evidence: dict[str, Any],
+    output_dir: Path,
+    sft_rows: list[dict[str, Any]],
+    title: str = "Voice2Task family-stratified generalization candidates",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "family_stratified_generalization.json"
+    markdown_path = output_dir / "family_stratified_generalization.md"
+    manifest_path = output_dir / "manifest.json"
+    sft_path = output_dir / "sft_candidate_rows.jsonl"
+    safe_evidence = _sanitize_report_value(evidence)
+    safe_sft_rows = _sanitize_report_value(sft_rows)
+    write_json(json_path, safe_evidence)
+    write_jsonl(sft_path, safe_sft_rows)
+
+    summary = safe_evidence["summary"]
+    manifest = {
+        "evidence_kind": safe_evidence["evidence_kind"],
+        "materialization_status": safe_evidence["materialization_status"],
+        "generated_at": safe_evidence["generated_at"],
+        "summary": summary,
+        "execution_scope": safe_evidence["execution_scope"],
+        "claims": safe_evidence["claims"],
+        "artifact_policy": {
+            "candidate_data_only": True,
+            "formal_public_sample_files_modified": False,
+            "new_candidate_data_generated": True,
+            "public_sample_modified": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+        },
+        "diagnostic_artifacts": {
+            "candidate_seed": safe_evidence["artifact_files"]["candidate_seed"],
+            "candidate_sft": (
+                "reports/public-sample/family-stratified-generalization-candidates/"
+                "sft_candidate_rows.jsonl"
+            ),
+            "materialization": (
+                "reports/public-sample/family-stratified-generalization-candidates/"
+                "family_stratified_generalization.json"
+            ),
+            "markdown": (
+                "reports/public-sample/family-stratified-generalization-candidates/"
+                "family_stratified_generalization.md"
+            ),
+            "manifest": "reports/public-sample/family-stratified-generalization-candidates/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is candidate data only: it creates a standalone public-safe family-stratified "
+            "generalization dataset and does not rewrite formal public sample files."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.",
+        "- No DPO pairs, SFT training, prediction run, or A100 execution is performed.",
+        "- strict `contract_exact_match` remains primary.",
+        "- Soft slot F1 and semantic equivalence remain diagnostic-only.",
+        "- This is not model recovery, held-out recovery, checkpoint, adapter, production, or live-browser evidence.",
+        "",
+        "## Summary",
+        "",
+        f"- Families: `{summary['families']}`",
+        f"- Candidate seed rows: `{summary['candidate_seed_rows']}`",
+        f"- Candidate SFT rows: `{summary['candidate_sft_rows']}`",
+        f"- SFT split counts: `{summary['split_counts']}`",
+        f"- Formal public sample seed rows: `{summary['formal_public_sample_seed_rows']}`",
+        f"- Formal public sample SFT rows: `{summary['formal_public_sample_sft_rows']}`",
+        f"- Formal public sample DPO pairs: `{summary['formal_public_sample_dpo_pairs']}`",
+        f"- Formal public sample modified: `{summary['formal_public_sample_modified']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Family Split Counts",
+        "",
+        "| family | train seeds | dev seeds | test seeds | train SFT | dev SFT | test SFT |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    family_counts = summary["family_split_counts"]
+    for family in summary["families"]:
+        seed_counts = family_counts["seed"][family]
+        sft_counts = family_counts["sft"][family]
+        lines.append(
+            f"| `{family}` | {seed_counts['train']} | {seed_counts['dev']} | {seed_counts['test']} | "
+            f"{sft_counts['train']} | {sft_counts['dev']} | {sft_counts['test']} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Recommended Next Step",
+            "",
+            (
+                "Review this candidate dataset before any merge, DPO generation, or A100 training. A later bounded "
+                "OpenSpec phase should decide whether to merge candidates into the formal public sample and how to "
+                "evaluate held-out exact match without changing evaluator semantics."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
+
+
 def write_slot_value_candidate_sft_probe_report(
     *,
     candidate_manifest: dict[str, Any],
@@ -3135,7 +3254,10 @@ def write_a100_merged_slot_value_adapter_restore_report(
             "",
             "- This phase produces no train/dev/test prediction metrics.",
             "- This is not a checkpoint release or adapter release.",
-            "- This is not model recovery, private-corpus generalization, production-readiness, or live-browser benchmark evidence.",
+            (
+                "- This is not model recovery, private-corpus generalization, "
+                "production-readiness, or live-browser benchmark evidence."
+            ),
             "- Public evidence leak scan is recorded in `leak_scan_result.json`.",
         ]
     )

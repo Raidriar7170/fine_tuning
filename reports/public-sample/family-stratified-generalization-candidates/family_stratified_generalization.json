@@ -1,0 +1,261 @@
+{
+  "artifact_files": {
+    "candidate_seed": "data/public-samples/family_stratified_generalization_seed_candidates.jsonl",
+    "candidate_sft": "sft_candidate_rows.jsonl",
+    "manifest": "manifest.json",
+    "materialization_json": "family_stratified_generalization.json",
+    "materialization_markdown": "family_stratified_generalization.md"
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "contract_exact_match_primary_metric": true,
+    "held_out_generalization_recovered": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false
+  },
+  "evidence_kind": "family_stratified_generalization_candidates",
+  "execution_scope": {
+    "a100_execution": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "formal_public_sample_modified": false,
+    "local_public_sample_only": true,
+    "new_candidate_data_generated": true,
+    "prediction_run": false,
+    "training_run": false
+  },
+  "generated_at": "2026-06-15T10:32:56.917305+00:00",
+  "materialization_status": "candidate_dataset_materialized",
+  "summary": {
+    "candidate_seed_rows": 63,
+    "candidate_sft_rows": 189,
+    "families": [
+      "blocked_payment",
+      "clarify",
+      "confirmation",
+      "extract",
+      "form_fill",
+      "navigation",
+      "search"
+    ],
+    "family_count": 7,
+    "family_slot_signatures": {
+      "blocked_payment": {
+        "dev": [
+          "{\"action\": \"捐款\", \"reason\": \"donation_requires_user_control\"}",
+          "{\"action\": \"订阅付款\", \"reason\": \"subscription_requires_user_control\"}",
+          "{\"action\": \"退款确认\", \"reason\": \"refund_requires_user_control\"}"
+        ],
+        "test": [
+          "{\"action\": \"充值\", \"reason\": \"recharge_requires_user_control\"}",
+          "{\"action\": \"出价付款\", \"reason\": \"bid_requires_user_control\"}",
+          "{\"action\": \"打赏\", \"reason\": \"tip_requires_user_control\"}"
+        ],
+        "train": [
+          "{\"action\": \"下单付款\", \"reason\": \"purchase_requires_user_control\"}",
+          "{\"action\": \"付款\", \"reason\": \"payment_requires_user_control\"}",
+          "{\"action\": \"转账\", \"reason\": \"transfer_requires_user_control\"}"
+        ]
+      },
+      "clarify": {
+        "dev": [
+          "{\"ambiguity\": \"目标不明确，未指定具体表单\"}",
+          "{\"ambiguity\": \"目标不明确，未指定具体账号\"}",
+          "{\"ambiguity\": \"目标不明确，未指定具体页面\"}"
+        ],
+        "test": [
+          "{\"ambiguity\": \"目标不明确，未指定具体城市\"}",
+          "{\"ambiguity\": \"目标不明确，未指定具体联系人\"}",
+          "{\"ambiguity\": \"目标不明确，未指定具体订单\"}"
+        ],
+        "train": [
+          "{\"ambiguity\": \"目标不明确，未指定具体商品\"}",
+          "{\"ambiguity\": \"目标不明确，未指定具体文件\"}",
+          "{\"ambiguity\": \"目标不明确，未指定具体网站\"}"
+        ]
+      },
+      "confirmation": {
+        "dev": [
+          "{\"field\": \"发票邮箱\"}",
+          "{\"field\": \"配送方式\"}",
+          "{\"field\": \"预约时间\"}"
+        ],
+        "test": [
+          "{\"field\": \"报名信息\"}",
+          "{\"field\": \"收件电话\"}",
+          "{\"field\": \"退订原因\"}"
+        ],
+        "train": [
+          "{\"field\": \"实名信息\"}",
+          "{\"field\": \"收货地址\"}",
+          "{\"field\": \"联系邮箱\"}"
+        ]
+      },
+      "extract": {
+        "dev": [
+          "{\"target\": \"优惠信息\"}",
+          "{\"target\": \"作者姓名\"}",
+          "{\"target\": \"客服电话\"}"
+        ],
+        "test": [
+          "{\"target\": \"下载链接\"}",
+          "{\"target\": \"库存状态\"}",
+          "{\"target\": \"活动时间\"}"
+        ],
+        "train": [
+          "{\"target\": \"发布日期\"}",
+          "{\"target\": \"商品价格\"}",
+          "{\"target\": \"文章标题\"}"
+        ]
+      },
+      "form_fill": {
+        "dev": [
+          "{\"field\": \"发票抬头\"}",
+          "{\"field\": \"手机号\"}",
+          "{\"field\": \"收货地址\"}"
+        ],
+        "test": [
+          "{\"field\": \"备注\"}",
+          "{\"field\": \"联系人\"}",
+          "{\"field\": \"邮政编码\"}"
+        ],
+        "train": [
+          "{\"field\": \"公司名称\"}",
+          "{\"field\": \"昵称\"}",
+          "{\"field\": \"邮箱\"}"
+        ]
+      },
+      "navigation": {
+        "dev": [
+          "{\"url\": \"https://blog.example.com\"}",
+          "{\"url\": \"https://news.example.com\"}",
+          "{\"url\": \"https://shop.example.com\"}"
+        ],
+        "test": [
+          "{\"url\": \"https://events.example.com\"}",
+          "{\"url\": \"https://learn.example.com\"}",
+          "{\"url\": \"https://map.example.com\"}"
+        ],
+        "train": [
+          "{\"url\": \"https://docs.example.com\"}",
+          "{\"url\": \"https://status.example.com\"}",
+          "{\"url\": \"https://support.example.com\"}"
+        ]
+      },
+      "search": {
+        "dev": [
+          "{\"query\": \"南京今天空气质量\"}",
+          "{\"query\": \"成都博物馆开放时间\"}",
+          "{\"query\": \"苏州园林门票\"}"
+        ],
+        "test": [
+          "{\"query\": \"厦门轮渡时刻表\"}",
+          "{\"query\": \"武汉明天温度\"}",
+          "{\"query\": \"青岛海边天气\"}"
+        ],
+        "train": [
+          "{\"query\": \"上海周末展览\"}",
+          "{\"query\": \"杭州明天天气\"}",
+          "{\"query\": \"深圳地铁运营时间\"}"
+        ]
+      }
+    },
+    "family_split_counts": {
+      "seed": {
+        "blocked_payment": {
+          "dev": 3,
+          "test": 3,
+          "train": 3
+        },
+        "clarify": {
+          "dev": 3,
+          "test": 3,
+          "train": 3
+        },
+        "confirmation": {
+          "dev": 3,
+          "test": 3,
+          "train": 3
+        },
+        "extract": {
+          "dev": 3,
+          "test": 3,
+          "train": 3
+        },
+        "form_fill": {
+          "dev": 3,
+          "test": 3,
+          "train": 3
+        },
+        "navigation": {
+          "dev": 3,
+          "test": 3,
+          "train": 3
+        },
+        "search": {
+          "dev": 3,
+          "test": 3,
+          "train": 3
+        }
+      },
+      "sft": {
+        "blocked_payment": {
+          "dev": 9,
+          "test": 9,
+          "train": 9
+        },
+        "clarify": {
+          "dev": 9,
+          "test": 9,
+          "train": 9
+        },
+        "confirmation": {
+          "dev": 9,
+          "test": 9,
+          "train": 9
+        },
+        "extract": {
+          "dev": 9,
+          "test": 9,
+          "train": 9
+        },
+        "form_fill": {
+          "dev": 9,
+          "test": 9,
+          "train": 9
+        },
+        "navigation": {
+          "dev": 9,
+          "test": 9,
+          "train": 9
+        },
+        "search": {
+          "dev": 9,
+          "test": 9,
+          "train": 9
+        }
+      }
+    },
+    "formal_public_sample_dpo_pairs": 125,
+    "formal_public_sample_modified": false,
+    "formal_public_sample_seed_rows": 14,
+    "formal_public_sample_sft_rows": 42,
+    "recommended_next_step": "review_candidate_dataset_before_merge_or_training",
+    "seed_split_counts": {
+      "dev": 21,
+      "test": 21,
+      "train": 21
+    },
+    "split_counts": {
+      "dev": 63,
+      "test": 63,
+      "train": 63
+    }
+  }
+}

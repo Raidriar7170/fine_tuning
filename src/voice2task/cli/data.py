@@ -7,6 +7,7 @@ from pathlib import Path
 from voice2task.dataset import (
     build_local_private_corpus,
     build_public_sample_dataset,
+    materialize_family_stratified_generalization_candidates,
     materialize_slot_value_generalization_candidates,
     merge_slot_value_candidates_into_public_sample,
 )
@@ -39,6 +40,10 @@ def build_parser() -> argparse.ArgumentParser:
     slot_value_parser.add_argument("--case-design", type=Path, required=True)
     slot_value_parser.add_argument("--seed-output", type=Path, required=True)
     slot_value_parser.add_argument("--output", type=Path, required=True)
+
+    family_parser = subcommands.add_parser("materialize-family-stratified-candidates")
+    family_parser.add_argument("--seed-output", type=Path, required=True)
+    family_parser.add_argument("--output", type=Path, required=True)
 
     merge_slot_value_parser = subcommands.add_parser("merge-slot-value-candidates")
     merge_slot_value_parser.add_argument("--candidate-seed", type=Path, required=True)
@@ -83,6 +88,20 @@ def main(argv: list[str] | None = None) -> int:
             "paths": {name: path.as_posix() for name, path in paths.items()},
             "summary": materialization_manifest["summary"],
             "execution_scope": materialization_manifest["execution_scope"],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "materialize-family-stratified-candidates":
+        paths = materialize_family_stratified_generalization_candidates(
+            seed_output_path=args.seed_output,
+            output_dir=args.output,
+        )
+        manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+        payload = {
+            "ok": True,
+            "paths": {name: path.as_posix() for name, path in paths.items()},
+            "summary": manifest["summary"],
+            "execution_scope": manifest["execution_scope"],
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
         return 0

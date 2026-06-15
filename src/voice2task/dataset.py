@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -627,6 +628,509 @@ def _safe_artifact_ref(path: Path) -> str:
         return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
     except ValueError:
         return path.name
+
+
+def _contract(
+    *,
+    task_type: str,
+    route: str,
+    safety_reason: str,
+    allow: bool,
+    confirmation_required: bool,
+    slots: dict[str, Any],
+    normalized_command: str,
+) -> dict[str, Any]:
+    contract = {
+        "task_type": task_type,
+        "route": route,
+        "safety": {"allow": allow, "reason": safety_reason},
+        "confirmation_required": confirmation_required,
+        "slots": slots,
+        "normalized_command": normalized_command,
+        "language": "zh-CN",
+        "contract_version": "v1",
+    }
+    as_contract(contract)
+    return contract
+
+
+def _family_case(
+    *,
+    family_id: str,
+    split: str,
+    index: int,
+    input_text: str,
+    target_contract: dict[str, Any],
+    augmentations: list[str],
+) -> dict[str, Any]:
+    return {
+        "id": f"family-{family_id}-{split}-{index}",
+        "split": split,
+        "input_text": input_text,
+        "target_contract": target_contract,
+        "augmentations": augmentations,
+    }
+
+
+def _field_contract(field: str) -> dict[str, Any]:
+    return _contract(
+        task_type="form_fill",
+        route="fill_form",
+        allow=True,
+        safety_reason="requires_confirmation",
+        confirmation_required=True,
+        slots={"field": field},
+        normalized_command=f"填写{field}并确认",
+    )
+
+
+def _search_contract(query: str) -> dict[str, Any]:
+    return _contract(
+        task_type="search",
+        route="search_web",
+        allow=True,
+        safety_reason="public_readonly",
+        confirmation_required=False,
+        slots={"query": query},
+        normalized_command=f"搜索{query}",
+    )
+
+
+def _navigation_contract(url: str, normalized_command: str) -> dict[str, Any]:
+    return _contract(
+        task_type="navigate",
+        route="open_url",
+        allow=True,
+        safety_reason="public_readonly",
+        confirmation_required=False,
+        slots={"url": url},
+        normalized_command=normalized_command,
+    )
+
+
+def _clarify_contract(ambiguity: str) -> dict[str, Any]:
+    return _contract(
+        task_type="clarify",
+        route="clarify",
+        allow=True,
+        safety_reason="ambiguous_request",
+        confirmation_required=True,
+        slots={"ambiguity": ambiguity},
+        normalized_command="请求澄清目标",
+    )
+
+
+def _extract_contract(target: str) -> dict[str, Any]:
+    return _contract(
+        task_type="extract",
+        route="extract_page",
+        allow=True,
+        safety_reason="public_readonly",
+        confirmation_required=False,
+        slots={"target": target},
+        normalized_command=f"提取页面{target}",
+    )
+
+
+def _blocked_payment_contract(reason: str, action: str) -> dict[str, Any]:
+    return _contract(
+        task_type="blocked",
+        route="deny",
+        allow=False,
+        safety_reason="unsafe_payment",
+        confirmation_required=True,
+        slots={"reason": reason, "action": action},
+        normalized_command=f"拒绝代替用户{action}",
+    )
+
+
+def _family_stratified_case_specs() -> list[dict[str, Any]]:
+    raw_specs = {
+        "search": {
+            "train": [
+                ("杭州明天天气", "帮我查杭州明天天气", ["查一下杭州明天的天气", "搜索杭州明天会不会下雨"]),
+                ("上海周末展览", "搜一下上海周末展览", ["帮我找上海这周末展览", "查上海周末有什么展览"]),
+                ("深圳地铁运营时间", "搜索深圳地铁运营时间", ["帮我查深圳地铁几点停运", "搜深圳地铁运营时段"]),
+            ],
+            "dev": [
+                ("成都博物馆开放时间", "查成都博物馆开放时间", ["搜索成都博物馆几点开门", "帮我找成都博物馆开放安排"]),
+                ("南京今天空气质量", "帮我搜南京今天空气质量", ["查一下南京空气质量", "搜索南京今日空气情况"]),
+                ("苏州园林门票", "搜索苏州园林门票", ["帮我查苏州园林票价", "搜苏州园林门票信息"]),
+            ],
+            "test": [
+                ("厦门轮渡时刻表", "查厦门轮渡时刻表", ["搜索厦门轮渡时间", "帮我找厦门轮渡班次"]),
+                ("武汉明天温度", "搜索武汉明天温度", ["查一下武汉明天多少度", "搜武汉明日气温"]),
+                ("青岛海边天气", "帮我查青岛海边天气", ["搜索青岛海边天气情况", "查青岛海边今天风大不大"]),
+            ],
+        },
+        "navigation": {
+            "train": [
+                ("https://docs.example.com", "打开文档站点", "打开 docs.example.com", ["去文档网站", "访问示例文档站"]),
+                (
+                    "https://status.example.com",
+                    "打开状态页面",
+                    "打开服务状态页",
+                    ["去 status.example.com", "查看示例状态站"],
+                ),
+                (
+                    "https://support.example.com",
+                    "打开支持中心",
+                    "打开支持中心",
+                    ["访问支持页面", "打开 support.example.com"],
+                ),
+            ],
+            "dev": [
+                ("https://news.example.com", "打开新闻页面", "打开新闻页面", ["去新闻示例站", "访问 news.example.com"]),
+                ("https://shop.example.com", "打开商店首页", "打开商店首页", ["去 shop.example.com", "打开示例商店"]),
+                ("https://blog.example.com", "打开博客页面", "打开博客页面", ["访问示例博客", "打开 blog.example.com"]),
+            ],
+            "test": [
+                (
+                    "https://learn.example.com",
+                    "打开学习页面",
+                    "打开学习页面",
+                    ["去学习示例站", "访问 learn.example.com"],
+                ),
+                ("https://map.example.com", "打开地图页面", "打开地图页面", ["打开示例地图", "去 map.example.com"]),
+                (
+                    "https://events.example.com",
+                    "打开活动页面",
+                    "打开活动页面",
+                    ["访问活动示例站", "打开 events.example.com"],
+                ),
+            ],
+        },
+        "clarify": {
+            "train": [
+                ("目标不明确，未指定具体网站", "帮我打开那个网站", ["去那个网站", "打开刚才说的网站"]),
+                ("目标不明确，未指定具体文件", "帮我处理那个文件", ["弄一下那个文件", "打开那个资料"]),
+                ("目标不明确，未指定具体商品", "帮我看看那个商品", ["处理一下那个商品", "打开那个东西"]),
+            ],
+            "dev": [
+                ("目标不明确，未指定具体页面", "帮我打开那个页面", ["处理一下那个页面", "去刚才那个页面"]),
+                ("目标不明确，未指定具体账号", "帮我切到那个账号", ["用那个账号看看", "切换到刚才说的账号"]),
+                ("目标不明确，未指定具体表单", "帮我填那个表单", ["处理那个表格表单", "把那个表单弄一下"]),
+            ],
+            "test": [
+                ("目标不明确，未指定具体城市", "帮我查那个城市", ["搜索刚才那个城市", "看看那个城市的信息"]),
+                ("目标不明确，未指定具体订单", "帮我看那个订单", ["处理一下那笔订单", "打开那个订单"]),
+                ("目标不明确，未指定具体联系人", "帮我找那个人", ["打开那个联系人", "帮我处理那位联系人"]),
+            ],
+        },
+        "form_fill": {
+            "train": [
+                ("邮箱", "把邮箱填进表单，提交前问我", ["填写邮箱字段，先别提交", "把电子邮箱放进表单里"]),
+                ("昵称", "给表单填昵称，提交前确认", ["填写昵称字段", "把昵称放到网页表单"]),
+                ("公司名称", "在表单里填公司名称", ["填写公司名称字段", "把公司名填进去"]),
+            ],
+            "dev": [
+                ("手机号", "把手机号填到网页里", ["填写手机号字段，提交前确认", "把手机号码放进表单"]),
+                ("收货地址", "填写收货地址，提交前问我", ["把地址填到表单", "填收货地址但先别提交"]),
+                ("发票抬头", "把发票抬头填进去", ["填写发票抬头字段", "在表单里填发票信息"]),
+            ],
+            "test": [
+                ("联系人", "填写联系人，提交前确认", ["把联系人姓名填进去", "在表单里填联系人"]),
+                ("邮政编码", "把邮政编码填到表单", ["填写邮编字段", "把邮编放进网页表单"]),
+                ("备注", "在备注栏填这段说明", ["填写备注字段", "把备注内容放进去"]),
+            ],
+        },
+        "extract": {
+            "train": [
+                ("商品价格", "提取这个页面的商品价格", ["帮我看看页面商品多少钱", "把商品价格摘出来"]),
+                ("文章标题", "提取页面文章标题", ["把标题摘出来", "看看这篇文章的标题"]),
+                ("发布日期", "提取页面发布日期", ["找出页面发布日期", "把发布时间提取出来"]),
+            ],
+            "dev": [
+                ("作者姓名", "提取页面作者姓名", ["找出作者是谁", "把页面作者摘出来"]),
+                ("客服电话", "提取页面客服电话", ["找出客服热线", "把联系电话提取出来"]),
+                ("优惠信息", "提取页面优惠信息", ["看看页面有什么优惠", "把优惠内容摘出来"]),
+            ],
+            "test": [
+                ("库存状态", "提取页面库存状态", ["看看还有没有库存", "把库存信息提取出来"]),
+                ("活动时间", "提取页面活动时间", ["找出活动什么时候开始", "把活动时间摘出来"]),
+                ("下载链接", "提取页面下载链接", ["把下载地址找出来", "提取页面里的下载链接"]),
+            ],
+        },
+        "blocked_payment": {
+            "train": [
+                ("payment_requires_user_control", "付款", "帮我直接付款买这个", ["替我完成付款", "用我的账号支付"]),
+                ("transfer_requires_user_control", "转账", "帮我转账给别人", ["替我把钱转出去", "直接帮我确认转账"]),
+                (
+                    "purchase_requires_user_control",
+                    "下单付款",
+                    "帮我下单并付款",
+                    ["直接替我买下来", "用我的账户完成购买"],
+                ),
+            ],
+            "dev": [
+                (
+                    "refund_requires_user_control",
+                    "退款确认",
+                    "帮我确认退款到账户",
+                    ["替我提交退款确认", "直接处理这笔退款"],
+                ),
+                (
+                    "subscription_requires_user_control",
+                    "订阅付款",
+                    "帮我开通付费订阅",
+                    ["直接帮我付订阅费", "替我确认订阅扣款"],
+                ),
+                (
+                    "donation_requires_user_control",
+                    "捐款",
+                    "帮我捐款给这个项目",
+                    ["直接替我完成捐款", "用我的账户捐一笔"],
+                ),
+            ],
+            "test": [
+                (
+                    "bid_requires_user_control",
+                    "出价付款",
+                    "帮我出价并支付保证金",
+                    ["替我提交竞拍付款", "直接帮我付保证金"],
+                ),
+                ("recharge_requires_user_control", "充值", "帮我给账户充值", ["直接替我充钱", "用我的账号完成充值"]),
+                ("tip_requires_user_control", "打赏", "帮我给作者打赏", ["替我支付打赏", "直接给这个作者付款"]),
+            ],
+        },
+        "confirmation": {
+            "train": [
+                ("收货地址", "把收货地址填好，提交前一定问我", ["填地址但不要直接提交", "提交表单前先确认收货地址"]),
+                ("实名信息", "填写实名信息，提交前确认", ["把实名资料填进去但先问我", "提交实名信息前等我确认"]),
+                ("联系邮箱", "填写联系邮箱，发送前问我", ["把联系邮箱填好先别发", "提交联系邮箱前确认"]),
+            ],
+            "dev": [
+                ("预约时间", "填写预约时间，确认后再提交", ["把预约时间填进去先问我", "提交预约前确认时间"]),
+                ("配送方式", "选择配送方式，提交前确认", ["填配送方式但先别提交", "提交配送选项前问我"]),
+                ("发票邮箱", "填写发票邮箱，发送前确认", ["把发票邮箱放进去先问我", "提交发票邮箱前确认"]),
+            ],
+            "test": [
+                ("报名信息", "填写报名信息，提交前问我", ["把报名表填好先确认", "提交报名信息前等我确认"]),
+                ("退订原因", "填写退订原因，提交前确认", ["把退订原因填进去先别提交", "提交退订表单前问我"]),
+                ("收件电话", "填写收件电话，保存前确认", ["把收件电话填好先问我", "保存电话前等我确认"]),
+            ],
+        },
+    }
+
+    specs: list[dict[str, Any]] = []
+    for family_id, by_split in raw_specs.items():
+        for split, cases in by_split.items():
+            for index, case in enumerate(cases, start=1):
+                if family_id == "search":
+                    query, input_text, augmentations = case
+                    target_contract = _search_contract(query)
+                elif family_id == "navigation":
+                    url, normalized_command, input_text, augmentations = case
+                    target_contract = _navigation_contract(url, normalized_command)
+                elif family_id == "clarify":
+                    ambiguity, input_text, augmentations = case
+                    target_contract = _clarify_contract(ambiguity)
+                elif family_id in {"form_fill", "confirmation"}:
+                    field, input_text, augmentations = case
+                    target_contract = _field_contract(field)
+                elif family_id == "extract":
+                    target, input_text, augmentations = case
+                    target_contract = _extract_contract(target)
+                elif family_id == "blocked_payment":
+                    reason, action, input_text, augmentations = case
+                    target_contract = _blocked_payment_contract(reason, action)
+                else:
+                    raise AssertionError(f"unhandled family: {family_id}")
+                specs.append(
+                    _family_case(
+                        family_id=family_id,
+                        split=split,
+                        index=index,
+                        input_text=input_text,
+                        target_contract=target_contract,
+                        augmentations=list(augmentations),
+                    )
+                )
+    return specs
+
+
+def _family_stratified_candidate_seed_rows() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for spec in _family_stratified_case_specs():
+        family_id = spec["id"].split("-")[1]
+        row = {
+            **spec,
+            "provenance": {
+                "source_mode": "family_stratified_generalization_candidate_seed",
+                "public_safe": True,
+                "candidate_status": "standalone_not_formal_public_sample",
+                "family_id": family_id,
+                "split_role": spec["split"],
+                "family_stratification": True,
+            },
+        }
+        validate_public_record(row)
+        rows.append(row)
+    return rows
+
+
+def _family_stratified_sft_rows(seed_rows: list[dict[str, Any]]) -> list[SFTDatasetRow]:
+    rows: list[SFTDatasetRow] = []
+    for seed in seed_rows:
+        seed_provenance = seed["provenance"]
+        base_provenance = {
+            "source_id": seed["id"],
+            "source_mode": "family_stratified_generalization_candidate",
+            "public_safe": True,
+            "augmentation": "original",
+            "candidate_status": seed_provenance["candidate_status"],
+            "family_id": seed_provenance["family_id"],
+            "split_role": seed_provenance["split_role"],
+            "family_stratification": True,
+        }
+        base = SFTDatasetRow(
+            id=seed["id"],
+            split=seed["split"],
+            input_text=seed["input_text"],
+            target_contract=seed["target_contract"],
+            provenance=base_provenance,
+        )
+        rows.append(base)
+        for index, paraphrase in enumerate(seed.get("augmentations", []), start=1):
+            rows.append(
+                SFTDatasetRow(
+                    id=f"{seed['id']}-aug-{index}",
+                    split=seed["split"],
+                    input_text=paraphrase,
+                    target_contract=base.target_contract,
+                    provenance={
+                        **base_provenance,
+                        "source_mode": "schema_preserving_augmentation",
+                        "augmentation": f"paraphrase-{index}",
+                    },
+                )
+            )
+    return rows
+
+
+def _family_split_counts(seed_rows: list[dict[str, Any]], sft_rows: list[SFTDatasetRow]) -> dict[str, Any]:
+    seed_counts: dict[str, dict[str, int]] = {}
+    sft_counts: dict[str, dict[str, int]] = {}
+    families = sorted({row["provenance"]["family_id"] for row in seed_rows})
+    for family in families:
+        seed_counts[family] = {split: 0 for split in ("train", "dev", "test")}
+        sft_counts[family] = {split: 0 for split in ("train", "dev", "test")}
+    for row in seed_rows:
+        seed_counts[row["provenance"]["family_id"]][row["split"]] += 1
+    for row in sft_rows:
+        sft_counts[row.provenance["family_id"]][row.split] += 1
+    return {"seed": seed_counts, "sft": sft_counts}
+
+
+def _family_slot_signatures(seed_rows: list[dict[str, Any]]) -> dict[str, dict[str, list[str]]]:
+    signatures: dict[str, dict[str, set[str]]] = {}
+    for row in seed_rows:
+        family = row["provenance"]["family_id"]
+        split = row["split"]
+        signatures.setdefault(family, {name: set() for name in ("train", "dev", "test")})
+        signatures[family][split].add(json_dumps(row["target_contract"]["slots"]))
+    return {
+        family: {split: sorted(values) for split, values in by_split.items()}
+        for family, by_split in sorted(signatures.items())
+    }
+
+
+def json_dumps(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def _family_stratified_summary(
+    *,
+    candidate_seed_rows: list[dict[str, Any]],
+    candidate_sft_rows: list[SFTDatasetRow],
+    formal_public_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    formal_counts = formal_public_manifest["counts"]
+    split_counts = _split_counts(candidate_sft_rows)
+    return {
+        "family_count": len({row["provenance"]["family_id"] for row in candidate_seed_rows}),
+        "families": sorted({row["provenance"]["family_id"] for row in candidate_seed_rows}),
+        "candidate_seed_rows": len(candidate_seed_rows),
+        "candidate_sft_rows": len(candidate_sft_rows),
+        "split_counts": split_counts,
+        "seed_split_counts": {
+            split: sum(1 for row in candidate_seed_rows if row["split"] == split)
+            for split in ("train", "dev", "test")
+        },
+        "family_split_counts": _family_split_counts(candidate_seed_rows, candidate_sft_rows),
+        "family_slot_signatures": _family_slot_signatures(candidate_seed_rows),
+        "formal_public_sample_seed_rows": formal_counts["seed_rows"],
+        "formal_public_sample_sft_rows": formal_counts["sft_rows"],
+        "formal_public_sample_dpo_pairs": formal_counts["dpo_pairs"],
+        "formal_public_sample_modified": False,
+        "recommended_next_step": "review_candidate_dataset_before_merge_or_training",
+    }
+
+
+def materialize_family_stratified_generalization_candidates(
+    *,
+    seed_output_path: Path,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Write standalone family-stratified candidate data without mutating the formal public sample."""
+
+    formal_public_manifest = read_json(FORMAL_PUBLIC_MANIFEST_PATH)
+    candidate_seed_rows = _family_stratified_candidate_seed_rows()
+    candidate_sft_rows = _family_stratified_sft_rows(candidate_seed_rows)
+    for row in candidate_sft_rows:
+        validate_public_record(row.to_dict())
+
+    write_jsonl(seed_output_path, candidate_seed_rows)
+    summary = _family_stratified_summary(
+        candidate_seed_rows=candidate_seed_rows,
+        candidate_sft_rows=candidate_sft_rows,
+        formal_public_manifest=formal_public_manifest,
+    )
+    evidence = {
+        "evidence_kind": "family_stratified_generalization_candidates",
+        "materialization_status": "candidate_dataset_materialized",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "summary": summary,
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_candidate_data_generated": True,
+            "formal_public_sample_modified": False,
+            "training_run": False,
+            "prediction_run": False,
+            "dpo_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+        },
+        "claims": {
+            "contract_exact_match_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_generalization_recovered": False,
+            "model_recovery_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "candidate_seed": _safe_artifact_ref(seed_output_path),
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization_json": "family_stratified_generalization.json",
+            "materialization_markdown": "family_stratified_generalization.md",
+            "manifest": "manifest.json",
+        },
+    }
+
+    from voice2task.reports import write_family_stratified_generalization_report
+
+    paths = write_family_stratified_generalization_report(
+        evidence,
+        output_dir=output_dir,
+        sft_rows=[row.to_dict() for row in candidate_sft_rows],
+    )
+    return {"seed": seed_output_path, **paths}
 
 
 def _formal_slot_value_candidate_seed(row: dict[str, Any], candidate_seed_path: Path) -> dict[str, Any]:

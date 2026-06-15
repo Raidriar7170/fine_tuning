@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Family-Stratified Data Generalization Brief</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #596575;
+      --line: #d8dee8;
+      --panel: #f6f8fb;
+      --accent: #0f766e;
+      --ok: #166534;
+      --warn: #b45309;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #ecfdf5; color: var(--ok); border: 1px solid #bbf7d0; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .callout { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; color: var(--warn); }
+    .small { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Family-stratified 数据泛化候选集</h1>
+  <div class="status">状态：archived，candidate artifacts 已生成并验证</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本阶段把“需要数据泛化”落成一个可审阅、可复现、公开安全的候选数据集：7 个任务 family 在 train/dev/test 都有覆盖，但还没有合并进 formal public sample，也没有训练或声称模型恢复。</p>
+  </section>
+
+  <section class="grid" aria-label="key metrics">
+    <div class="metric"><b>7</b><span>task families</span></div>
+    <div class="metric"><b>63</b><span>candidate seed rows</span></div>
+    <div class="metric"><b>189</b><span>candidate SFT rows</span></div>
+    <div class="metric"><b>63/63/63</b><span>SFT train/dev/test</span></div>
+  </section>
+
+  <h2>这阶段做了什么</h2>
+  <ul>
+    <li>新增 deterministic family-stratified candidate seed/SFT materializer。</li>
+    <li>新增 CLI：<code>voice2task-data materialize-family-stratified-candidates</code>。</li>
+    <li>生成 standalone candidate seed、candidate SFT rows、manifest 和 Markdown/JSON evidence。</li>
+    <li>保持 formal public sample 的 14 seed、42 SFT、125 DPO 不变。</li>
+  </ul>
+
+  <h2>Family 覆盖</h2>
+  <table>
+    <thead><tr><th>family</th><th>train seeds</th><th>dev seeds</th><th>test seeds</th><th>train SFT</th><th>dev SFT</th><th>test SFT</th></tr></thead>
+    <tbody>
+      <tr><td><code>blocked_payment</code></td><td>3</td><td>3</td><td>3</td><td>9</td><td>9</td><td>9</td></tr>
+      <tr><td><code>clarify</code></td><td>3</td><td>3</td><td>3</td><td>9</td><td>9</td><td>9</td></tr>
+      <tr><td><code>confirmation</code></td><td>3</td><td>3</td><td>3</td><td>9</td><td>9</td><td>9</td></tr>
+      <tr><td><code>extract</code></td><td>3</td><td>3</td><td>3</td><td>9</td><td>9</td><td>9</td></tr>
+      <tr><td><code>form_fill</code></td><td>3</td><td>3</td><td>3</td><td>9</td><td>9</td><td>9</td></tr>
+      <tr><td><code>navigation</code></td><td>3</td><td>3</td><td>3</td><td>9</td><td>9</td><td>9</td></tr>
+      <tr><td><code>search</code></td><td>3</td><td>3</td><td>3</td><td>9</td><td>9</td><td>9</td></tr>
+    </tbody>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../data/public-samples/family_stratified_generalization_seed_candidates.jsonl">candidate seed JSONL</a></li>
+    <li><a href="../../reports/public-sample/family-stratified-generalization-candidates/sft_candidate_rows.jsonl">candidate SFT JSONL</a></li>
+    <li><a href="../../reports/public-sample/family-stratified-generalization-candidates/manifest.json">manifest.json</a></li>
+    <li><a href="../../reports/public-sample/family-stratified-generalization-candidates/family_stratified_generalization.md">family_stratified_generalization.md</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-15-family-stratified-data-generalization/tasks.md">OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_family_stratified_data_generalization.py</code>：通过。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：通过，295 passed。</li>
+    <li><code>python -m ruff check ...</code>：通过。</li>
+    <li><code>voice2task-report leak-scan</code>：通过，无发现。</li>
+    <li><code>openspec validate --all --strict</code>：归档前后均通过。</li>
+    <li><code>git diff --check</code>：通过。</li>
+  </ul>
+
+  <h2>不要夸大的点</h2>
+  <div class="callout">
+    <p>这不是训练结果，不是 DPO 结果，不是 A100 运行结果，也不是 held-out exact match 恢复证据。strict <code>contract_exact_match</code> 仍然是主指标；soft slot F1 和语义等价只能做诊断。</p>
+  </div>
+
+  <h2>推荐下一步</h2>
+  <p>先审阅 candidate data 的 family/slot 设计；如果通过，再开一个很小的新阶段决定是否把候选集合并为正式 public sample，并在不改 evaluator 语义的前提下重新做 held-out prediction-only eval。</p>
+  <p class="small">Generated from public-safe evidence under <code>reports/public-sample/family-stratified-generalization-candidates</code>.</p>
+</main>
+</body>
+</html>
