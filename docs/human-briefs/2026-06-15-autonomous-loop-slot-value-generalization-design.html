@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task Slot Value Generalization Design Loop</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9e0ea;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --warn: #a16207;
+      --bad: #b91c1c;
+      --good: #047857;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 1000px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #fffbeb; color: var(--warn); border: 1px solid #fde68a; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .good { color: var(--good); font-weight: 600; }
+    .bad { color: var(--bad); font-weight: 600; }
+    .small { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task Slot Value Generalization Design Loop</h1>
+  <div class="status">状态：stopped，需要用户 review 后才能 materialize cases</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本轮把“需要数据泛化”落成了 4 个 design-only candidate case groups，覆盖剩余 3 类 value residual；没有改 public sample、没有生成训练数据、没有训练或 DPO。</p>
+  </section>
+
+  <section class="grid" aria-label="key metrics">
+    <div class="metric"><b class="good">1</b><span>archived OpenSpec phase</span></div>
+    <div class="metric"><b>4</b><span>candidate case groups</span></div>
+    <div class="metric"><b>3</b><span>residual buckets covered</span></div>
+    <div class="metric"><b class="bad">0</b><span>data/training changes</span></div>
+  </section>
+
+  <h2>停止原因</h2>
+  <p>Hard stop：下一步是 materialize reviewed cases，会修改 public sample seed 或生成 candidate dataset，并可能影响 train/dev/test split policy。当前 case-design manifest 明确写着 <code>materialization_requires_user_review=true</code>，所以必须先由用户确认候选 case 和 split policy。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前项目阶段目标：first-phase speech-to-contract normalization。</li>
+    <li>目标来源：<a href="../../CONTEXT.md">CONTEXT.md</a> 和 <a href="../../README.md">README.md</a>。</li>
+    <li>本轮推进：把 value residual 变成可审阅的数据设计单元，而不是直接扩大训练或 DPO。</li>
+    <li>剩余差距：还没有 materialize 新样例、没有重建 public sample、没有训练/预测 rerun，也没有证据证明 dev/test strict exact 改善。</li>
+    <li>下一阶段计划：确认后开一个 bounded materialization OpenSpec change，显式决定 split policy，再重建 public sample 和本地验证。</li>
+  </ul>
+
+  <h2>完成阶段</h2>
+  <table>
+    <thead><tr><th>phase</th><th>status</th><th>主要结果</th><th>commit</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>design-slot-value-generalization-cases</code></td>
+        <td>archived</td>
+        <td>生成 design-only case-design 证据，覆盖邮箱中英表示、clarify scope phrase、open-url command phrase、blocked-payment command phrase 四组候选 case。</td>
+        <td><code>d7e6611</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/slot-value-generalization-case-design/manifest.json">case-design manifest</a></li>
+    <li><a href="../../reports/public-sample/slot-value-generalization-case-design/slot_value_generalization_case_design.md">case-design report</a></li>
+    <li><a href="./2026-06-15-design-slot-value-generalization-cases.html">phase Human Brief</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-15-design-slot-value-generalization-cases/tasks.md">archived OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python -m pytest -q tests/test_slot_value_generalization_case_design.py tests/test_targeted_slot_value_residual_diagnosis.py tests/test_targeted_family_coverage_probe.py tests/test_heldout_family_strategy.py</code>：12 passed。</li>
+    <li><code>PYTHONPATH=src python -m pytest -q tests/test_slot_value_generalization_case_design.py tests/test_targeted_slot_value_residual_diagnosis.py tests/test_targeted_family_coverage_probe.py tests/test_heldout_family_strategy.py tests/test_a100_sft_smoke.py tests/test_formatting_training.py tests/test_leak_scan.py</code>：94 passed。</li>
+    <li><code>openspec validate --all --strict</code>：4 specs passed。</li>
+    <li><code>voice2task.cli.report leak-scan</code>：case-design evidence、Human Brief、OpenSpec archive 和 updated specs 均 0 findings。</li>
+    <li><code>git diff --check</code>：已通过。</li>
+  </ul>
+
+  <h2>自动集成状态</h2>
+  <ul>
+    <li>已自动 stage 并提交本阶段，commit <code>d7e6611</code>。</li>
+    <li>未 push：当前仓库没有配置 remote/upstream。</li>
+    <li>未创建 PR、未发布、未部署。</li>
+  </ul>
+
+  <h2>不能夸大的点</h2>
+  <ul>
+    <li>这不是新训练数据，不是训练结果，不证明模型恢复。</li>
+    <li>这不证明 held-out generalization 改善；dev/test strict exact 仍沿用上一轮证据。</li>
+    <li>没有修改 <code>seed_traces.jsonl</code>、SFT rows、DPO rows 或 manifest。</li>
+    <li>没有放宽 evaluator，没有 prediction repair，没有 adapter/checkpoint release。</li>
+  </ul>
+
+  <h2>推荐手动决策</h2>
+  <p>请 review 这 4 个 candidate case groups 和 split policy。推荐下一步是 materialize reviewed cases 到 public-safe seed 或独立 candidate dataset，并只做本地 build/validate；A100 rerun 等本地数据边界稳定后再开。</p>
+  <p class="small">Generated from archived OpenSpec change and public-safe evidence on 2026-06-15.</p>
+</main>
+</body>
+</html>
