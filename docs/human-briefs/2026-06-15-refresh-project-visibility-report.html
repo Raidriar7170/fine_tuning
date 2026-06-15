@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Refresh project visibility report</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f7f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 22px 44px; }
+    h1 { font-size: 28px; margin: 0 0 10px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.68; }
+    code { background: #eef1f6; padding: 2px 5px; border-radius: 4px; }
+    .summary { background: #ffffff; border: 1px solid #dde3ee; border-radius: 8px; padding: 18px 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: #ffffff; border: 1px solid #dde3ee; border-radius: 8px; padding: 14px 16px; }
+    .metric b { display: block; font-size: 20px; margin-bottom: 5px; }
+    table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #dde3ee; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e7ebf2; text-align: left; vertical-align: top; }
+    th { background: #eef2f8; }
+    a { color: #2357c6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Refresh project visibility report</h1>
+  <div class="summary">
+    <p><strong>一句话结论：</strong>本轮只同步公开可见文档，把 README 和实验报告的 headline 从旧 dev128 / 小 public sample 结果切换到当前 formal public held-out 证据。</p>
+    <p><strong>当前状态：</strong>applying，文档已刷新，等待本轮验证与 OpenSpec 归档。</p>
+    <p><strong>边界：</strong>没有训练、没有改数据、没有重跑 prediction、没有改 evaluator，也没有把 <code>slot_f1_soft</code> 提升为主指标。</p>
+  </div>
+
+  <div class="grid">
+    <div class="metric"><b>77</b><span>formal public seeds</span></div>
+    <div class="metric"><b>69 / 69</b><span>dev/test held-out rows</span></div>
+    <div class="metric"><b>0.3043</b><span>dev strict exact</span></div>
+    <div class="metric"><b>0.2899</b><span>test strict exact</span></div>
+  </div>
+
+  <h2>本阶段改动</h2>
+  <table>
+    <tr><th>文件</th><th>改动</th></tr>
+    <tr><td><code>README.md</code></td><td>更新中文 public surface：当前样本规模、正式 held-out 指标、reviewer path、证据边界和推荐下一步。</td></tr>
+    <tr><td><code>README_en.md</code></td><td>同步英文 public surface，避免和中文 README 产生不同 headline。</td></tr>
+    <tr><td><code>reports/experiment_report.md</code></td><td>重写为当前 formal public held-out 报告；旧 dev128 结果只保留为历史 pipeline diagnostic。</td></tr>
+    <tr><td><code>openspec/changes/refresh-project-visibility-report/</code></td><td>记录本轮 proposal、design、tasks 和 contract-evaluation delta spec。</td></tr>
+  </table>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/report.md">formal public held-out report</a></li>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/dev/metrics.md">dev metrics</a></li>
+    <li><a href="../../reports/public-sample/a100-formal-public-heldout-prediction/test/metrics.md">test metrics</a></li>
+    <li><a href="../../data/public-samples/manifest_public_sample.json">formal public manifest</a></li>
+    <li><a href="../../reports/experiment_report.md">refreshed experiment report</a></li>
+  </ul>
+
+  <h2>不要过度声称</h2>
+  <ul>
+    <li>不能说 held-out 已恢复；strict exact 仍是 dev 0.3043 / test 0.2899。</li>
+    <li>不能说生产可用、checkpoint 发布、adapter 发布、私有语料泛化或 live-browser benchmark 提升。</li>
+    <li><code>slot_f1_soft</code> 只能作为 internal diagnostic，不能替代 <code>contract_exact_match</code> 或 strict <code>slot_f1</code>。</li>
+  </ul>
+
+  <h2>验证计划</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code></li>
+    <li><code>ruff check src tests scripts</code></li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code></li>
+    <li><code>voice2task.cli.report leak-scan</code> on refreshed public docs</li>
+    <li><code>git diff --check</code></li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>下一阶段建议开一个很小的 residual/family diagnosis：逐行检查 formal public dev/test residual，先判断 route/task-type、safety、slot exactness 的失败分布，再决定是否需要补数据、改 prompt policy、重训或 DPO。</p>
+</main>
+</body>
+</html>

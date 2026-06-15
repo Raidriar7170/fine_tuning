@@ -13,28 +13,29 @@ The core question is intentionally narrow:
 
 > Can a 7B model reliably convert natural Chinese browser intent into executable contract JSON, beyond memorizing the training format?
 
-The current answer is conservative. The Qwen2.5-7B LoRA path runs on the private A100 environment, and the train split reaches strict exact match 1.0000. Held-out exact match is still dev 0.5000 / test 0.8333. This means the infrastructure is working, but the next bottleneck is slot-value family generalization, not another broad smoke run.
+The current answer is conservative. The Qwen2.5-7B LoRA path runs on the private A100 environment and emits 100% schema-valid JSON on the current formal public sample, but strict full-contract exact match on the latest formal held-out evidence is only dev 0.3043 / test 0.2899. The infrastructure is real; the current bottleneck is residual route/task-type, safety-recall, and slot-exactness behavior, not another broad smoke run.
 
 ## TL;DR
 
 - Input: Chinese voice commands, ASR transcripts, browser task intent.
 - Output: strict-schema browser task contract JSON.
-- Data: the committed public sample contains 42 SFT rows and 125 DPO preference pairs, split as train/dev/test = 30/6/6.
+- Data: the committed formal public sample contains 77 seeds, 231 SFT rows, and 661 DPO preference pairs, split as train/dev/test = 93/69/69.
 - Model path: Qwen2.5-7B-Instruct + LoRA. Training and prediction evidence comes from a private A100 runtime; weights and adapters are not committed.
-- Latest public evidence: the A100 merged slot-value adapter was restored, and a hardened canonical prompt prediction-only rerun did not improve held-out exact match.
-- Boundary: this repo proves that the data/training/prediction/eval path is real; it does not claim production readiness, private-corpus generalization, live-browser benchmark gains, or a released checkpoint.
+- Latest public evidence: [`a100-formal-public-heldout-prediction`](reports/public-sample/a100-formal-public-heldout-prediction/report.md) is the current-manifest prediction-only dev/test evidence.
+- Boundary: this repo proves that the data/training/prediction/eval path is real; it does not claim held-out recovery, production readiness, private-corpus generalization, live-browser benchmark gains, or a released checkpoint.
 
 ## Current Snapshot
 
 | Item | Status |
 | --- | --- |
-| Public sample | 42 SFT rows, 125 DPO pairs |
-| Public split | train 30 / dev 6 / test 6 |
+| Public sample | 77 seeds, 231 SFT rows, 661 DPO pairs |
+| Public split | train 93 / dev 69 / test 69 |
 | Base model | Qwen/Qwen2.5-7B-Instruct |
-| Adapter state | A100 merged slot-value adapter restored/regenerated, not released |
-| Latest rerun | prediction-only hardened canonical policy rerun |
-| Strict exact match | train 1.0000 / dev 0.5000 / test 0.8333 |
-| Interpretation | held-out unchanged; no model recovery claim |
+| Adapter state | A100 merged slot-value adapter available for private prediction, not released |
+| Latest evidence | formal public held-out prediction-only evaluation |
+| Strict exact match | dev 0.3043 / test 0.2899 |
+| JSON validity | dev 1.0000 / test 1.0000 |
+| Interpretation | partial held-out signal; no recovery or release claim |
 
 ## Positioning
 
@@ -75,11 +76,11 @@ flowchart LR
 
 ## 3-Minute Reviewer Path
 
-1. Read the current boundary: [`reports/public-sample/a100-hardened-canonical-policy-rerun-observed/report.md`](reports/public-sample/a100-hardened-canonical-policy-rerun-observed/report.md).
-2. Check prerequisite adapter evidence: [`reports/public-sample/a100-merged-slot-value-adapter-restore/report.md`](reports/public-sample/a100-merged-slot-value-adapter-restore/report.md).
+1. Read the current boundary: [`reports/public-sample/a100-formal-public-heldout-prediction/report.md`](reports/public-sample/a100-formal-public-heldout-prediction/report.md).
+2. Inspect dev/test strict metrics: [`dev/metrics.md`](reports/public-sample/a100-formal-public-heldout-prediction/dev/metrics.md) and [`test/metrics.md`](reports/public-sample/a100-formal-public-heldout-prediction/test/metrics.md).
 3. Inspect the formal public sample manifest: [`data/public-samples/manifest_public_sample.json`](data/public-samples/manifest_public_sample.json).
-4. Skim the Chinese phase brief: [`docs/human-briefs/2026-06-15-autonomous-loop-restore-and-observe-hardened-rerun.html`](docs/human-briefs/2026-06-15-autonomous-loop-restore-and-observe-hardened-rerun.html).
-5. Inspect the archived OpenSpec change: [`openspec/changes/archive/2026-06-15-observe-a100-hardened-canonical-policy-rerun/proposal.md`](openspec/changes/archive/2026-06-15-observe-a100-hardened-canonical-policy-rerun/proposal.md).
+4. Skim the Chinese phase brief for this documentation refresh: [`docs/human-briefs/2026-06-15-refresh-project-visibility-report.html`](docs/human-briefs/2026-06-15-refresh-project-visibility-report.html).
+5. Inspect the archived OpenSpec change: [`openspec/changes/archive/2026-06-15-evaluate-formal-public-sample-heldout-prediction/proposal.md`](openspec/changes/archive/2026-06-15-evaluate-formal-public-sample-heldout-prediction/proposal.md).
 
 ## Quick Start
 
@@ -151,6 +152,7 @@ Prediction-only private runs should write sanitized public-sample outputs and me
 
 | Evidence | What it proves | What it does not prove |
 | --- | --- | --- |
+| [`a100-formal-public-heldout-prediction`](reports/public-sample/a100-formal-public-heldout-prediction/report.md) | Current formal public manifest prediction-only dev/test evidence: JSON validity 1.0000, strict exact dev 0.3043 / test 0.2899 | Held-out recovery, model recovery, checkpoint release, production readiness |
 | [`a100-merged-slot-value-adapter-restore`](reports/public-sample/a100-merged-slot-value-adapter-restore/report.md) | The private 7B adapter prerequisite was available/regenerated on A100 | Model recovery, checkpoint release, public adapter availability |
 | [`a100-hardened-canonical-policy-rerun-observed`](reports/public-sample/a100-hardened-canonical-policy-rerun-observed/report.md) | Prediction-only rerun emitted schema-valid public-sample contracts and preserved strict metrics | Held-out recovery, evaluator relaxation, semantic scoring |
 | [`a100-merged-slot-value-heldout-eval`](reports/public-sample/a100-merged-slot-value-heldout-eval/report.md) | Earlier merged slot-value adapter evaluation boundary | Production or full private-corpus generalization |
@@ -161,11 +163,12 @@ Prediction-only private runs should write sanitized public-sample outputs and me
 
 `contract_exact_match` is a hard full-contract exact-match metric. `normalized_command` string-mismatch diagnostics are explanatory row-level evidence only: they do not relax, normalize, semantically score, repair, replace, or re-score predictions, and they do not automatically mark Chinese phrase differences such as `搜索/查询` or `明天的天气/明天天气` as equivalent.
 
-The latest result therefore reads as:
+The latest formal public held-out result therefore reads as:
 
-- train exact match = 1.0000: training-path memorization and output format are working;
-- dev exact match = 0.5000 and test exact match = 0.8333: held-out behavior is still uneven;
-- hardened prompt delta = 0.0000 on dev/test: prompt hardening alone did not solve the residuals.
+- JSON validity = 1.0000 on dev/test: schema-constrained output format is working;
+- strict `contract_exact_match` = 0.3043 on dev and 0.2899 on test: full-contract held-out behavior is still partial;
+- strict `slot_f1` = 0.3913 on dev and 0.5072 on test; `slot_f1_soft` = 0.7315 on dev and 0.7609 on test, but soft F1 is internal diagnostic only;
+- route/task-type accuracy = 0.8551 on dev and 0.9130 on test, so residuals are not only slot wording differences.
 
 ## Normalized Command Target Policy
 
@@ -173,12 +176,12 @@ The latest result therefore reads as:
 
 ## Recommended Next Stage
 
-The next useful phase is data generalization rather than another broad rerun:
+The next useful phase is residual/family diagnosis rather than another broad rerun or immediate retraining:
 
-1. expand held-out slot-value families with deliberately varied but schema-stable cases;
-2. keep train/dev/test family separation explicit;
-3. run prediction-only evaluation on the same strict evaluator;
-4. claim progress only if held-out `contract_exact_match` improves without evaluator changes or prediction repair.
+1. inspect dev/test residual rows by family and field path across route, task type, safety, confirmation, and slots;
+2. identify whether failures cluster in clarify, extract, blocked-payment, form-fill, or other families before adding data;
+3. only then propose a bounded data or prompt-policy phase with train/dev/test family separation;
+4. claim progress only if held-out `contract_exact_match` and relevant strict metrics improve without evaluator changes or prediction repair.
 
 ## Validation
 
