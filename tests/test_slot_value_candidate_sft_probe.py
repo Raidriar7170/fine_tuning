@@ -13,6 +13,7 @@ SFT_CONFIG = REPO_ROOT / "configs" / "sft-a100-slot-value-candidate-probe.json"
 PREDICTION_CONFIG = REPO_ROOT / "configs" / "sft-a100-slot-value-candidate-probe-prediction.json"
 FORMAL_PUBLIC_MANIFEST = REPO_ROOT / "data" / "public-samples" / "manifest_public_sample.json"
 PROBE_DIR = REPO_ROOT / "reports" / "public-sample" / "slot-value-candidate-sft-probe"
+A100_PROBE_DIR = REPO_ROOT / "reports" / "public-sample" / "a100-slot-value-candidate-sft-probe"
 MATERIALIZATION_MANIFEST = (
     REPO_ROOT / "reports" / "public-sample" / "slot-value-generalization-materialized-candidates" / "manifest.json"
 )
@@ -156,7 +157,7 @@ def test_candidate_probe_report_cli_writes_blocked_a100_evidence(
     assert evidence["claims"]["held_out_generalization_recovered"] is False
     assert manifest["artifact_policy"]["raw_logs_copied_to_git"] is False
     assert "blocked_missing_train_dependencies" in markdown
-    assert "candidate-only dry-run evidence" in markdown
+    assert "candidate-only evidence" in markdown
     assert scan_paths([output_dir]).ok is True
 
 
@@ -177,3 +178,119 @@ def test_committed_candidate_probe_evidence_is_public_safe_and_non_claiming() ->
     assert manifest["diagnostic_artifacts"]["dry_run_metadata"].endswith("sft-dry-run/adapter_metadata.json")
     assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == {"dpo_pairs": 90, "seed_rows": 10, "sft_rows": 30}
     assert scan_paths([PROBE_DIR, CANDIDATE_MANIFEST, SFT_CONFIG, PREDICTION_CONFIG]).ok is True
+
+
+def test_candidate_probe_report_cli_accepts_observed_a100_training_metadata_safely(
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    raw_training_metadata = tmp_path / "private_training_metadata.json"
+    private_root = "/mnt" + "/data/minghongsun/private"
+    raw_training_metadata.write_text(
+        json.dumps(
+            {
+                "adapter_path": f"{private_root}/runs/candidate/adapter",
+                "dataset_manifest_id": "slot-value-candidate-probe-20260615",
+                "metadata_path": f"{private_root}/runs/candidate/adapter_metadata.json",
+                "output_paths": {"run_output_dir": f"{private_root}/runs/candidate"},
+                "training_row_ids": [
+                    "candidate-blocked-payment-canonical-command",
+                    "candidate-blocked-payment-canonical-command-aug-1",
+                    "candidate-blocked-payment-canonical-command-aug-2",
+                ],
+                "training_rows_used": 12,
+                "training_status": "training_completed",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    metrics_path = tmp_path / "metrics.json"
+    metrics_path.write_text(
+        json.dumps({"metrics": {"contract_exact_match": 1.0, "json_valid_rate": 1.0}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "observed-a100-candidate-probe"
+
+    assert (
+        report_cli.main(
+            [
+                "slot-value-candidate-sft-probe",
+                "--candidate-manifest",
+                CANDIDATE_MANIFEST.as_posix(),
+                "--materialization-manifest",
+                MATERIALIZATION_MANIFEST.as_posix(),
+                "--sft-config",
+                SFT_CONFIG.as_posix(),
+                "--prediction-config",
+                PREDICTION_CONFIG.as_posix(),
+                "--training-metadata",
+                raw_training_metadata.as_posix(),
+                "--metrics",
+                metrics_path.as_posix(),
+                "--a100-ssh-status",
+                "ok",
+                "--a100-output-root-status",
+                "ok",
+                "--a100-idle-gpu-status",
+                "idle_gpu_available",
+                "--a100-selected-gpu-index",
+                "3",
+                "--a100-train-dependencies",
+                "torch,transformers,peft,accelerate,trl,datasets",
+                "--a100-missing-dependencies",
+                "",
+                "--a100-training-status",
+                "training_completed",
+                "--a100-prediction-status",
+                "skipped_training_probe_only",
+                "--remote-workspace-status",
+                "created_under_approved_root",
+                "--dependency-env-status",
+                "ready",
+                "--sync-status",
+                "synced",
+                "--output",
+                output_dir.as_posix(),
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["summary"]["a100_training_status"] == "training_completed"
+    evidence = read_json(output_dir / "slot_value_candidate_sft_probe.json")
+    manifest = read_json(output_dir / "manifest.json")
+    serialized = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
+
+    assert evidence["summary"]["a100_training_status"] == "training_completed"
+    assert evidence["summary"]["a100_prediction_status"] == "skipped_training_probe_only"
+    assert evidence["execution_scope"]["training_run"] is True
+    assert evidence["execution_scope"]["prediction_run"] is False
+    assert evidence["remote_execution"]["dependency_env_status"] == "ready"
+    assert evidence["training_metadata"]["adapter_path"] == "<private_path>"
+    assert evidence["metrics"]["metrics"]["contract_exact_match"] == 1.0
+    assert evidence["claims"]["held_out_generalization_recovered"] is False
+    assert manifest["artifact_policy"]["checkpoints_or_adapters_copied_to_git"] is False
+    assert manifest["diagnostic_artifacts"]["metrics"] == "<private_path>"
+    assert "/mnt/data/" not in serialized
+    assert scan_paths([output_dir]).ok is True
+
+
+def test_committed_a100_candidate_probe_evidence_is_public_safe_and_non_claiming() -> None:
+    evidence = read_json(A100_PROBE_DIR / "slot_value_candidate_sft_probe.json")
+    manifest = read_json(A100_PROBE_DIR / "manifest.json")
+
+    assert evidence["summary"]["candidate_sft_rows"] == 12
+    assert evidence["summary"]["formal_public_sample_modified"] is False
+    assert evidence["summary"]["a100_training_status"] == "training_completed"
+    assert evidence["summary"]["a100_prediction_status"] == "private_adapter_predictions_written"
+    assert evidence["execution_scope"]["training_run"] is True
+    assert evidence["execution_scope"]["prediction_run"] is True
+    assert evidence["metrics"]["metrics"]["contract_exact_match"] == 1.0
+    assert evidence["claims"]["held_out_generalization_recovered"] is False
+    assert manifest["artifact_policy"]["raw_logs_copied_to_git"] is False
+    assert manifest["artifact_policy"]["training_run"] is True
+    assert manifest["artifact_policy"]["prediction_run"] is True
+    assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == {"dpo_pairs": 90, "seed_rows": 10, "sft_rows": 30}
+    assert scan_paths([A100_PROBE_DIR]).ok is True

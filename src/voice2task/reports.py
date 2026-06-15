@@ -9,7 +9,7 @@ from voice2task.evaluation import EvaluationResult
 from voice2task.io import write_json, write_jsonl
 from voice2task.schemas import PRIVATE_IP_RE, PRIVATE_PATH_RE, SECRET_RE
 
-PRIVATE_REPORT_PATH_RE = re.compile(r"(/(?:mnt/data|Users|root|tmp|private)/[^\s\"')]+)")
+PRIVATE_REPORT_PATH_RE = re.compile(r"(/(?:mnt/data|Users|root|tmp|private)/[^\s\"')]+|data/local-private/[^\s\"')]+)")
 
 
 def write_metrics_report(
@@ -1945,13 +1945,11 @@ def write_slot_value_generalization_materialization_report(
 
 def write_slot_value_candidate_sft_probe_report(
     *,
-    dry_run_metadata: dict[str, Any],
     candidate_manifest: dict[str, Any],
     materialization_manifest: dict[str, Any],
     sft_config: dict[str, Any],
     prediction_config: dict[str, Any],
     output_dir: Path,
-    dry_run_metadata_path: Path,
     candidate_manifest_path: Path,
     materialization_manifest_path: Path,
     sft_config_path: Path,
@@ -1962,6 +1960,19 @@ def write_slot_value_candidate_sft_probe_report(
     a100_selected_gpu_index: str,
     a100_train_dependencies: list[str],
     a100_missing_dependencies: list[str],
+    dry_run_metadata: dict[str, Any] | None = None,
+    training_metadata: dict[str, Any] | None = None,
+    prediction_metadata: dict[str, Any] | None = None,
+    metrics: dict[str, Any] | None = None,
+    dry_run_metadata_path: Path | None = None,
+    training_metadata_path: Path | None = None,
+    prediction_metadata_path: Path | None = None,
+    metrics_path: Path | None = None,
+    a100_training_status: str | None = None,
+    a100_prediction_status: str | None = None,
+    remote_workspace_status: str = "not_recorded",
+    dependency_env_status: str = "not_recorded",
+    sync_status: str = "not_recorded",
     title: str = "Voice2Task slot value candidate SFT probe",
 ) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1969,28 +1980,54 @@ def write_slot_value_candidate_sft_probe_report(
     markdown_path = output_dir / "slot_value_candidate_sft_probe.md"
     manifest_path = output_dir / "manifest.json"
 
-    safe_dry_run = _sanitize_report_value(dry_run_metadata)
+    safe_dry_run = _sanitize_report_value(dry_run_metadata or {})
+    safe_training = _sanitize_report_value(training_metadata or {})
+    safe_prediction = _sanitize_report_value(prediction_metadata or {})
+    safe_metrics = _sanitize_report_value(metrics or {})
     safe_candidate_manifest = _sanitize_report_value(candidate_manifest)
     safe_materialization_manifest = _sanitize_report_value(materialization_manifest)
     safe_sft_config = _sanitize_report_value(sft_config)
     safe_prediction_config = _sanitize_report_value(prediction_config)
 
     counts = safe_candidate_manifest.get("counts", {}) if isinstance(safe_candidate_manifest, dict) else {}
-    candidate_sft_rows = int(counts.get("sft_rows", safe_dry_run.get("training_rows_used", 0)))
-    selected_rows = int(safe_dry_run.get("training_rows_used", 0))
+    candidate_sft_rows = int(counts.get("sft_rows", 0))
+    selected_rows = int(
+        safe_training.get(
+            "training_rows_used",
+            safe_dry_run.get("training_rows_used", candidate_sft_rows),
+        )
+    )
     missing_dependencies = list(a100_missing_dependencies)
-    training_status = "blocked_missing_train_dependencies" if missing_dependencies else "ready_for_private_a100_execution"
+    if a100_training_status:
+        training_status = a100_training_status
+    elif missing_dependencies:
+        training_status = "blocked_missing_train_dependencies"
+    elif isinstance(safe_training, dict) and safe_training.get("training_status"):
+        training_status = str(safe_training["training_status"])
+    else:
+        training_status = "ready_for_private_a100_execution"
+    if a100_prediction_status:
+        prediction_status = a100_prediction_status
+    elif isinstance(safe_prediction, dict) and safe_prediction.get("prediction_status"):
+        prediction_status = str(safe_prediction["prediction_status"])
+    elif training_status == "training_completed":
+        prediction_status = "not_attempted"
+    else:
+        prediction_status = "skipped_training_not_completed"
 
     summary = {
         "candidate_sft_rows": candidate_sft_rows,
         "selected_candidate_training_rows": selected_rows,
         "formal_public_sample_modified": bool(safe_candidate_manifest.get("formal_public_sample_modified", False)),
         "a100_training_status": training_status,
+        "a100_prediction_status": prediction_status,
         "local_dry_run_status": safe_dry_run.get("training_status", "unknown"),
-        "recommended_next_step": (
-            "prepare_private_a100_train_environment_then_run_candidate_probe"
-            if missing_dependencies
-            else "run_private_a100_candidate_probe"
+        "recommended_next_step": "prepare_private_a100_train_environment_then_run_candidate_probe"
+        if missing_dependencies
+        else (
+            "decide_candidate_merge_or_heldout_strategy"
+            if prediction_status == "private_adapter_predictions_written"
+            else ("run_candidate_train_prediction" if training_status == "training_completed" else "run_private_a100_candidate_probe")
         ),
     }
     a100_preflight = {
@@ -2005,14 +2042,25 @@ def write_slot_value_candidate_sft_probe_report(
         and a100_output_root_status == "ok"
         and a100_idle_gpu_status == "idle_gpu_available",
     }
+    remote_execution = {
+        "remote_workspace_status": remote_workspace_status,
+        "dependency_env_status": dependency_env_status,
+        "sync_status": sync_status,
+        "training_status": training_status,
+        "prediction_status": prediction_status,
+    }
+    training_run = training_status == "training_completed"
+    training_attempted = training_status in {"training_completed", "training_failed"}
+    prediction_run = prediction_status in {"prediction_completed", "completed", "private_adapter_predictions_written"}
     execution_scope = {
-        "candidate_only_dry_run": True,
+        "candidate_only_scope": True,
+        "candidate_only_dry_run": bool(safe_dry_run) and not training_run,
         "formal_public_sample_modified": summary["formal_public_sample_modified"],
-        "training_run": False,
-        "prediction_run": False,
+        "training_run": training_run,
+        "prediction_run": prediction_run,
         "dpo_run": False,
-        "a100_training_launched": False,
-        "a100_prediction_launched": False,
+        "a100_training_launched": training_attempted,
+        "a100_prediction_launched": prediction_run or prediction_status == "prediction_failed",
         "evaluator_metric_change": False,
     }
     claims = {
@@ -2025,7 +2073,12 @@ def write_slot_value_candidate_sft_probe_report(
         "live_browser_benchmark_claim": False,
     }
     artifact_files = {
-        "dry_run_metadata": dry_run_metadata_path.as_posix(),
+        "dry_run_metadata": dry_run_metadata_path.as_posix() if dry_run_metadata_path is not None else "not_provided",
+        "training_metadata": training_metadata_path.as_posix() if training_metadata_path is not None else "not_provided",
+        "prediction_metadata": prediction_metadata_path.as_posix()
+        if prediction_metadata_path is not None
+        else "not_provided",
+        "metrics": metrics_path.as_posix() if metrics_path is not None else "not_provided",
         "candidate_manifest": candidate_manifest_path.as_posix(),
         "materialization_manifest": materialization_manifest_path.as_posix(),
         "sft_config": sft_config_path.as_posix(),
@@ -2035,25 +2088,34 @@ def write_slot_value_candidate_sft_probe_report(
         "manifest": manifest_path.as_posix(),
     }
     safe_artifact_files = _sanitize_report_value(artifact_files)
+    limitations = [
+        "formal public sample files remain unchanged",
+        "candidate train-split evidence does not prove held-out generalization",
+    ]
+    if training_run:
+        limitations.append("A100 adapters, checkpoints, caches, private overrides, host details, and raw logs remain private")
+    else:
+        limitations.append("candidate-only dry-run or preflight evidence is not SFT learning evidence")
+    if missing_dependencies:
+        limitations.append("blocked_missing_train_dependencies means no private A100 training or prediction was launched")
     evidence = {
         "evidence_kind": "slot_value_candidate_sft_probe",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "summary": summary,
         "a100_preflight": a100_preflight,
+        "remote_execution": remote_execution,
         "execution_scope": execution_scope,
         "claims": claims,
         "dry_run_metadata": safe_dry_run,
+        "training_metadata": safe_training,
+        "prediction_metadata": safe_prediction,
+        "metrics": safe_metrics,
         "candidate_manifest": safe_candidate_manifest,
         "materialization_manifest": safe_materialization_manifest,
         "sft_config": safe_sft_config,
         "prediction_config": safe_prediction_config,
         "artifact_files": safe_artifact_files,
-        "limitations": [
-            "candidate-only dry-run evidence is not SFT learning evidence",
-            "blocked_missing_train_dependencies means no private A100 training or prediction was launched",
-            "formal public sample files remain unchanged",
-            "held-out generalization remains unproven",
-        ],
+        "limitations": limitations,
     }
     safe_evidence = _sanitize_report_value(evidence)
     if not isinstance(safe_evidence, dict):
@@ -2065,6 +2127,7 @@ def write_slot_value_candidate_sft_probe_report(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "summary": summary,
         "a100_preflight": a100_preflight,
+        "remote_execution": remote_execution,
         "execution_scope": execution_scope,
         "claims": claims,
         "source_candidate_manifest_id": safe_candidate_manifest.get("manifest_id"),
@@ -2072,8 +2135,8 @@ def write_slot_value_candidate_sft_probe_report(
         "artifact_policy": {
             "candidate_only": True,
             "formal_public_sample_files_modified": False,
-            "training_run": False,
-            "prediction_run": False,
+            "training_run": training_run,
+            "prediction_run": prediction_run,
             "dpo_run": False,
             "raw_logs_copied_to_git": False,
             "checkpoints_or_adapters_copied_to_git": False,
@@ -2090,24 +2153,31 @@ def write_slot_value_candidate_sft_probe_report(
         f"# {title}",
         "",
         (
-            "This is candidate-only dry-run evidence for the standalone slot value candidate SFT rows. "
-            "It records row selection and A100 readiness only; it does not publish adapter outputs or claim "
-            "model recovery."
+            "This is candidate-only evidence for the standalone slot value candidate SFT rows. "
+            "It records dry-run, blocked, failed, or observed A100 execution status without publishing adapters "
+            "or claiming held-out model recovery."
         ),
         "",
         "## Boundary",
         "",
         "- Formal public sample seed, SFT, DPO, and manifest files are unchanged.",
-        "- No DPO training, SFT training, prediction run, checkpoint release, or adapter release is claimed.",
+        "- No DPO training, checkpoint release, or adapter release is claimed.",
+        (
+            "- A100 SFT/prediction execution is recorded, but adapters, checkpoints, raw logs, caches, host "
+            "details, private overrides, and private paths remain outside git."
+            if training_run or prediction_run
+            else "- No SFT training or prediction run is claimed unless observed metadata is present."
+        ),
         "- strict `contract_exact_match` remains primary; no evaluator relaxation is introduced.",
         "- This is not held-out, private-corpus, production-readiness, or live-browser evidence.",
         "",
         "## Summary",
         "",
         f"- Candidate SFT rows: `{summary['candidate_sft_rows']}`",
-        f"- Selected dry-run training rows: `{summary['selected_candidate_training_rows']}`",
+        f"- Selected candidate training rows: `{summary['selected_candidate_training_rows']}`",
         f"- Formal public sample modified: `{summary['formal_public_sample_modified']}`",
         f"- A100 training status: `{summary['a100_training_status']}`",
+        f"- A100 prediction status: `{summary['a100_prediction_status']}`",
         f"- Recommended next step: `{summary['recommended_next_step']}`",
         "",
         "## A100 Preflight",
@@ -2120,9 +2190,20 @@ def write_slot_value_candidate_sft_probe_report(
         f"- Missing train dependencies: `{a100_preflight['missing_train_dependencies']}`",
         f"- Safe to launch training now: `{a100_preflight['safe_to_launch_training']}`",
         "",
+        "## Remote Execution",
+        "",
+        f"- Workspace status: `{remote_execution['remote_workspace_status']}`",
+        f"- Dependency environment status: `{remote_execution['dependency_env_status']}`",
+        f"- Sync status: `{remote_execution['sync_status']}`",
+        f"- Training status: `{remote_execution['training_status']}`",
+        f"- Prediction status: `{remote_execution['prediction_status']}`",
+        "",
         "## Evidence",
         "",
         f"- Dry-run metadata: `{safe_artifact_files['dry_run_metadata']}`",
+        f"- Training metadata: `{safe_artifact_files['training_metadata']}`",
+        f"- Prediction metadata: `{safe_artifact_files['prediction_metadata']}`",
+        f"- Metrics: `{safe_artifact_files['metrics']}`",
         f"- Candidate manifest: `{safe_artifact_files['candidate_manifest']}`",
         f"- SFT config: `{safe_artifact_files['sft_config']}`",
         f"- Prediction config: `{safe_artifact_files['prediction_config']}`",

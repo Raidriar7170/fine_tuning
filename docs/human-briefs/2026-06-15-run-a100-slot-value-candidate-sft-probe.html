@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A100 Slot Value Candidate SFT Probe Brief</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9e0ea;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --warn: #a16207;
+      --bad: #b91c1c;
+      --good: #047857;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #ecfdf5; color: var(--good); border: 1px solid #a7f3d0; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .good { color: var(--good); font-weight: 600; }
+    .bad { color: var(--bad); font-weight: 600; }
+    .warn { color: var(--warn); font-weight: 600; }
+    .small { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>A100 Slot Value Candidate SFT Probe</h1>
+  <div class="status">状态：archived，A100 真实 candidate-only probe 已完成并归档</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>7B candidate-only SFT 在 A100 上完成，随后对 12 条 candidate train rows 做 prediction，train-split <code>contract_exact_match=1.0</code>；这证明候选集可被当前训练路径学会，但仍不是 held-out 泛化或正式语气恢复结论。</p>
+  </section>
+
+  <section class="grid" aria-label="key metrics">
+    <div class="metric"><b>12</b><span>candidate train rows</span></div>
+    <div class="metric"><b class="good">1.0</b><span>train contract exact match</span></div>
+    <div class="metric"><b class="good">1.0</b><span>train json valid rate</span></div>
+    <div class="metric"><b class="bad">0</b><span>formal public sample files modified</span></div>
+  </section>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>在 A100 approved private root 下创建阶段 workspace、venv、cache、tmp、runs、evidence 目录。</li>
+    <li>在私有 venv 中补齐 <code>datasets</code> 和 <code>trl==1.5.1</code>，使用已有 torch / transformers / peft / accelerate。</li>
+    <li>同步最小项目快照到阶段 workspace，没有覆盖既有远端项目目录。</li>
+    <li>用 GPU 3 运行 7B candidate-only SFT，训练 12 条 standalone candidate SFT rows。</li>
+    <li>用产生的私有 adapter 对 candidate train split 做 prediction，并计算 contract metrics。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <table>
+    <thead><tr><th>证据</th><th>结果</th><th>解释边界</th></tr></thead>
+    <tbody>
+      <tr><td>SFT status</td><td><code>training_completed</code></td><td>真实 A100 SFT 完成；adapter/checkpoint/raw logs 未提交</td></tr>
+      <tr><td>Prediction status</td><td><code>private_adapter_predictions_written</code></td><td>只对 candidate train split 12 行预测</td></tr>
+      <tr><td>Metrics</td><td><code>contract_exact_match=1.0</code>, <code>json_valid_rate=1.0</code>, <code>slot_f1=1.0</code></td><td>train-split learnability evidence，不是 dev/test</td></tr>
+      <tr><td>Formal sample boundary</td><td>10 seed / 30 SFT / 90 DPO unchanged</td><td>候选数据仍未 merge 进 formal public sample</td></tr>
+    </tbody>
+  </table>
+
+  <h2>源文件和证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-slot-value-candidate-sft-probe/slot_value_candidate_sft_probe.json">A100 candidate probe evidence JSON</a></li>
+    <li><a href="../../reports/public-sample/a100-slot-value-candidate-sft-probe/slot_value_candidate_sft_probe.md">A100 candidate probe evidence Markdown</a></li>
+    <li><a href="../../reports/public-sample/a100-slot-value-candidate-sft-probe/manifest.json">A100 candidate probe manifest</a></li>
+    <li><a href="../../data/public-samples/manifest_slot_value_candidate_probe.json">Candidate-only manifest</a></li>
+    <li><a href="../../configs/sft-a100-slot-value-candidate-probe.json">Public SFT template</a></li>
+    <li><a href="../../configs/sft-a100-slot-value-candidate-probe-prediction.json">Public prediction template</a></li>
+  </ul>
+
+  <h2>验证命令</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_slot_value_candidate_sft_probe.py</code>：<code>6 passed</code>。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan ...</code>：public-safe scan passed。</li>
+    <li>后续归档前还会跑 full pytest、formal public sample validate、OpenSpec strict validate 和 <code>git diff --check</code>。</li>
+  </ul>
+
+  <h2>不要夸大的点</h2>
+  <ul>
+    <li>这说明 12 条候选训练行在当前 7B SFT 路径上可学会，不说明 dev/test held-out generalization。</li>
+    <li>这还不能直接说“达到一开始想要的语气”；语气需要 formal sample merge 后再看 held-out 和真实任务覆盖。</li>
+    <li>没有 DPO/GRPO，没有 evaluator 放宽，没有提交 adapter/checkpoint/raw logs。</li>
+    <li>soft slot F1 仍是诊断指标；主判断仍看 strict <code>contract_exact_match</code>。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>现在可以进入用户决策点：要么把候选数据 merge 进 formal public sample 并重建 SFT/DPO，再跑 held-out；要么继续扩展 candidate family 覆盖后再 merge。因为下一步会改变正式训练数据面和成功标准，建议停下来确认。</p>
+  <p class="small">Generated from <code>reports/public-sample/a100-slot-value-candidate-sft-probe</code> and OpenSpec change <code>run-a100-slot-value-candidate-sft-probe</code>.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-15T03:47:10.912588+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-slot-value-candidate-sft-probe",
+    "tests/test_slot_value_candidate_sft_probe.py",
+    "src/voice2task/reports.py",
+    "src/voice2task/cli/report.py",
+    "openspec/changes/archive/2026-06-15-run-a100-slot-value-candidate-sft-probe",
+    "docs/human-briefs/2026-06-15-run-a100-slot-value-candidate-sft-probe.html",
+    "openspec/specs/supervised-contract-tuning/spec.md",
+    "openspec/specs/contract-evaluation/spec.md"
+  ]
+}

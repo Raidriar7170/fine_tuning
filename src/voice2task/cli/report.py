@@ -53,7 +53,10 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_check.add_argument("--expected-manifest-id")
     runtime_check.add_argument("--prior-artifact", action="append", default=[])
     candidate_probe = subcommands.add_parser("slot-value-candidate-sft-probe")
-    candidate_probe.add_argument("--dry-run-metadata", type=Path, required=True)
+    candidate_probe.add_argument("--dry-run-metadata", type=Path)
+    candidate_probe.add_argument("--training-metadata", type=Path)
+    candidate_probe.add_argument("--prediction-metadata", type=Path)
+    candidate_probe.add_argument("--metrics", type=Path)
     candidate_probe.add_argument("--candidate-manifest", type=Path, required=True)
     candidate_probe.add_argument("--materialization-manifest", type=Path, required=True)
     candidate_probe.add_argument("--sft-config", type=Path, required=True)
@@ -64,6 +67,11 @@ def build_parser() -> argparse.ArgumentParser:
     candidate_probe.add_argument("--a100-selected-gpu-index", required=True)
     candidate_probe.add_argument("--a100-train-dependencies", default="")
     candidate_probe.add_argument("--a100-missing-dependencies", default="")
+    candidate_probe.add_argument("--a100-training-status")
+    candidate_probe.add_argument("--a100-prediction-status")
+    candidate_probe.add_argument("--remote-workspace-status", default="not_recorded")
+    candidate_probe.add_argument("--dependency-env-status", default="not_recorded")
+    candidate_probe.add_argument("--sync-status", default="not_recorded")
     candidate_probe.add_argument("--output", type=Path, required=True)
     return parser
 
@@ -152,13 +160,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "slot-value-candidate-sft-probe":
         report_paths = write_slot_value_candidate_sft_probe_report(
-            dry_run_metadata=read_json(args.dry_run_metadata),
             candidate_manifest=read_json(args.candidate_manifest),
             materialization_manifest=read_json(args.materialization_manifest),
             sft_config=read_json(args.sft_config),
             prediction_config=read_json(args.prediction_config),
             output_dir=args.output,
-            dry_run_metadata_path=args.dry_run_metadata,
             candidate_manifest_path=args.candidate_manifest,
             materialization_manifest_path=args.materialization_manifest,
             sft_config_path=args.sft_config,
@@ -169,6 +175,19 @@ def main(argv: list[str] | None = None) -> int:
             a100_selected_gpu_index=args.a100_selected_gpu_index,
             a100_train_dependencies=_comma_list(args.a100_train_dependencies),
             a100_missing_dependencies=_comma_list(args.a100_missing_dependencies),
+            dry_run_metadata=read_json(args.dry_run_metadata) if args.dry_run_metadata else None,
+            training_metadata=read_json(args.training_metadata) if args.training_metadata else None,
+            prediction_metadata=read_json(args.prediction_metadata) if args.prediction_metadata else None,
+            metrics=read_json(args.metrics) if args.metrics else None,
+            dry_run_metadata_path=args.dry_run_metadata,
+            training_metadata_path=args.training_metadata,
+            prediction_metadata_path=args.prediction_metadata,
+            metrics_path=args.metrics,
+            a100_training_status=args.a100_training_status,
+            a100_prediction_status=args.a100_prediction_status,
+            remote_workspace_status=args.remote_workspace_status,
+            dependency_env_status=args.dependency_env_status,
+            sync_status=args.sync_status,
         )
         evidence = read_json(report_paths["json"])
         print(
