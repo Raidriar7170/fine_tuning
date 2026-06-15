@@ -1881,18 +1881,30 @@ def write_slot_value_generalization_materialization_report(
     write_json(manifest_path, manifest)
 
     summary = safe_materialization["summary"]
+    formal_has_candidates = bool(summary.get("formal_public_sample_has_slot_value_candidates"))
+    materialization_scope = (
+        "This is candidate data only: it materializes reviewed slot value generalization cases into a "
+        "standalone public-safe candidate dataset. This command does not rewrite formal public sample files; "
+        "the current formal public sample already records a later approved candidate merge."
+        if formal_has_candidates
+        else "This is candidate data only: it materializes reviewed slot value generalization cases into a "
+        "standalone public-safe candidate dataset, not merged into seed_traces.jsonl and not used as "
+        "training evidence yet."
+    )
+    formal_boundary = (
+        "- This materialization command does not rewrite formal public sample files; current formal sample "
+        "state is reported separately."
+        if formal_has_candidates
+        else "- Candidate rows are not formal public sample rows yet."
+    )
     lines = [
         f"# {title}",
         "",
-        (
-            "This is candidate data only: it materializes reviewed slot value generalization cases into a "
-            "standalone public-safe candidate dataset, not merged into seed_traces.jsonl and not used as "
-            "training evidence yet."
-        ),
+        materialization_scope,
         "",
         "## Boundary",
         "",
-        "- Candidate rows are not formal public sample rows yet.",
+        formal_boundary,
         "- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.",
         "- No DPO pairs, SFT training, prediction run, or A100 execution is performed.",
         "- strict `contract_exact_match` remains primary.",
@@ -2210,6 +2222,278 @@ def write_slot_value_candidate_sft_probe_report(
     ]
     markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
+def _metric_value(metrics_payload: dict[str, Any], name: str, default: float = 0.0) -> float:
+    metrics = metrics_payload.get("metrics")
+    if not isinstance(metrics, dict):
+        return default
+    value = metrics.get(name, default)
+    return float(value) if isinstance(value, int | float) else default
+
+
+def _failure_slice_count(metrics_payload: dict[str, Any], name: str) -> int:
+    slices = metrics_payload.get("failure_slices")
+    if not isinstance(slices, dict):
+        return 0
+    entry = slices.get(name)
+    if not isinstance(entry, dict):
+        return 0
+    value = entry.get("count", 0)
+    return int(value) if isinstance(value, int) else 0
+
+
+def _merged_split_result(
+    *,
+    split: str,
+    metrics_payload: dict[str, Any],
+    prediction_metadata: dict[str, Any],
+    public_manifest: dict[str, Any],
+    metrics_path: Path,
+    prediction_metadata_path: Path | None,
+) -> dict[str, Any]:
+    split_counts = public_manifest.get("split_counts", {})
+    prediction_count = prediction_metadata.get("prediction_count")
+    if not isinstance(prediction_count, int):
+        prediction_count = int(split_counts.get(split, 0)) if isinstance(split_counts, dict) else 0
+    exact = _metric_value(metrics_payload, "contract_exact_match")
+    residual_rows = max(0, prediction_count - round(prediction_count * exact))
+    return {
+        "prediction_split": split,
+        "prediction_count": prediction_count,
+        "contract_exact_match": exact,
+        "json_valid_rate": _metric_value(metrics_payload, "json_valid_rate"),
+        "slot_f1": _metric_value(metrics_payload, "slot_f1"),
+        "slot_f1_soft": _metric_value(metrics_payload, "slot_f1_soft"),
+        "task_type_accuracy": _metric_value(metrics_payload, "task_type_accuracy"),
+        "route_accuracy": _metric_value(metrics_payload, "route_accuracy"),
+        "safety_precision": _metric_value(metrics_payload, "safety_precision"),
+        "safety_recall": _metric_value(metrics_payload, "safety_recall"),
+        "confirmation_accuracy": _metric_value(metrics_payload, "confirmation_accuracy"),
+        "schema_invalid_prediction_count": _failure_slice_count(metrics_payload, "schema"),
+        "residual_row_count": residual_rows,
+        "failure_slice_counts": {
+            name: _failure_slice_count(metrics_payload, name)
+            for name in ("schema", "task_type", "route", "safety", "confirmation", "slot", "unknown")
+        },
+        "artifact_paths": {
+            "metrics": metrics_path.as_posix(),
+            "prediction_metadata": prediction_metadata_path.as_posix() if prediction_metadata_path else "not_provided",
+        },
+    }
+
+
+def _prior_targeted_exact(prior_targeted_manifest: dict[str, Any] | None) -> dict[str, float]:
+    if not prior_targeted_manifest:
+        return {"train": 0.0, "dev": 0.0, "test": 0.0}
+    comparison = prior_targeted_manifest.get("comparison")
+    if isinstance(comparison, dict) and isinstance(comparison.get("targeted_family_coverage_exact"), dict):
+        return {
+            split: float(comparison["targeted_family_coverage_exact"].get(split, 0.0))
+            for split in ("train", "dev", "test")
+        }
+    split_results = prior_targeted_manifest.get("split_results")
+    if isinstance(split_results, dict):
+        return {
+            split: float((split_results.get(split) or {}).get("contract_exact_match", 0.0))
+            for split in ("train", "dev", "test")
+        }
+    return {"train": 0.0, "dev": 0.0, "test": 0.0}
+
+
+def _merged_slot_value_interpretation(split_results: dict[str, dict[str, Any]], prior_exact: dict[str, float]) -> str:
+    heldout_splits = ("dev", "test")
+    heldout_exact = {split: float(split_results[split]["contract_exact_match"]) for split in heldout_splits}
+    if all(value >= 1.0 for value in heldout_exact.values()):
+        return "merged_slot_value_public_heldout_recovered"
+    if any(heldout_exact[split] < prior_exact.get(split, 0.0) for split in heldout_splits):
+        return "merged_slot_value_heldout_regressed"
+    if any(heldout_exact[split] > prior_exact.get(split, 0.0) for split in heldout_splits):
+        return "merged_slot_value_heldout_improved_partial"
+    return "merged_slot_value_heldout_stayed_partial"
+
+
+def _public_base_model_from_training_metadata(safe_training: dict[str, Any]) -> str:
+    hyperparameters = safe_training.get("hyperparameters")
+    if isinstance(hyperparameters, dict):
+        public_id = hyperparameters.get("base_model_public_id")
+        if isinstance(public_id, str) and public_id:
+            return public_id
+    public_id = safe_training.get("base_model_public_id")
+    if isinstance(public_id, str) and public_id:
+        return public_id
+    base_model = safe_training.get("base_model")
+    if isinstance(base_model, str) and base_model and base_model != "<private_path>":
+        return base_model
+    return "Qwen/Qwen2.5-7B-Instruct"
+
+
+def _public_merged_training_metadata(training_metadata: dict[str, Any] | None) -> dict[str, Any]:
+    raw_training = dict(training_metadata or {})
+    notes = raw_training.get("notes")
+    if isinstance(notes, str):
+        raw_training["notes"] = notes.replace(
+            "SFT training ran locally",
+            "SFT training ran in the private A100 runtime",
+        )
+    safe_training = _sanitize_report_value(raw_training)
+    if not isinstance(safe_training, dict):
+        return {}
+    safe_training["base_model"] = _public_base_model_from_training_metadata(safe_training)
+    return safe_training
+
+
+def write_merged_slot_value_heldout_eval_report(
+    *,
+    public_manifest: dict[str, Any],
+    training_metadata: dict[str, Any] | None,
+    metrics_by_split: dict[str, dict[str, Any]],
+    prediction_metadata_by_split: dict[str, dict[str, Any] | None],
+    output_dir: Path,
+    metrics_paths: dict[str, Path],
+    prediction_metadata_paths: dict[str, Path | None],
+    prior_targeted_manifest: dict[str, Any] | None = None,
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "merged_slot_value_heldout_eval.json"
+    manifest_path = output_dir / "manifest.json"
+    report_path = output_dir / "report.md"
+    safe_training = _public_merged_training_metadata(training_metadata)
+    safe_prediction_metadata = _sanitize_report_value(prediction_metadata_by_split)
+    split_results = {
+        split: _merged_split_result(
+            split=split,
+            metrics_payload=metrics_by_split[split],
+            prediction_metadata=prediction_metadata_by_split.get(split) or {},
+            public_manifest=public_manifest,
+            metrics_path=metrics_paths[split],
+            prediction_metadata_path=prediction_metadata_paths.get(split),
+        )
+        for split in ("train", "dev", "test")
+    }
+    prior_exact = _prior_targeted_exact(prior_targeted_manifest)
+    interpretation = _merged_slot_value_interpretation(split_results, prior_exact)
+    dev_test_improved = {
+        split: split_results[split]["contract_exact_match"] > prior_exact.get(split, 0.0)
+        for split in ("dev", "test")
+    }
+    heldout_recovered = interpretation == "merged_slot_value_public_heldout_recovered"
+    evidence = {
+        "evidence_kind": "a100_merged_slot_value_heldout_eval",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "base_model": _public_base_model_from_training_metadata(safe_training),
+        "dataset_manifest_id": public_manifest.get("manifest_id"),
+        "formal_public_sample_counts": public_manifest.get("counts", {}),
+        "formal_public_sample_split_counts": public_manifest.get("split_counts", {}),
+        "formal_public_sample_source_summary": public_manifest.get("source_summary", {}),
+        "training_status": safe_training.get("training_status", "not_recorded"),
+        "training_rows_used": safe_training.get("training_rows_used"),
+        "prediction_source_kind": "private_a100_adapter",
+        "prediction_splits": ["train", "dev", "test"],
+        "primary_evidence_splits": ["dev", "test"],
+        "split_results": split_results,
+        "comparison": {
+            "prior_targeted_family_coverage_exact": prior_exact,
+            "merged_slot_value_exact": {
+                split: split_results[split]["contract_exact_match"] for split in ("train", "dev", "test")
+            },
+            "dev_test_improved_from_prior_targeted": dev_test_improved,
+        },
+        "overall_interpretation": interpretation,
+        "claims": {
+            "merged_slot_value_candidates": True,
+            "held_out_generalization_recovered": heldout_recovered,
+            "model_recovery_claim": False,
+            "private_corpus_generalization_claim": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+            "semantic_equivalence_primary_metric": False,
+            "soft_slot_f1_primary_metric": False,
+            "evaluator_relaxation": False,
+            "prediction_repair_or_replacement": False,
+        },
+        "artifact_policy": {
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "remote_caches_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "private_corpus_rows_omitted": True,
+        },
+        "training_metadata": safe_training,
+        "prediction_metadata_by_split": safe_prediction_metadata,
+    }
+    safe_evidence = _sanitize_report_value(evidence)
+    write_json(json_path, safe_evidence)
+    manifest = {
+        "evidence_kind": "a100_merged_slot_value_heldout_eval",
+        "generated_at": safe_evidence["generated_at"],
+        "dataset_manifest_id": safe_evidence["dataset_manifest_id"],
+        "formal_public_sample_counts": safe_evidence["formal_public_sample_counts"],
+        "prediction_splits": safe_evidence["prediction_splits"],
+        "primary_evidence_splits": safe_evidence["primary_evidence_splits"],
+        "split_results": safe_evidence["split_results"],
+        "comparison": safe_evidence["comparison"],
+        "overall_interpretation": safe_evidence["overall_interpretation"],
+        "claims": safe_evidence["claims"],
+        "artifact_policy": safe_evidence["artifact_policy"],
+        "diagnostic_artifacts": {
+            "evidence": "reports/public-sample/a100-merged-slot-value-heldout-eval/merged_slot_value_heldout_eval.json",
+            "manifest": "reports/public-sample/a100-merged-slot-value-heldout-eval/manifest.json",
+            "report": "reports/public-sample/a100-merged-slot-value-heldout-eval/report.md",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    lines = [
+        "# A100 merged slot value held-out evaluation",
+        "",
+        (
+            "Status: merged-candidate public-sample SFT evaluation. Train split is learnability evidence; "
+            "dev/test strict exact is the primary held-out signal."
+        ),
+        "",
+        "## Scope",
+        "",
+        f"- Dataset manifest: `{safe_evidence['dataset_manifest_id']}`",
+        f"- Formal public sample counts: `{safe_evidence['formal_public_sample_counts']}`",
+        f"- Training status: `{safe_evidence['training_status']}`",
+        f"- Overall interpretation: `{safe_evidence['overall_interpretation']}`",
+        "",
+        "## Split Results",
+        "",
+        "| split | rows | contract_exact_match | slot_f1 | json_valid_rate | residual rows |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for split in ("train", "dev", "test"):
+        result = safe_evidence["split_results"][split]
+        lines.append(
+            f"| {split} | {result['prediction_count']} | {result['contract_exact_match']:.4f} | "
+            f"{result['slot_f1']:.4f} | {result['json_valid_rate']:.4f} | {result['residual_row_count']} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Comparison",
+            "",
+            f"- Prior targeted family coverage exact: `{safe_evidence['comparison']['prior_targeted_family_coverage_exact']}`",
+            f"- Merged slot value exact: `{safe_evidence['comparison']['merged_slot_value_exact']}`",
+            f"- Dev/test improved from prior targeted: `{safe_evidence['comparison']['dev_test_improved_from_prior_targeted']}`",
+            "",
+            "## Boundary",
+            "",
+            "- strict `contract_exact_match` remains primary.",
+            "- Soft slot F1 and semantic equivalence remain diagnostic-only.",
+            "- Predictions are not repaired, replaced, normalized, or re-scored.",
+            "- This is not a checkpoint release, adapter release, production-readiness claim, private-corpus generalization claim, public full-corpus release, or live-browser benchmark claim.",
+        ]
+    )
+    report_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "manifest": manifest_path, "report": report_path}
 
 
 def write_source_diagnostics_report(

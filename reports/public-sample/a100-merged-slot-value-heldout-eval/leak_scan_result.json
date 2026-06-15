@@ -1,0 +1,29 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-15T04:36:56.000749+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-merged-slot-value-heldout-eval",
+    "configs/sft-a100-merged-slot-value-heldout-rerun.json",
+    "configs/sft-a100-merged-slot-value-heldout-train-prediction.json",
+    "configs/sft-a100-merged-slot-value-heldout-dev-prediction.json",
+    "configs/sft-a100-merged-slot-value-heldout-test-prediction.json",
+    "data/public-samples",
+    "openspec/changes/archive/2026-06-15-merge-slot-value-candidates-heldout-eval",
+    "openspec/specs/voice2task-dataset-preparation/spec.md",
+    "openspec/specs/supervised-contract-tuning/spec.md",
+    "openspec/specs/contract-evaluation/spec.md",
+    "src/voice2task/dataset.py",
+    "src/voice2task/reports.py",
+    "src/voice2task/cli/data.py",
+    "src/voice2task/cli/report.py",
+    "tests/test_slot_value_candidate_public_sample_merge.py",
+    "tests/test_slot_value_candidate_sft_probe.py",
+    "tests/test_slot_value_generalization_materialization.py",
+    "tests/test_heldout_family_strategy.py",
+    "tests/test_targeted_family_coverage_probe.py",
+    "docs/human-briefs/2026-06-15-merge-slot-value-candidates-heldout-eval.html",
+    "docs/human-briefs/2026-06-15-autonomous-loop-merge-slot-value-candidates-heldout-eval.html"
+  ]
+}

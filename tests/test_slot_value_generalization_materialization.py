@@ -57,9 +57,10 @@ def test_materialize_slot_value_generalization_candidates_writes_bounded_candida
         "candidate_group_count": 4,
         "candidate_seed_rows": 4,
         "candidate_sft_rows": 12,
-        "formal_public_sample_seed_rows": 10,
-        "formal_public_sample_sft_rows": 30,
-        "formal_public_sample_dpo_pairs": 90,
+        "formal_public_sample_seed_rows": 14,
+        "formal_public_sample_sft_rows": 42,
+        "formal_public_sample_dpo_pairs": 125,
+        "formal_public_sample_has_slot_value_candidates": True,
         "public_sample_modified": False,
         "recommended_next_step": "decide_candidate_merge_or_local_sft_probe",
     }
@@ -74,7 +75,7 @@ def test_materialize_slot_value_generalization_candidates_writes_bounded_candida
     assert manifest["artifact_policy"]["formal_public_sample_files_modified"] is False
     assert manifest["artifact_policy"]["dpo_pairs_generated"] is False
     assert "candidate data only" in markdown
-    assert "not merged into seed_traces.jsonl" in markdown
+    assert "does not rewrite formal public sample files" in markdown
 
     assert {row["id"] for row in seed_rows} == {
         "candidate-blocked-payment-canonical-command",
@@ -156,8 +157,9 @@ def test_committed_slot_value_generalization_materialized_candidates_are_public_
     seed_rows = read_jsonl(COMMITTED_CANDIDATE_SEED)
     sft_rows = read_jsonl(COMMITTED_REPORT_DIR / "sft_candidate_rows.jsonl")
 
-    assert public_manifest["counts"] == {"dpo_pairs": 90, "seed_rows": 10, "sft_rows": 30}
-    assert public_manifest["split_counts"] == {"dev": 6, "test": 6, "train": 18}
+    assert public_manifest["counts"] == {"dpo_pairs": 125, "seed_rows": 14, "sft_rows": 42}
+    assert public_manifest["split_counts"] == {"dev": 6, "test": 6, "train": 30}
+    assert public_manifest["source_summary"]["slot_value_candidates_formal_public_sample"] is True
     assert materialization["summary"]["candidate_group_count"] == 4
     assert materialization["summary"]["candidate_seed_rows"] == 4
     assert materialization["summary"]["candidate_sft_rows"] == 12

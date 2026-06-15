@@ -8,6 +8,7 @@ from voice2task.leak_scan import scan_paths
 from voice2task.training import run_sft
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+FORMAL_COUNTS_AFTER_CANDIDATE_MERGE = {"dpo_pairs": 125, "seed_rows": 14, "sft_rows": 42}
 CANDIDATE_MANIFEST = REPO_ROOT / "data" / "public-samples" / "manifest_slot_value_candidate_probe.json"
 SFT_CONFIG = REPO_ROOT / "configs" / "sft-a100-slot-value-candidate-probe.json"
 PREDICTION_CONFIG = REPO_ROOT / "configs" / "sft-a100-slot-value-candidate-probe-prediction.json"
@@ -94,7 +95,7 @@ def test_candidate_probe_sft_dry_run_selects_only_materialized_candidate_rows(tm
     }
     assert all(row_id.startswith("candidate-") for row_id in metadata["training_row_ids"])
     assert metadata["heavy_training_gate"]["will_run_heavy_training"] is False
-    assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == {"dpo_pairs": 90, "seed_rows": 10, "sft_rows": 30}
+    assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == FORMAL_COUNTS_AFTER_CANDIDATE_MERGE
     assert Path(metadata["metadata_path"]).exists()
 
 
@@ -176,7 +177,7 @@ def test_committed_candidate_probe_evidence_is_public_safe_and_non_claiming() ->
     assert evidence["claims"]["held_out_generalization_recovered"] is False
     assert dry_run["training_rows_used"] == 12
     assert manifest["diagnostic_artifacts"]["dry_run_metadata"].endswith("sft-dry-run/adapter_metadata.json")
-    assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == {"dpo_pairs": 90, "seed_rows": 10, "sft_rows": 30}
+    assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == FORMAL_COUNTS_AFTER_CANDIDATE_MERGE
     assert scan_paths([PROBE_DIR, CANDIDATE_MANIFEST, SFT_CONFIG, PREDICTION_CONFIG]).ok is True
 
 
@@ -292,5 +293,5 @@ def test_committed_a100_candidate_probe_evidence_is_public_safe_and_non_claiming
     assert manifest["artifact_policy"]["raw_logs_copied_to_git"] is False
     assert manifest["artifact_policy"]["training_run"] is True
     assert manifest["artifact_policy"]["prediction_run"] is True
-    assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == {"dpo_pairs": 90, "seed_rows": 10, "sft_rows": 30}
+    assert read_json(FORMAL_PUBLIC_MANIFEST)["counts"] == FORMAL_COUNTS_AFTER_CANDIDATE_MERGE
     assert scan_paths([A100_PROBE_DIR]).ok is True

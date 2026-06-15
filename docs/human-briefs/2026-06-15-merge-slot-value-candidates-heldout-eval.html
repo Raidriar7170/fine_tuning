@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Merged Slot Value Held-out Eval Brief</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5d6878;
+      --line: #d8dee8;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --good: #166534;
+      --warn: #b45309;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #ecfdf5; color: var(--good); border: 1px solid #bbf7d0; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .note { color: var(--muted); font-size: 13px; }
+    .warn { color: var(--warn); font-weight: 600; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Merged Slot Value Held-out Eval</h1>
+  <div class="status">状态：applying，A100 7B 训练和 train/dev/test eval 已完成</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>把 slot-value candidate 合入 formal public sample 后，7B SFT 已能训练内 100% 复现，held-out strict exact 从上一轮 dev/test 各 16.7% 提升到 dev 50.0%、test 83.3%；在这个小 public held-out 上有改善信号，但还没有完全达到最初目标。</p>
+  </section>
+
+  <section class="grid" aria-label="key metrics">
+    <div class="metric"><b>100%</b><span>train strict exact</span></div>
+    <div class="metric"><b>50%</b><span>dev strict exact</span></div>
+    <div class="metric"><b>83.3%</b><span>test strict exact</span></div>
+    <div class="metric"><b>0</b><span>schema invalid rows</span></div>
+  </section>
+
+  <h2>这阶段改了什么</h2>
+  <ul>
+    <li>把 4 条 reviewed slot-value candidate seeds 合入 formal public sample，重新生成 <code>seed/sft/dpo/manifest</code>。</li>
+    <li>formal public sample 现在是 <code>14</code> seed rows、<code>42</code> SFT rows、<code>125</code> DPO pairs，split 为 <code>30/6/6</code>。</li>
+    <li>新增 7B A100 SFT 与 train/dev/test prediction configs，公开仓库中只保留 <code>&lt;a100_project_root&gt;</code> 占位。</li>
+    <li>新增 merged-slot held-out evidence writer，提交聚合 metrics、manifest、report，不提交 adapter、checkpoint、raw log 或私有路径。</li>
+  </ul>
+
+  <h2>核心结果</h2>
+  <table>
+    <thead>
+      <tr><th>split</th><th>rows</th><th>strict exact</th><th>slot_f1</th><th>json valid</th><th>残留</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>train</code></td><td>30</td><td>1.0000</td><td>1.0000</td><td>1.0000</td><td>0</td></tr>
+      <tr><td><code>dev</code></td><td>6</td><td>0.5000</td><td>0.5000</td><td>1.0000</td><td>3 slot residuals</td></tr>
+      <tr><td><code>test</code></td><td>6</td><td>0.8333</td><td>1.0000</td><td>1.0000</td><td>1 strict residual</td></tr>
+    </tbody>
+  </table>
+
+  <h2>怎么解读</h2>
+  <p>这说明“数据泛化”在这个小 public held-out 上有改善信号：模型不再只是输出格式合法，而是能在 held-out split 上拿到明显更高的 strict exact。不过 dev 仍有 3 条 slot strict mismatch，test 仍有 1 条 strict mismatch，所以还不能说已经达到最开始想要的稳定语气/合同泛化目标。</p>
+  <p class="warn">严格口径仍然是 <code>contract_exact_match</code>；<code>slot_f1_soft</code> 只作为诊断，不作为主指标。</p>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-merged-slot-value-heldout-eval/manifest.json">A100 evidence manifest</a></li>
+    <li><a href="../../reports/public-sample/a100-merged-slot-value-heldout-eval/report.md">A100 evidence report</a></li>
+    <li><a href="../../reports/public-sample/a100-merged-slot-value-heldout-eval/leak_scan_result.json">leak scan result</a></li>
+    <li><a href="../../data/public-samples/manifest_public_sample.json">formal public sample manifest</a></li>
+    <li><a href="../../openspec/changes/merge-slot-value-candidates-heldout-eval/tasks.md">OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code></li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code></li>
+    <li><code>PYTHONPATH=src pytest -q tests/test_slot_value_candidate_public_sample_merge.py tests/test_dataset_builder.py tests/test_slot_value_generalization_materialization.py tests/test_slot_value_candidate_sft_probe.py tests/test_report_cli.py</code></li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan reports/public-sample/a100-merged-slot-value-heldout-eval ...</code></li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <p>当前项目阶段目标没有在单一 roadmap 文件里显式定义。按当前 OpenSpec 证据链，本阶段推进的是“从训练内复现走向 held-out 泛化证明”：已经从 targeted family coverage 的 dev/test 16.7% 提升到 50.0%/83.3%，但仍需解释剩余 strict residual。</p>
+  <p>推荐下一阶段：开一个很小的 residual diagnosis phase，只分析 dev 的 3 条 slot residual 和 test 的 1 条 strict residual，再决定是继续补 slot-value 覆盖、改 canonicalization，还是引入更大的泛化数据。</p>
+
+  <h2>不要夸大的点</h2>
+  <ul>
+    <li>不发布 checkpoint/adapter，不声称生产可用。</li>
+    <li>不声称 private corpus 泛化、live-browser benchmark 提升或完整模型恢复。</li>
+    <li>不把 train 100% 当作 held-out 目标达成；dev/test strict exact 才是主信号。</li>
+  </ul>
+
+  <p class="note">Generated from public-safe evidence under <code>reports/public-sample/a100-merged-slot-value-heldout-eval</code>.</p>
+</main>
+</body>
+</html>

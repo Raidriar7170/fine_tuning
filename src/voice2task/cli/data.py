@@ -8,6 +8,7 @@ from voice2task.dataset import (
     build_local_private_corpus,
     build_public_sample_dataset,
     materialize_slot_value_generalization_candidates,
+    merge_slot_value_candidates_into_public_sample,
 )
 from voice2task.dpo import summarize_dpo_slices, validate_dpo_pairs_file
 from voice2task.validation import validate_dataset_artifacts
@@ -38,6 +39,11 @@ def build_parser() -> argparse.ArgumentParser:
     slot_value_parser.add_argument("--case-design", type=Path, required=True)
     slot_value_parser.add_argument("--seed-output", type=Path, required=True)
     slot_value_parser.add_argument("--output", type=Path, required=True)
+
+    merge_slot_value_parser = subcommands.add_parser("merge-slot-value-candidates")
+    merge_slot_value_parser.add_argument("--candidate-seed", type=Path, required=True)
+    merge_slot_value_parser.add_argument("--seed", type=Path, required=True)
+    merge_slot_value_parser.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -77,6 +83,21 @@ def main(argv: list[str] | None = None) -> int:
             "paths": {name: path.as_posix() for name, path in paths.items()},
             "summary": manifest["summary"],
             "execution_scope": manifest["execution_scope"],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "merge-slot-value-candidates":
+        manifest = merge_slot_value_candidates_into_public_sample(
+            candidate_seed_path=args.candidate_seed,
+            seed_path=args.seed,
+            output_dir=args.output,
+        )
+        payload = {
+            "ok": True,
+            "counts": manifest.counts,
+            "split_counts": manifest.split_counts,
+            "source_summary": manifest.source_summary,
+            "paths": manifest.files,
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
         return 0

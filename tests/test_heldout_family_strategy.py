@@ -32,9 +32,10 @@ def _current_inputs() -> dict[str, Any]:
 
 def test_heldout_family_strategy_diagnostic_separates_tiny_subset_from_dataset_coverage() -> None:
     diagnosis = diagnose_heldout_family_strategy(**_current_inputs())
+    current_manifest = read_json(PUBLIC_SAMPLE_DIR / "manifest_public_sample.json")
 
     assert diagnosis["evidence_kind"] == "heldout_family_strategy_diagnosis"
-    assert diagnosis["source_manifest"]["manifest_id"] == "public-sample-20260613T072200Z"
+    assert diagnosis["source_manifest"]["manifest_id"] == current_manifest["manifest_id"]
     assert diagnosis["summary"]["heldout_contract_exact_match"] == {"dev": 0.0, "test": 0.0}
     assert diagnosis["summary"]["tiny_training_subset_family_count"] == 1
     assert diagnosis["summary"]["heldout_residual_family_count"] == 4
@@ -54,14 +55,17 @@ def test_heldout_family_strategy_diagnostic_separates_tiny_subset_from_dataset_c
         "seed-form-email",
         "seed-open-example",
     }
-    assert residuals["seed-open-example"]["train_analog_row_count"] == 3
+    assert residuals["seed-open-example"]["train_analog_row_count"] == 6
     assert residuals["seed-open-example"]["tiny_subset_row_count"] == 0
+    assert residuals["seed-open-example"]["train_analog_family_id"] == (
+        "candidate-navigate-open-url-canonical-command"
+    )
     assert residuals["seed-open-example"]["contract_family_key"] == (
         "navigate|open_url|public_readonly|confirm:false|slots:url"
     )
     assert residuals["seed-clarify-ambiguous"]["dpo_hard_negative_category"] == "clarify_action_drift"
     assert residuals["seed-form-email"]["schema_invalid_prediction_count"] == 2
-    assert residuals["seed-block-purchase"]["train_analog_family_id"] == "seed-block-transfer"
+    assert residuals["seed-block-purchase"]["train_analog_family_id"] == "candidate-blocked-payment-canonical-command"
 
 
 def test_heldout_family_strategy_cli_writes_public_safe_report(tmp_path: Path, capsys: Any) -> None:

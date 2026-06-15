@@ -1,0 +1,151 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "host_details_omitted": true,
+    "private_corpus_rows_omitted": true,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false,
+    "ssh_details_omitted": true
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "evaluator_relaxation": false,
+    "held_out_generalization_recovered": false,
+    "live_browser_benchmark_claim": false,
+    "merged_slot_value_candidates": true,
+    "model_recovery_claim": false,
+    "prediction_repair_or_replacement": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false
+  },
+  "comparison": {
+    "dev_test_improved_from_prior_targeted": {
+      "dev": true,
+      "test": true
+    },
+    "merged_slot_value_exact": {
+      "dev": 0.5,
+      "test": 0.8333333333333334,
+      "train": 1.0
+    },
+    "prior_targeted_family_coverage_exact": {
+      "dev": 0.16666666666666666,
+      "test": 0.16666666666666666,
+      "train": 1.0
+    }
+  },
+  "dataset_manifest_id": "public-sample-20260615T040231Z",
+  "diagnostic_artifacts": {
+    "evidence": "reports/public-sample/a100-merged-slot-value-heldout-eval/merged_slot_value_heldout_eval.json",
+    "manifest": "reports/public-sample/a100-merged-slot-value-heldout-eval/manifest.json",
+    "report": "reports/public-sample/a100-merged-slot-value-heldout-eval/report.md"
+  },
+  "evidence_kind": "a100_merged_slot_value_heldout_eval",
+  "formal_public_sample_counts": {
+    "dpo_pairs": 125,
+    "seed_rows": 14,
+    "sft_rows": 42
+  },
+  "generated_at": "2026-06-15T04:33:23.951563+00:00",
+  "overall_interpretation": "merged_slot_value_heldout_improved_partial",
+  "prediction_splits": [
+    "train",
+    "dev",
+    "test"
+  ],
+  "primary_evidence_splits": [
+    "dev",
+    "test"
+  ],
+  "split_results": {
+    "dev": {
+      "artifact_paths": {
+        "metrics": "<private_path>",
+        "prediction_metadata": "<private_path>"
+      },
+      "confirmation_accuracy": 1.0,
+      "contract_exact_match": 0.5,
+      "failure_slice_counts": {
+        "confirmation": 0,
+        "route": 0,
+        "safety": 0,
+        "schema": 0,
+        "slot": 3,
+        "task_type": 0,
+        "unknown": 0
+      },
+      "json_valid_rate": 1.0,
+      "prediction_count": 6,
+      "prediction_split": "dev",
+      "residual_row_count": 3,
+      "route_accuracy": 1.0,
+      "safety_precision": 1.0,
+      "safety_recall": 1.0,
+      "schema_invalid_prediction_count": 0,
+      "slot_f1": 0.5,
+      "slot_f1_soft": 1.0,
+      "task_type_accuracy": 1.0
+    },
+    "test": {
+      "artifact_paths": {
+        "metrics": "<private_path>",
+        "prediction_metadata": "<private_path>"
+      },
+      "confirmation_accuracy": 1.0,
+      "contract_exact_match": 0.8333333333333334,
+      "failure_slice_counts": {
+        "confirmation": 0,
+        "route": 0,
+        "safety": 0,
+        "schema": 0,
+        "slot": 0,
+        "task_type": 0,
+        "unknown": 0
+      },
+      "json_valid_rate": 1.0,
+      "prediction_count": 6,
+      "prediction_split": "test",
+      "residual_row_count": 1,
+      "route_accuracy": 1.0,
+      "safety_precision": 1.0,
+      "safety_recall": 1.0,
+      "schema_invalid_prediction_count": 0,
+      "slot_f1": 1.0,
+      "slot_f1_soft": 1.0,
+      "task_type_accuracy": 1.0
+    },
+    "train": {
+      "artifact_paths": {
+        "metrics": "<private_path>",
+        "prediction_metadata": "<private_path>"
+      },
+      "confirmation_accuracy": 1.0,
+      "contract_exact_match": 1.0,
+      "failure_slice_counts": {
+        "confirmation": 0,
+        "route": 0,
+        "safety": 0,
+        "schema": 0,
+        "slot": 0,
+        "task_type": 0,
+        "unknown": 0
+      },
+      "json_valid_rate": 1.0,
+      "prediction_count": 30,
+      "prediction_split": "train",
+      "residual_row_count": 0,
+      "route_accuracy": 1.0,
+      "safety_precision": 1.0,
+      "safety_recall": 1.0,
+      "schema_invalid_prediction_count": 0,
+      "slot_f1": 1.0,
+      "slot_f1_soft": 1.0,
+      "task_type_accuracy": 1.0
+    }
+  }
+}

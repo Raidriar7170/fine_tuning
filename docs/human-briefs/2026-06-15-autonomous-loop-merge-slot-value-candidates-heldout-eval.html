@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop Closeout - Merged Slot Value Held-out Eval</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5d6878;
+      --line: #d8dee8;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --warn: #b45309;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #fff7ed; color: var(--warn); border: 1px solid #fed7aa; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .note { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop Closeout</h1>
+  <div class="status">状态：stopped，hard stop #2 等待用户确认下一阶段</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本轮完成并归档 <code>merge-slot-value-candidates-heldout-eval</code>：formal public sample 已扩到 14/42/125，7B A100 held-out strict exact 从上一轮 dev/test 各 16.7% 提升到 dev 50.0%、test 83.3%，但还未达到“稳定 strict held-out 泛化”的最初目标。</p>
+  </section>
+
+  <section class="grid" aria-label="metrics">
+    <div class="metric"><b>14</b><span>formal seed rows</span></div>
+    <div class="metric"><b>42</b><span>SFT rows</span></div>
+    <div class="metric"><b>125</b><span>DPO pairs</span></div>
+    <div class="metric"><b>268</b><span>pytest passed</span></div>
+  </section>
+
+  <h2>完成的阶段</h2>
+  <ul>
+    <li>归档 OpenSpec change：<a href="../../openspec/changes/archive/2026-06-15-merge-slot-value-candidates-heldout-eval/tasks.md">merge-slot-value-candidates-heldout-eval</a>。</li>
+    <li>将 4 条 reviewed slot-value candidate seeds 合入 formal public sample，并重新生成 SFT/DPO/manifest。</li>
+    <li>在 A100 私有工作区运行 7B SFT 和 train/dev/test prediction/eval，只导入 sanitized public-safe evidence。</li>
+    <li>完成 Reviewer pass；没有 Must Fix，已处理 in-scope P2 evidence/test guard 建议。</li>
+  </ul>
+
+  <h2>为什么停止</h2>
+  <p>精确停止条件：<strong>hard stop #2</strong>。下一步需要从 dev 的 3 条 slot strict residual 和 test 的 1 条 strict residual 中选择诊断/补数据/canonicalization 策略，这会改变下一阶段目标与成功标准，因此需要用户确认后再继续。</p>
+
+  <h2>项目阶段进度</h2>
+  <p>当前项目阶段目标：<code>not explicitly defined</code>，仓库没有单一 roadmap 文件定义 MVP/v1 目标。基于 OpenSpec 证据链，本轮推进的是从 train 内可学到 held-out 泛化的证据阶梯：train 已 100%，held-out dev/test 明显改善但未完全恢复。</p>
+  <p>剩余缺口：能力上还有 4 条 strict residual；证据上还需要 residual-level diagnosis；文档上可以继续保持 public-safe 证据链；用户决策上需要确认下一阶段是否做 residual diagnosis。</p>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/a100-merged-slot-value-heldout-eval/manifest.json">A100 evidence manifest</a></li>
+    <li><a href="../../reports/public-sample/a100-merged-slot-value-heldout-eval/report.md">A100 evidence report</a></li>
+    <li><a href="../../reports/public-sample/a100-merged-slot-value-heldout-eval/leak_scan_result.json">broad leak scan result</a></li>
+    <li><a href="2026-06-15-merge-slot-value-candidates-heldout-eval.html">phase Human Brief</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <table>
+    <thead><tr><th>命令</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td><code>PYTHONPATH=src pytest -q</code></td><td>268 passed</td></tr>
+      <tr><td><code>openspec validate --all --strict</code></td><td>4 specs passed</td></tr>
+      <tr><td><code>voice2task.cli.data validate ... --public</code></td><td>ok, 42 SFT rows / 125 DPO pairs</td></tr>
+      <tr><td><code>voice2task.cli.data dpo-check ...</code></td><td>125 total pairs</td></tr>
+      <tr><td><code>voice2task.cli.report leak-scan ...</code></td><td>ok, no findings</td></tr>
+      <tr><td><code>git diff --check</code></td><td>ok</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Auto Integration</h2>
+  <p>本报告生成时：验证完成，准备自动 stage/commit；不自动 push。最终 commit hash 和 push/skip 状态以 Codex closeout 回复为准。</p>
+
+  <h2>不要夸大的点</h2>
+  <ul>
+    <li>不发布 checkpoint/adapter，不声称生产可用。</li>
+    <li>不声称 private corpus 泛化或 live-browser benchmark 提升。</li>
+    <li>不把 train 100% 当成 held-out 目标达成；dev/test strict exact 仍是主信号。</li>
+    <li>不把 soft slot F1 当主指标。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>推荐开一个很小的新 OpenSpec phase：只诊断 dev 的 3 条 slot strict residual 和 test 的 1 条 strict residual，输出下一步是继续补 slot-value 覆盖、调整 canonical target，还是扩大泛化数据。这个下一步需要用户确认。</p>
+  <p class="note">Generated from OpenSpec archive, public-safe evidence, validation output, and Reviewer findings.</p>
+</main>
+</body>
+</html>

@@ -10,6 +10,7 @@ from voice2task.leak_scan import scan_paths
 from voice2task.reports import (
     write_runtime_label_provenance_check_evidence_pack,
     write_runtime_label_provenance_prep_evidence_pack,
+    write_merged_slot_value_heldout_eval_report,
     write_sft_label_provenance_evidence_pack,
     write_slot_value_candidate_sft_probe_report,
 )
@@ -73,6 +74,18 @@ def build_parser() -> argparse.ArgumentParser:
     candidate_probe.add_argument("--dependency-env-status", default="not_recorded")
     candidate_probe.add_argument("--sync-status", default="not_recorded")
     candidate_probe.add_argument("--output", type=Path, required=True)
+
+    merged_eval = subcommands.add_parser("merged-slot-value-heldout-eval")
+    merged_eval.add_argument("--public-manifest", type=Path, required=True)
+    merged_eval.add_argument("--training-metadata", type=Path)
+    merged_eval.add_argument("--train-metrics", type=Path, required=True)
+    merged_eval.add_argument("--dev-metrics", type=Path, required=True)
+    merged_eval.add_argument("--test-metrics", type=Path, required=True)
+    merged_eval.add_argument("--train-prediction-metadata", type=Path)
+    merged_eval.add_argument("--dev-prediction-metadata", type=Path)
+    merged_eval.add_argument("--test-prediction-metadata", type=Path)
+    merged_eval.add_argument("--prior-targeted-manifest", type=Path)
+    merged_eval.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -196,6 +209,44 @@ def main(argv: list[str] | None = None) -> int:
                     "ok": True,
                     "paths": {key: value.as_posix() for key, value in report_paths.items()},
                     "summary": evidence.get("summary", {}),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    if args.command == "merged-slot-value-heldout-eval":
+        metrics_paths = {
+            "train": args.train_metrics,
+            "dev": args.dev_metrics,
+            "test": args.test_metrics,
+        }
+        prediction_metadata_paths = {
+            "train": args.train_prediction_metadata,
+            "dev": args.dev_prediction_metadata,
+            "test": args.test_prediction_metadata,
+        }
+        report_paths = write_merged_slot_value_heldout_eval_report(
+            public_manifest=read_json(args.public_manifest),
+            training_metadata=read_json(args.training_metadata) if args.training_metadata else None,
+            metrics_by_split={split: read_json(path) for split, path in metrics_paths.items()},
+            prediction_metadata_by_split={
+                split: read_json(path) if path else None for split, path in prediction_metadata_paths.items()
+            },
+            output_dir=args.output,
+            metrics_paths=metrics_paths,
+            prediction_metadata_paths=prediction_metadata_paths,
+            prior_targeted_manifest=read_json(args.prior_targeted_manifest) if args.prior_targeted_manifest else None,
+        )
+        evidence = read_json(report_paths["json"])
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "paths": {key: value.as_posix() for key, value in report_paths.items()},
+                    "summary": {
+                        "overall_interpretation": evidence.get("overall_interpretation"),
+                        "split_results": evidence.get("split_results", {}),
+                    },
                 },
                 indent=2,
             )

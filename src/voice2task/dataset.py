@@ -109,6 +109,10 @@ _SLOT_VALUE_CANDIDATE_CASES: dict[str, dict[str, Any]] = {
     },
 }
 
+EXPECTED_FORMAL_SLOT_VALUE_CANDIDATE_IDS = frozenset(
+    str(case["id"]) for case in _SLOT_VALUE_CANDIDATE_CASES.values()
+)
+
 
 def _now_id(prefix: str) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -161,9 +165,11 @@ def _base_row(seed: dict[str, Any], public_safe: bool) -> SFTDatasetRow:
     target_contract = seed["target_contract"]
     if public_safe:
         target_contract = _canonical_public_search_target(target_contract)
+    seed_provenance = dict(seed.get("provenance") or {})
     provenance = {
+        **seed_provenance,
         "source_id": seed["id"],
-        "source_mode": "sanitized_seed",
+        "source_mode": seed_provenance.get("source_mode", "sanitized_seed"),
         "public_safe": public_safe,
         "augmentation": "original",
     }
@@ -189,6 +195,7 @@ def expand_sft_rows(seed_rows: list[dict[str, Any]], public_safe: bool) -> list[
                     input_text=paraphrase,
                     target_contract=base.target_contract,
                     provenance={
+                        **base.provenance,
                         "source_id": seed["id"],
                         "source_mode": "schema_preserving_augmentation",
                         "public_safe": public_safe,
@@ -622,6 +629,56 @@ def _safe_artifact_ref(path: Path) -> str:
         return path.name
 
 
+def _formal_slot_value_candidate_seed(row: dict[str, Any], candidate_seed_path: Path) -> dict[str, Any]:
+    provenance = dict(row.get("provenance") or {})
+    if provenance.get("candidate_status") not in {None, "standalone_not_formal_public_sample"}:
+        raise ValueError(f"candidate seed already has unsupported status: {row.get('id')}")
+    merged = dict(row)
+    merged["split"] = "train"
+    merged["provenance"] = {
+        **provenance,
+        "source_mode": "slot_value_generalization_formal_public_seed",
+        "public_safe": True,
+        "candidate_status": "formal_public_sample",
+        "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
+    }
+    validate_public_record(merged)
+    return merged
+
+
+def _slot_value_candidate_seed_count(seed_rows: list[dict[str, Any]]) -> int:
+    return sum(
+        1
+        for row in seed_rows
+        if (row.get("provenance") or {}).get("candidate_status") == "formal_public_sample"
+        or (row.get("provenance") or {}).get("source_mode") == "slot_value_generalization_formal_public_seed"
+    )
+
+
+def _validate_reviewed_slot_value_candidate_seed_rows(candidate_seed_rows: list[dict[str, Any]]) -> None:
+    observed_ids = {str(row.get("id")) for row in candidate_seed_rows}
+    if observed_ids != EXPECTED_FORMAL_SLOT_VALUE_CANDIDATE_IDS:
+        expected = ", ".join(sorted(EXPECTED_FORMAL_SLOT_VALUE_CANDIDATE_IDS))
+        observed = ", ".join(sorted(observed_ids))
+        raise ValueError(
+            "expected reviewed slot-value candidate seed IDs "
+            f"[{expected}], observed [{observed}]"
+        )
+    if len(candidate_seed_rows) != len(EXPECTED_FORMAL_SLOT_VALUE_CANDIDATE_IDS):
+        raise ValueError("expected exactly one row per reviewed slot-value candidate seed ID")
+
+    for row in candidate_seed_rows:
+        provenance = row.get("provenance") if isinstance(row.get("provenance"), dict) else {}
+        if row.get("split") != "train":
+            raise ValueError("reviewed slot-value candidate seeds must stay in train split")
+        if provenance.get("source_mode") != "slot_value_generalization_candidate_seed":
+            raise ValueError("reviewed slot-value candidate seeds must preserve source_mode provenance")
+        if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+            raise ValueError("reviewed slot-value candidate seeds must originate from standalone candidate status")
+        if provenance.get("public_safe") is not True:
+            raise ValueError("reviewed slot-value candidate seeds must be public_safe")
+
+
 def _require_reviewed_slot_value_case_groups(case_design: dict[str, Any]) -> dict[str, dict[str, Any]]:
     if case_design.get("evidence_kind") != "slot_value_generalization_case_design":
         raise ValueError("case design must be slot_value_generalization_case_design evidence")
@@ -724,6 +781,7 @@ def _slot_value_materialization_summary(
     formal_public_manifest: dict[str, Any],
 ) -> dict[str, Any]:
     formal_counts = formal_public_manifest["counts"]
+    formal_source_summary = formal_public_manifest.get("source_summary", {})
     return {
         "candidate_group_count": len(_SLOT_VALUE_CANDIDATE_CASES),
         "candidate_seed_rows": len(candidate_seed_rows),
@@ -731,6 +789,9 @@ def _slot_value_materialization_summary(
         "formal_public_sample_seed_rows": formal_counts["seed_rows"],
         "formal_public_sample_sft_rows": formal_counts["sft_rows"],
         "formal_public_sample_dpo_pairs": formal_counts["dpo_pairs"],
+        "formal_public_sample_has_slot_value_candidates": bool(
+            formal_source_summary.get("slot_value_candidates_formal_public_sample")
+        ),
         "public_sample_modified": False,
         "recommended_next_step": "decide_candidate_merge_or_local_sft_probe",
     }
@@ -837,6 +898,19 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
     write_jsonl(sft_path, [row.to_dict() for row in rows])
     write_jsonl(dpo_path, [pair.to_dict() for pair in pairs])
 
+    candidate_seed_count = _slot_value_candidate_seed_count(seed_rows)
+    source_summary: dict[str, Any] = {
+        "seed_rows": len(seed_rows),
+        "source": "sanitized_public_seed_fixture",
+    }
+    if candidate_seed_count:
+        source_summary.update(
+            {
+                "slot_value_candidate_seed_rows": candidate_seed_count,
+                "slot_value_candidates_formal_public_sample": True,
+            }
+        )
+
     manifest = DatasetManifest(
         manifest_id=_now_id("public-sample"),
         mode="public_sample",
@@ -850,11 +924,39 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
         counts={"seed_rows": len(seed_rows), "sft_rows": len(rows), "dpo_pairs": len(pairs)},
         split_counts=_split_counts(rows),
         dpo_rejection_counts=_rejection_counts(pairs),
-        source_summary={"seed_rows": len(seed_rows), "source": "sanitized_public_seed_fixture"},
+        source_summary=source_summary,
         public_safe=True,
     )
     _write_manifest(manifest_path, manifest)
     return manifest
+
+
+def merge_slot_value_candidates_into_public_sample(
+    *,
+    candidate_seed_path: Path,
+    seed_path: Path,
+    output_dir: Path,
+) -> DatasetManifest:
+    """Merge reviewed slot-value candidate seeds into the formal public sample."""
+
+    seed_rows = _read_seed_rows(seed_path)
+    candidate_seed_rows = read_jsonl(candidate_seed_path)
+    _validate_reviewed_slot_value_candidate_seed_rows(candidate_seed_rows)
+    existing_ids = {str(row["id"]) for row in seed_rows}
+    duplicate_ids = sorted(str(row["id"]) for row in candidate_seed_rows if str(row["id"]) in existing_ids)
+    if duplicate_ids:
+        raise ValueError(f"candidate seed IDs already exist in public sample: {', '.join(duplicate_ids)}")
+
+    merged_candidates = [
+        _formal_slot_value_candidate_seed(row, candidate_seed_path=candidate_seed_path) for row in candidate_seed_rows
+    ]
+    for row in merged_candidates:
+        as_contract(row["target_contract"])
+
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(seed_path, [*seed_rows, *merged_candidates])
+    return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
 
 
 def build_local_private_corpus(seed_trace_path: Path, output_dir: Path) -> DatasetManifest:
