@@ -2735,6 +2735,20 @@ def _hardened_policy_interpretation(
     return "hardened_canonical_policy_heldout_unchanged"
 
 
+def _public_report_artifact_path(output_dir: Path, filename: str) -> str:
+    output_posix = output_dir.as_posix().rstrip("/")
+    marker = "reports/public-sample/"
+    if marker in output_posix:
+        output_posix = output_posix[output_posix.index(marker) :]
+    elif output_posix in {"", "."}:
+        output_posix = "."
+    elif not output_dir.is_absolute():
+        output_posix = output_posix.removeprefix("./")
+    else:
+        output_posix = output_dir.name
+    return f"{output_posix}/{filename}" if output_posix != "." else filename
+
+
 def write_hardened_canonical_policy_rerun_report(
     *,
     public_manifest: dict[str, Any],
@@ -2889,12 +2903,9 @@ def write_hardened_canonical_policy_rerun_report(
         "claims": safe_evidence["claims"],
         "artifact_policy": safe_evidence["artifact_policy"],
         "diagnostic_artifacts": {
-            "evidence": (
-                "reports/public-sample/a100-hardened-canonical-policy-rerun/"
-                "hardened_canonical_policy_rerun.json"
-            ),
-            "manifest": "reports/public-sample/a100-hardened-canonical-policy-rerun/manifest.json",
-            "report": "reports/public-sample/a100-hardened-canonical-policy-rerun/report.md",
+            "evidence": _public_report_artifact_path(output_dir, "hardened_canonical_policy_rerun.json"),
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
+            "report": _public_report_artifact_path(output_dir, "report.md"),
             "prior_merged_manifest": "reports/public-sample/a100-merged-slot-value-heldout-eval/manifest.json",
         },
     }

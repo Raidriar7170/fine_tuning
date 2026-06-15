@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observed hardened canonical policy rerun</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f7f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 22px 44px; }
+    h1 { font-size: 28px; margin: 0 0 10px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.68; }
+    code { background: #eef1f6; padding: 2px 5px; border-radius: 4px; }
+    .summary { background: #ffffff; border: 1px solid #dde3ee; border-radius: 8px; padding: 18px 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: #ffffff; border: 1px solid #dde3ee; border-radius: 8px; padding: 14px 16px; }
+    .metric b { display: block; font-size: 20px; margin-bottom: 5px; }
+    table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #dde3ee; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e7ebf2; text-align: left; vertical-align: top; }
+    th { background: #eef2f8; }
+    a { color: #2357c6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Observed hardened canonical policy rerun</h1>
+  <div class="summary">
+    <p><strong>一句话结论：</strong>恢复 adapter 后，A100 上的 hardened canonical policy prediction-only rerun 已真实跑完；train 仍为 1.0，但 dev/test strict exact 与 prior merged eval 完全相同，说明当前 prompt hardening 没有解决 held-out 残差。</p>
+    <p><strong>当前状态：</strong>archived。</p>
+  </div>
+
+  <div class="grid">
+    <div class="metric"><b>1.0000</b><span>train contract_exact_match</span></div>
+    <div class="metric"><b>0.5000</b><span>dev contract_exact_match</span></div>
+    <div class="metric"><b>0.8333</b><span>test contract_exact_match</span></div>
+    <div class="metric"><b>0.0000</b><span>dev/test exact delta vs prior</span></div>
+  </div>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>保留旧 blocked evidence，新建 observed evidence 目录。</li>
+    <li>在 A100 上复用 <code>a100-merged-slot-value-heldout-eval</code> adapter，执行 train/dev/test prediction-only。</li>
+    <li>只导入 sanitized <code>metrics.json</code> 和 <code>prediction_metadata.json</code>，没有提交 raw predictions、raw logs、private overrides、adapter 或 checkpoint。</li>
+    <li>验证每个 split 的 prediction metadata 都显示 hardened canonical prompt flags 可见。</li>
+  </ul>
+
+  <h2>结果</h2>
+  <table>
+    <tr><th>split</th><th>rows</th><th>strict exact</th><th>prior exact</th><th>delta</th><th>slot_f1</th><th>json valid</th><th>residual rows</th></tr>
+    <tr><td>train</td><td>30</td><td>1.0000</td><td>1.0000</td><td>0.0000</td><td>1.0000</td><td>1.0000</td><td>0</td></tr>
+    <tr><td>dev</td><td>6</td><td>0.5000</td><td>0.5000</td><td>0.0000</td><td>0.5000</td><td>1.0000</td><td>3</td></tr>
+    <tr><td>test</td><td>6</td><td>0.8333</td><td>0.8333</td><td>0.0000</td><td>1.0000</td><td>1.0000</td><td>1</td></tr>
+  </table>
+
+  <h2>关键文件</h2>
+  <table>
+    <tr><th>文件</th><th>作用</th></tr>
+    <tr><td><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun-observed/report.md">observed report</a></td><td>人可读 rerun evidence。</td></tr>
+    <tr><td><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun-observed/manifest.json">observed manifest</a></td><td>机器可读 evidence manifest。</td></tr>
+    <tr><td><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun-observed/leak_scan_result.json">leak scan result</a></td><td>本阶段 public evidence 的泄露扫描结果。</td></tr>
+    <tr><td><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun/manifest.json">prior blocked manifest</a></td><td>保留之前 source adapter missing 的历史证据。</td></tr>
+    <tr><td><a href="../../openspec/changes/archive/2026-06-15-observe-a100-hardened-canonical-policy-rerun/tasks.md">OpenSpec tasks</a></td><td>本阶段已归档任务清单。</td></tr>
+  </table>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_hardened_canonical_policy_rerun.py</code> -> 11 passed。</li>
+    <li><code>voice2task.cli.report leak-scan ...</code> -> ok true, 0 findings。</li>
+    <li><code>openspec validate observe-a100-hardened-canonical-policy-rerun --strict</code> -> passed。</li>
+  </ul>
+
+  <h2>不要过度声称</h2>
+  <ul>
+    <li>这不是新训练，也不是 adapter/checkpoint release。</li>
+    <li>soft slot F1 和 JSON valid 不是主指标；strict <code>contract_exact_match</code> 仍是主指标。</li>
+    <li>dev/test 没有改善，所以不能说达到一开始的语气/泛化目标。</li>
+    <li>这不证明 private-corpus generalization、生产可用性或 live-browser benchmark 能力。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>下一阶段不该继续改 prompt；应诊断 dev/test 残差样本属于 slot value 泛化、训练覆盖不足、还是 canonical target 本身不稳定，再决定补数据还是改变训练策略。</p>
+</main>
+</body>
+</html>

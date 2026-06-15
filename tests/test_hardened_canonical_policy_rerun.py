@@ -13,6 +13,9 @@ PRIOR_MERGED_MANIFEST = (
     REPO_ROOT / "reports" / "public-sample" / "a100-merged-slot-value-heldout-eval" / "manifest.json"
 )
 HARDENED_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "a100-hardened-canonical-policy-rerun"
+HARDENED_OBSERVED_EVIDENCE_DIR = (
+    REPO_ROOT / "reports" / "public-sample" / "a100-hardened-canonical-policy-rerun-observed"
+)
 HARDENED_CONFIGS = {
     split: REPO_ROOT / "configs" / f"sft-a100-hardened-canonical-policy-{split}-prediction.json"
     for split in ("train", "dev", "test")
@@ -64,7 +67,12 @@ def _prediction_metadata(split: str, count: int, private_root: str) -> dict:
     }
 
 
-def _observed_cli_args(tmp_path: Path, *, prior_manifest: Path = PRIOR_MERGED_MANIFEST) -> list[str]:
+def _observed_cli_args(
+    tmp_path: Path,
+    *,
+    prior_manifest: Path = PRIOR_MERGED_MANIFEST,
+    output_dir: Path | None = None,
+) -> list[str]:
     private_root = "/mnt" + "/data/minghongsun/private"
     metrics_paths = {
         "train": _write_json(tmp_path / "train_metrics.json", _metrics_payload(1.0, 1.0)),
@@ -94,7 +102,7 @@ def _observed_cli_args(tmp_path: Path, *, prior_manifest: Path = PRIOR_MERGED_MA
         "--test-prediction-metadata",
         metadata_paths["test"].as_posix(),
         "--output",
-        (tmp_path / "hardened-report").as_posix(),
+        (output_dir or (tmp_path / "hardened-report")).as_posix(),
     ]
 
 
@@ -154,9 +162,7 @@ def test_hardened_canonical_policy_report_cli_writes_observed_public_safe_eviden
     assert evidence["comparison"]["hardened_canonical_policy_exact"] == {"dev": 1.0, "test": 1.0, "train": 1.0}
     assert evidence["comparison"]["dev_test_exact_delta"]["dev"] == 0.5
     assert manifest["evidence_kind"] == "a100_hardened_canonical_policy_rerun"
-    assert manifest["diagnostic_artifacts"]["evidence"].endswith(
-        "reports/public-sample/a100-hardened-canonical-policy-rerun/hardened_canonical_policy_rerun.json"
-    )
+    assert manifest["diagnostic_artifacts"]["evidence"] == "hardened-report/hardened_canonical_policy_rerun.json"
     assert "a100-merged-slot-value-heldout-eval/merged_slot_value_heldout_eval.json" not in json.dumps(
         manifest["diagnostic_artifacts"],
         ensure_ascii=False,
@@ -164,6 +170,50 @@ def test_hardened_canonical_policy_report_cli_writes_observed_public_safe_eviden
     assert "prediction-only" in report
     assert "strict `contract_exact_match` remains primary" in report
     assert "/mnt/data/" not in serialized
+    assert scan_paths([output_dir]).ok is True
+
+
+def test_hardened_canonical_policy_report_diagnostic_artifacts_follow_output_dir(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    output_dir = tmp_path / "custom-observed-report"
+
+    assert report_cli.main(_observed_cli_args(tmp_path, output_dir=output_dir)) == 0
+
+    json.loads(capsys.readouterr().out)
+    manifest = read_json(output_dir / "manifest.json")
+
+    assert manifest["diagnostic_artifacts"]["evidence"] == (
+        "custom-observed-report/hardened_canonical_policy_rerun.json"
+    )
+    assert manifest["diagnostic_artifacts"]["manifest"] == "custom-observed-report/manifest.json"
+    assert manifest["diagnostic_artifacts"]["report"] == "custom-observed-report/report.md"
+    assert "a100-hardened-canonical-policy-rerun/hardened_canonical_policy_rerun.json" not in json.dumps(
+        manifest["diagnostic_artifacts"],
+        ensure_ascii=False,
+    )
+    assert scan_paths([output_dir]).ok is True
+
+
+def test_hardened_canonical_policy_report_diagnostic_artifacts_keep_nested_relative_output_dir(
+    tmp_path: Path,
+    capsys,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    output_dir = Path("nested") / "observed-report"
+
+    assert report_cli.main(_observed_cli_args(tmp_path, output_dir=output_dir)) == 0
+
+    json.loads(capsys.readouterr().out)
+    manifest = read_json(output_dir / "manifest.json")
+
+    assert manifest["diagnostic_artifacts"]["evidence"] == (
+        "nested/observed-report/hardened_canonical_policy_rerun.json"
+    )
+    assert manifest["diagnostic_artifacts"]["manifest"] == "nested/observed-report/manifest.json"
+    assert manifest["diagnostic_artifacts"]["report"] == "nested/observed-report/report.md"
     assert scan_paths([output_dir]).ok is True
 
 
@@ -347,3 +397,23 @@ def test_committed_hardened_canonical_policy_rerun_evidence_is_bounded_and_publi
     assert evidence["claims"]["soft_slot_f1_primary_metric"] is False
     assert manifest["evidence_kind"] == "a100_hardened_canonical_policy_rerun"
     assert scan_paths([HARDENED_EVIDENCE_DIR]).ok is True
+
+
+def test_committed_observed_hardened_rerun_does_not_overwrite_blocked_evidence() -> None:
+    blocked_evidence = read_json(HARDENED_EVIDENCE_DIR / "hardened_canonical_policy_rerun.json")
+    observed_evidence = read_json(HARDENED_OBSERVED_EVIDENCE_DIR / "hardened_canonical_policy_rerun.json")
+    observed_manifest = read_json(HARDENED_OBSERVED_EVIDENCE_DIR / "manifest.json")
+
+    assert blocked_evidence["rerun_status"] == "blocked"
+    assert blocked_evidence["blocked_reason"] == "source_adapter_missing_on_a100"
+    assert observed_evidence["rerun_status"] == "observed"
+    assert observed_evidence["overall_interpretation"] == "hardened_canonical_policy_heldout_unchanged"
+    assert observed_manifest["diagnostic_artifacts"]["evidence"] == (
+        "reports/public-sample/a100-hardened-canonical-policy-rerun-observed/"
+        "hardened_canonical_policy_rerun.json"
+    )
+    assert "a100-hardened-canonical-policy-rerun/hardened_canonical_policy_rerun.json" not in json.dumps(
+        observed_manifest["diagnostic_artifacts"],
+        ensure_ascii=False,
+    )
+    assert scan_paths([HARDENED_OBSERVED_EVIDENCE_DIR]).ok is True

@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-15T09:05:08.761105+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-hardened-canonical-policy-rerun",
+    "reports/public-sample/a100-hardened-canonical-policy-rerun-observed",
+    "configs/sft-a100-hardened-canonical-policy-train-prediction.json",
+    "configs/sft-a100-hardened-canonical-policy-dev-prediction.json",
+    "configs/sft-a100-hardened-canonical-policy-test-prediction.json",
+    "openspec/changes/observe-a100-hardened-canonical-policy-rerun",
+    "docs/human-briefs/2026-06-15-observe-a100-hardened-canonical-policy-rerun.html"
+  ]
+}
