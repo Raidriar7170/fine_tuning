@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop - restore adapter and observe rerun</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f7f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 22px 44px; }
+    h1 { font-size: 28px; margin: 0 0 10px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.68; }
+    code { background: #eef1f6; padding: 2px 5px; border-radius: 4px; }
+    .summary { background: #ffffff; border: 1px solid #dde3ee; border-radius: 8px; padding: 18px 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: #ffffff; border: 1px solid #dde3ee; border-radius: 8px; padding: 14px 16px; }
+    .metric b { display: block; font-size: 20px; margin-bottom: 5px; }
+    table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #dde3ee; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e7ebf2; text-align: left; vertical-align: top; }
+    th { background: #eef2f8; }
+    a { color: #2357c6; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop - restore adapter and observe rerun</h1>
+  <div class="summary">
+    <p><strong>一句话结论：</strong>本轮完成了 adapter prerequisite 恢复和真实 A100 prediction-only 复验；结果证明 pipeline 已恢复，但 hardened prompt 没有改善 held-out strict exact。</p>
+    <p><strong>循环状态：</strong>stopped，需要用户确认下一阶段是否进入 held-out 残差归因 / 数据泛化策略。</p>
+    <p><strong>停止原因：</strong>下一步会从“恢复并复验 runtime”跨入“诊断 dev/test 残差并决定补数据或训练策略”，这改变后续项目策略边界，不应在本轮自动继续。</p>
+  </div>
+
+  <div class="grid">
+    <div class="metric"><b>available</b><span>restored adapter prerequisite</span></div>
+    <div class="metric"><b>observed</b><span>A100 prediction-only rerun</span></div>
+    <div class="metric"><b>0.5000</b><span>dev strict exact</span></div>
+    <div class="metric"><b>0.8333</b><span>test strict exact</span></div>
+  </div>
+
+  <h2>完成阶段</h2>
+  <table>
+    <tr><th>阶段</th><th>结果</th><th>提交</th></tr>
+    <tr>
+      <td><code>restore-a100-merged-slot-value-adapter</code></td>
+      <td>远端重新生成 <code>a100-merged-slot-value-heldout-eval</code> adapter；只提交 public-safe prerequisite evidence。</td>
+      <td><code>bfbed74</code></td>
+    </tr>
+    <tr>
+      <td><code>observe-a100-hardened-canonical-policy-rerun</code></td>
+      <td>复用 restored adapter 跑 train/dev/test prediction-only；held-out strict exact 与 prior 完全相同。</td>
+      <td><code>ad2d632</code></td>
+    </tr>
+  </table>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="2026-06-15-restore-a100-merged-slot-value-adapter.html">adapter restore phase brief</a></li>
+    <li><a href="2026-06-15-observe-a100-hardened-canonical-policy-rerun.html">observed rerun phase brief</a></li>
+    <li><a href="../../reports/public-sample/a100-merged-slot-value-adapter-restore/manifest.json">adapter restore manifest</a></li>
+    <li><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun-observed/manifest.json">observed rerun manifest</a></li>
+    <li><a href="../../reports/public-sample/a100-hardened-canonical-policy-rerun/manifest.json">prior blocked rerun manifest, preserved</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_hardened_canonical_policy_rerun.py tests/test_merged_slot_value_adapter_restore.py tests/test_slot_value_candidate_public_sample_merge.py</code> -> 25 passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code> -> 4 passed, 0 failed。</li>
+    <li><code>voice2task.cli.data validate ... --public</code> -> ok true, 42 SFT rows / 125 DPO pairs。</li>
+    <li><code>voice2task.cli.report leak-scan ...</code> -> ok true, 0 findings。</li>
+    <li><code>git diff --check</code> -> passed before each commit。</li>
+  </ul>
+
+  <h2>项目阶段进展</h2>
+  <p><strong>当前目标：</strong>判断 7B SFT 是否已接近最初“稳定输出目标 contract / 语气像任务执行器”的目标。</p>
+  <p><strong>本轮贡献：</strong>排除了“adapter 缺失导致不能评估”的阻塞；真实复验显示 prompt hardening 本身没有改善 held-out 残差。</p>
+  <p><strong>剩余差距：</strong>dev 仍有 3 个 strict residual，test 仍有 1 个 strict residual；不能说达到目标语气或泛化。</p>
+
+  <h2>不要过度声称</h2>
+  <ul>
+    <li>不能说模型已恢复；observed evidence 明确为 <code>hardened_canonical_policy_heldout_unchanged</code>。</li>
+    <li>不能用 train exact 1.0、json valid 1.0 或 soft slot F1 替代 held-out strict exact。</li>
+    <li>不能公开 adapter/checkpoint/raw predictions/raw logs/private override/远端路径。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>建议开一个很小的新阶段：诊断 observed rerun 的 dev/test residual family，确认是 slot value 泛化不足、target canonical 不稳定，还是训练覆盖结构问题。只有诊断后再决定补数据、改训练配比或做 DPO/泛化样本扩充。</p>
+</main>
+</body>
+</html>
