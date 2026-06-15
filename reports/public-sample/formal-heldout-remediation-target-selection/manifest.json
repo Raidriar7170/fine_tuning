@@ -1,0 +1,93 @@
+{
+  "artifact_policy": {
+    "a100_job": false,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "data_generation": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "gold_policy_change": false,
+    "host_details_omitted": true,
+    "prediction_repair_or_replacement": false,
+    "private_corpus_rows_omitted": true,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "raw_predictions_copied_to_git": false,
+    "slot_normalization": false,
+    "ssh_details_omitted": true,
+    "training_run": false
+  },
+  "claims": {
+    "adapter_release_claim": false,
+    "checkpoint_release_claim": false,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false
+  },
+  "diagnostic_artifacts": {
+    "manifest": "reports/public-sample/formal-heldout-remediation-target-selection/manifest.json",
+    "markdown": "reports/public-sample/formal-heldout-remediation-target-selection/formal_heldout_remediation_target_selection.md",
+    "selection": "reports/public-sample/formal-heldout-remediation-target-selection/formal_heldout_remediation_target_selection.json"
+  },
+  "evidence_kind": "formal_heldout_remediation_target_selection",
+  "execution_scope": {
+    "a100_job": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "gold_policy_change": false,
+    "new_data_generated": false,
+    "prediction_run": false,
+    "raw_predictions_read": false,
+    "slot_normalization": false,
+    "source_residual_diagnosis_read_as_input": true,
+    "training_run": false
+  },
+  "generated_at": "2026-06-15T16:38:09.836126+00:00",
+  "selection_status": "selected_first_bounded_target",
+  "source_residual_diagnosis": {
+    "diagnosis_artifact": "reports/public-sample/formal-heldout-residual-family-diagnosis/formal_heldout_residual_family_diagnosis.json",
+    "diagnostic_kind": "formal_public_heldout_residual_family_diagnosis",
+    "evidence_kind": "formal_heldout_residual_family_diagnosis",
+    "source_formal_heldout_evidence": {
+      "base_model": "Qwen/Qwen2.5-7B-Instruct",
+      "dataset_manifest_id": "public-sample-20260615T111316Z",
+      "evidence_kind": "a100_formal_public_heldout_prediction",
+      "overall_interpretation": "formal_public_heldout_partial_signal",
+      "prediction_splits": [
+        "dev",
+        "test"
+      ]
+    }
+  },
+  "summary": {
+    "ranked_family_count": 7,
+    "recommended_next_change": "remediate-form-fill-formal-heldout-residuals",
+    "recommended_next_step": "open_bounded_remediate-form-fill-formal-heldout-residuals_proposal_before_data_training_or_metric_changes",
+    "selected_residual_field_count": 49,
+    "selected_residual_row_count": 29,
+    "selected_target": "form_fill",
+    "selected_task_family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+    "soft_slot_f1": {
+      "dev": 0.7315387631291138,
+      "test": 0.7609315000619348
+    },
+    "soft_slot_f1_primary_metric": false,
+    "source_count_consistency": {
+      "expected_residual_rows": 97,
+      "ok": true,
+      "ranked_residual_rows": 97,
+      "source_count_consistency_ok": true
+    },
+    "strict_contract_exact_match": {
+      "dev": 0.30434782608695654,
+      "test": 0.2898550724637681
+    },
+    "strict_slot_f1": {
+      "dev": 0.391304347826087,
+      "test": 0.5072463768115942
+    }
+  }
+}

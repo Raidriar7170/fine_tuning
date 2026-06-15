@@ -22,12 +22,14 @@ from voice2task.evaluation import (
     prompt_fixture_predictions,
     rule_baseline_predictions,
     run_execution_smoke,
+    select_formal_heldout_remediation_target,
     write_predictions,
 )
 from voice2task.io import read_json, read_jsonl
 from voice2task.reports import (
     write_alignment_diagnostics_report,
     write_constrained_decoding_diagnosis_report,
+    write_formal_heldout_remediation_target_selection_report,
     write_formal_heldout_residual_family_report,
     write_heldout_family_strategy_report,
     write_merged_slot_value_residual_report,
@@ -202,6 +204,14 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose_formal_residuals.add_argument(
         "--title",
         default="Voice2Task formal held-out residual family diagnosis",
+    )
+
+    select_formal_target = subcommands.add_parser("select-formal-heldout-remediation-target")
+    select_formal_target.add_argument("--residual-diagnosis", type=Path, required=True)
+    select_formal_target.add_argument("--output", type=Path, required=True)
+    select_formal_target.add_argument(
+        "--title",
+        default="Voice2Task formal held-out remediation target selection",
     )
 
     design_slot_values = subcommands.add_parser("design-slot-value-generalization-cases")
@@ -389,6 +399,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_formal_heldout_residual_family_report(
             diagnostics,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "select-formal-heldout-remediation-target":
+        selection = select_formal_heldout_remediation_target(
+            residual_diagnosis=read_json(args.residual_diagnosis),
+        )
+        paths = write_formal_heldout_remediation_target_selection_report(
+            selection,
             output_dir=args.output,
             title=args.title,
         )

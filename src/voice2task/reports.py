@@ -1975,6 +1975,141 @@ def write_formal_heldout_residual_family_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_formal_heldout_remediation_target_selection_report(
+    selection: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task formal held-out remediation target selection",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "formal_heldout_remediation_target_selection.json"
+    markdown_path = output_dir / "formal_heldout_remediation_target_selection.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_selection = _sanitize_report_value(selection)
+    write_json(json_path, safe_selection)
+
+    manifest = {
+        "evidence_kind": safe_selection["evidence_kind"],
+        "selection_status": safe_selection["selection_status"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_residual_diagnosis": safe_selection["source_residual_diagnosis"],
+        "summary": safe_selection["summary"],
+        "execution_scope": safe_selection["execution_scope"],
+        "claims": safe_selection["claims"],
+        "artifact_policy": {
+            "raw_predictions_copied_to_git": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "private_corpus_rows_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+            "gold_policy_change": False,
+            "slot_normalization": False,
+            "data_generation": False,
+            "training_run": False,
+            "dpo_run": False,
+            "a100_job": False,
+        },
+        "diagnostic_artifacts": {
+            "selection": (
+                "reports/public-sample/formal-heldout-remediation-target-selection/"
+                "formal_heldout_remediation_target_selection.json"
+            ),
+            "markdown": (
+                "reports/public-sample/formal-heldout-remediation-target-selection/"
+                "formal_heldout_remediation_target_selection.md"
+            ),
+            "manifest": "reports/public-sample/formal-heldout-remediation-target-selection/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_selection["summary"]
+    selected = safe_selection["selection"]["selected"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This report selects the first bounded remediation target from the current formal public "
+            "held-out residual-family diagnosis. It is not training, not new data generation, not a "
+            "prediction rerun, not model recovery, and not evaluator relaxation."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- strict `contract_exact_match` remains primary.",
+        "- Strict `slot_f1` remains authoritative for slot scoring.",
+        "- `slot_f1_soft` remains internal diagnostic-only.",
+        "- No raw prediction stream is copied as the planning artifact.",
+        "- No A100 job, SFT, DPO, new data, gold rewrite, or metric change is performed.",
+        "",
+        "## Selected Target",
+        "",
+        f"- Selected target: `{summary['selected_target']}`",
+        f"- Selected task family: `{summary['selected_task_family']}`",
+        f"- Residual rows: `{summary['selected_residual_row_count']}`",
+        f"- Residual fields: `{summary['selected_residual_field_count']}`",
+        f"- Recommended next change: `{summary['recommended_next_change']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        f"- Source count consistency: `{summary['source_count_consistency']}`",
+        "",
+        "## Why This Target",
+        "",
+    ]
+    for reason in safe_selection["selection"].get("rationale", []):
+        lines.append(f"- {reason}")
+    lines.extend(
+        [
+            "",
+            "## Selected Field Distribution",
+            "",
+            f"- Rows by split: `{selected['residual_rows_by_split']}`",
+            f"- Field counts: `{selected['residual_field_counts']}`",
+            "",
+            "## Deferred Adjacent Targets",
+            "",
+        ]
+    )
+    for target in safe_selection["selection"].get("deferred_targets", []):
+        lines.append(
+            "- "
+            f"`{target['short_name']}` / `{target['task_family']}` "
+            f"({target['residual_row_count']} rows): {target['reason']}"
+        )
+    lines.extend(["", "## Ranked Families", ""])
+    for item in safe_selection.get("ranked_families", []):
+        lines.append(
+            "- "
+            f"`{item['short_name']}` / `{item['task_family']}`: "
+            f"{item['residual_row_count']} rows, {item['residual_field_count']} fields, "
+            f"fields `{item['residual_field_counts']}`"
+        )
+    lines.extend(["", "## Representative Sanitized Examples", ""])
+    for example in selected.get("representative_examples", []):
+        lines.append(
+            "- "
+            f"`{example['split']} / {example['row_id']} / {example['field_path']}`: "
+            f"gold {example['gold_value_summary']}; prediction {example['predicted_value_summary']}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Recommended Next Step",
+            "",
+            (
+                "Open a new bounded OpenSpec phase for the selected target. That later phase should decide "
+                "whether the fix is prompt/policy clarification, targeted public-safe data design, or a "
+                "training rerun. This report alone does not authorize those changes."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_slot_value_generalization_case_design_report(
     diagnostics: dict[str, Any],
     output_dir: Path,

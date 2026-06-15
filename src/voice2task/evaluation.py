@@ -1997,6 +1997,183 @@ def diagnose_formal_heldout_residual_families(
     return diagnosis
 
 
+def _family_short_name(task_family: str) -> str:
+    return _sanitize_public_summary(task_family.split("|", 1)[0] if task_family else "unknown")
+
+
+def _deferred_target_reason(short_name: str) -> str:
+    if short_name == "blocked":
+        return "safety-sensitive target; needs a dedicated safety-policy proposal before data or training changes"
+    if short_name == "clarify":
+        return "route/intent ambiguity target; should follow a separate ontology-boundary proposal"
+    if short_name == "extract":
+        return "smaller row cluster and mixed slot/route residuals; keep after the largest scoped target"
+    if short_name in {"search", "navigate"}:
+        return "smaller mostly canonical wording or slot-value target; defer until larger clusters are handled"
+    return "lower-ranked row cluster for the current formal held-out residual diagnosis"
+
+
+def select_formal_heldout_remediation_target(
+    *,
+    residual_diagnosis: dict[str, Any],
+) -> dict[str, Any]:
+    if residual_diagnosis.get("evidence_kind") != "formal_heldout_residual_family_diagnosis":
+        raise ValueError("residual diagnosis must be formal_heldout_residual_family_diagnosis evidence")
+
+    residuals = [entry for entry in residual_diagnosis.get("residuals", []) if isinstance(entry, dict)]
+    family_rows: dict[str, dict[str, set[str]]] = {}
+    family_fields: dict[str, dict[str, int]] = {}
+    family_examples: dict[str, list[dict[str, Any]]] = {}
+    for residual in residuals:
+        task_family = _sanitize_public_summary(str(residual.get("task_family", "unknown")))
+        split = _sanitize_public_summary(str(residual.get("split", "unknown")))
+        row_id = _sanitize_id(str(residual.get("row_id", "")))
+        field_path = _sanitize_public_summary(str(residual.get("field_path", "unknown")))
+        family_rows.setdefault(task_family, {}).setdefault(split, set()).add(row_id)
+        field_counts = family_fields.setdefault(task_family, {})
+        field_counts[field_path] = field_counts.get(field_path, 0) + 1
+        examples = family_examples.setdefault(task_family, [])
+        if len(examples) < 5:
+            examples.append(
+                {
+                    "split": split,
+                    "row_id": row_id,
+                    "source_family_id": _sanitize_id(str(residual.get("source_family_id", ""))),
+                    "field_path": field_path,
+                    "mismatch_category": _sanitize_public_summary(
+                        str(residual.get("mismatch_category", "unknown"))
+                    ),
+                    "gold_value_summary": _sanitize_public_summary(
+                        str(residual.get("gold_value_summary", "unknown"))
+                    ),
+                    "predicted_value_summary": _sanitize_public_summary(
+                        str(residual.get("predicted_value_summary", "unknown"))
+                    ),
+                }
+            )
+
+    ranked_families: list[dict[str, Any]] = []
+    for task_family, rows_by_split in family_rows.items():
+        split_row_counts = {split: len(rows) for split, rows in sorted(rows_by_split.items())}
+        total_rows = sum(split_row_counts.values())
+        field_counts = dict(sorted(family_fields.get(task_family, {}).items()))
+        total_fields = sum(field_counts.values())
+        ranked_families.append(
+            {
+                "task_family": task_family,
+                "short_name": _family_short_name(task_family),
+                "residual_row_count": total_rows,
+                "residual_rows_by_split": split_row_counts,
+                "residual_field_count": total_fields,
+                "residual_field_counts": field_counts,
+                "representative_examples": family_examples.get(task_family, []),
+            }
+        )
+    ranked_families.sort(
+        key=lambda item: (
+            -int(item["residual_row_count"]),
+            -int(item["residual_field_count"]),
+            str(item["task_family"]),
+        )
+    )
+    if not ranked_families:
+        raise ValueError("residual diagnosis contains no residual families")
+
+    selected = ranked_families[0]
+    selected_short_name = str(selected["short_name"])
+    selected_slug = selected_short_name.replace("_", "-")
+    deferred = [
+        {
+            "task_family": item["task_family"],
+            "short_name": item["short_name"],
+            "residual_row_count": item["residual_row_count"],
+            "reason": _deferred_target_reason(str(item["short_name"])),
+        }
+        for item in ranked_families[1:4]
+    ]
+    source_consistency = residual_diagnosis.get("summary", {}).get("source_count_consistency", {})
+    total_ranked_rows = sum(int(item["residual_row_count"]) for item in ranked_families)
+    expected_rows = int(residual_diagnosis.get("summary", {}).get("residual_row_count", 0))
+    count_consistency = {
+        "source_count_consistency_ok": bool(
+            isinstance(source_consistency, dict) and source_consistency.get("ok") is True
+        ),
+        "expected_residual_rows": expected_rows,
+        "ranked_residual_rows": total_ranked_rows,
+        "ok": expected_rows == total_ranked_rows,
+    }
+    if not count_consistency["ok"]:
+        raise ValueError("ranked residual rows do not match source residual row count")
+
+    return {
+        "evidence_kind": "formal_heldout_remediation_target_selection",
+        "selection_status": "selected_first_bounded_target",
+        "source_residual_diagnosis": {
+            "evidence_kind": _sanitize_public_summary(str(residual_diagnosis.get("evidence_kind", ""))),
+            "diagnostic_kind": _sanitize_public_summary(str(residual_diagnosis.get("diagnostic_kind", ""))),
+            "source_formal_heldout_evidence": _sanitize_public_value(
+                residual_diagnosis.get("source_formal_heldout_evidence", {})
+            ),
+            "diagnosis_artifact": (
+                "reports/public-sample/formal-heldout-residual-family-diagnosis/"
+                "formal_heldout_residual_family_diagnosis.json"
+            ),
+        },
+        "summary": {
+            "selected_target": selected_short_name,
+            "selected_task_family": selected["task_family"],
+            "selected_residual_row_count": selected["residual_row_count"],
+            "selected_residual_field_count": selected["residual_field_count"],
+            "ranked_family_count": len(ranked_families),
+            "source_count_consistency": count_consistency,
+            "strict_contract_exact_match": residual_diagnosis.get("summary", {}).get(
+                "strict_contract_exact_match",
+                {},
+            ),
+            "strict_slot_f1": residual_diagnosis.get("summary", {}).get("strict_slot_f1", {}),
+            "soft_slot_f1": residual_diagnosis.get("summary", {}).get("soft_slot_f1", {}),
+            "soft_slot_f1_primary_metric": False,
+            "recommended_next_change": f"remediate-{selected_slug}-formal-heldout-residuals",
+            "recommended_next_step": (
+                f"open_bounded_remediate-{selected_slug}-formal-heldout-residuals_proposal_"
+                "before_data_training_or_metric_changes"
+            ),
+        },
+        "selection": {
+            "selected": selected,
+            "rationale": [
+                "largest affected strict residual row cluster in the current formal held-out diagnosis",
+                "field distribution points to a bounded family-specific remediation target",
+                "lower policy risk than starting with the safety-sensitive blocked_payment cluster",
+            ],
+            "deferred_targets": deferred,
+        },
+        "ranked_families": ranked_families,
+        "execution_scope": {
+            "source_residual_diagnosis_read_as_input": True,
+            "raw_predictions_read": False,
+            "training_run": False,
+            "dpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "new_data_generated": False,
+            "gold_policy_change": False,
+            "evaluator_metric_change": False,
+            "slot_normalization": False,
+        },
+        "claims": {
+            "model_recovery_claim": False,
+            "held_out_recovery_claim": False,
+            "production_readiness_claim": False,
+            "semantic_equivalence_primary_metric": False,
+            "soft_slot_f1_primary_metric": False,
+            "adapter_release_claim": False,
+            "checkpoint_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+    }
+
+
 def _unique_public_values(values: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     unique: list[dict[str, Any]] = []

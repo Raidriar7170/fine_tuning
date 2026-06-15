@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task 下一 remediation 目标选择</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172026; background: #f6f7f8; }
+    main { max-width: 980px; margin: 0 auto; padding: 40px 22px 56px; }
+    h1 { margin: 0 0 10px; font-size: 30px; letter-spacing: 0; }
+    h2 { margin-top: 30px; font-size: 18px; }
+    p, li { line-height: 1.65; }
+    .lede { font-size: 18px; color: #33434d; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 22px 0; }
+    .card { background: white; border: 1px solid #dfe5e8; border-radius: 8px; padding: 16px; }
+    .num { font-size: 28px; font-weight: 700; color: #0b6b5d; }
+    code { background: #edf1f2; padding: 2px 5px; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #dfe5e8; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e8edf0; text-align: left; vertical-align: top; }
+    th { background: #eef3f4; }
+    .warn { border-left: 4px solid #b7791f; padding: 12px 14px; background: #fff8e8; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task 下一 remediation 目标选择</h1>
+  <p class="lede">结论：本阶段只做证据化选择，不训练、不补数据、不改指标；下一个最适合进入 bounded remediation 的目标是 <code>form_fill</code>。</p>
+
+  <div class="grid">
+    <section class="card">
+      <div class="num">form_fill</div>
+      <p>选中的第一目标</p>
+    </section>
+    <section class="card">
+      <div class="num">29</div>
+      <p>受影响 strict residual rows</p>
+    </section>
+    <section class="card">
+      <div class="num">49</div>
+      <p>strict residual fields</p>
+    </section>
+    <section class="card">
+      <div class="num">97/97</div>
+      <p>源诊断残差计数一致</p>
+    </section>
+  </div>
+
+  <h2>为什么选它</h2>
+  <ul>
+    <li><code>form_fill</code> 是当前 formal held-out residual diagnosis 中受影响 row 数最多的家族。</li>
+    <li>主要问题集中在 <code>normalized_command</code> 和 <code>slots</code>，更适合做一个低政策风险的 scoped remediation。</li>
+    <li><code>blocked_payment</code> 虽然紧随其后，但涉及 safety policy，应该单独开安全边界 proposal。</li>
+  </ul>
+
+  <h2>排名摘要</h2>
+  <table>
+    <thead>
+      <tr><th>家族</th><th>Residual rows</th><th>Residual fields</th><th>处理建议</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>form_fill</code></td><td>29</td><td>49</td><td>第一 remediation target</td></tr>
+      <tr><td><code>blocked_payment</code></td><td>18</td><td>46</td><td>延后到 safety-specific phase</td></tr>
+      <tr><td><code>clarify</code></td><td>17</td><td>44</td><td>延后到 ontology-boundary phase</td></tr>
+    </tbody>
+  </table>
+
+  <h2>边界</h2>
+  <div class="warn">
+    本阶段没有 A100 job、没有 SFT/DPO、没有 prediction rerun、没有新增数据、没有 gold policy 变更、没有 evaluator metric 变更，也没有模型恢复或生产可用声明。
+  </div>
+
+  <h2>关键产物</h2>
+  <ul>
+    <li><code>reports/public-sample/formal-heldout-remediation-target-selection/formal_heldout_remediation_target_selection.json</code></li>
+    <li><code>reports/public-sample/formal-heldout-remediation-target-selection/formal_heldout_remediation_target_selection.md</code></li>
+    <li><code>openspec/changes/select-formal-heldout-remediation-target/</code></li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>开一个新的 bounded OpenSpec phase：<code>remediate-form-fill-formal-heldout-residuals</code>。那个阶段再决定修复方式是 prompt/policy clarification、targeted public-safe data design，还是需要训练 rerun。</p>
+</main>
+</body>
+</html>
