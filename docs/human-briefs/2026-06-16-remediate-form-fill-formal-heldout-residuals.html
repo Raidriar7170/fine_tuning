@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task form_fill remediation 方案诊断</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1b2630; background: #f7f8fa; }
+    main { max-width: 980px; margin: 0 auto; padding: 42px 22px 60px; }
+    h1 { margin: 0 0 10px; font-size: 30px; letter-spacing: 0; }
+    h2 { margin-top: 30px; font-size: 18px; }
+    p, li { line-height: 1.65; }
+    .lede { font-size: 18px; color: #394a55; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 22px 0; }
+    .card { background: #fff; border: 1px solid #dde5e8; border-radius: 8px; padding: 16px; }
+    .num { font-size: 28px; font-weight: 700; color: #116149; }
+    code { background: #edf2f4; padding: 2px 5px; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #dde5e8; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e6ecef; text-align: left; vertical-align: top; }
+    th { background: #eef4f5; }
+    .warn { border-left: 4px solid #a35d00; padding: 12px 14px; background: #fff7e8; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task form_fill remediation 方案诊断</h1>
+  <p class="lede">结论：<code>form_fill</code> 不应直接进入训练；先做 prompt/policy clarification + targeted public-safe case design。</p>
+
+  <div class="grid">
+    <section class="card"><div class="num">29</div><p>form_fill residual rows</p></section>
+    <section class="card"><div class="num">49</div><p>residual fields</p></section>
+    <section class="card"><div class="num">23</div><p>确认标记漂移字段</p></section>
+    <section class="card"><div class="num">18</div><p>字段名具体性漂移字段</p></section>
+  </div>
+
+  <h2>Residual buckets</h2>
+  <table>
+    <thead>
+      <tr><th>Bucket</th><th>Rows</th><th>Fields</th><th>含义</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>confirmation_marker_missing_or_reordered</code></td><td>23</td><td>23</td><td><code>并确认</code> 被省略或改成其他确认表述。</td></tr>
+      <tr><td><code>field_name_specificity_drift</code></td><td>16</td><td>18</td><td>字段名从具体字段泛化成短别名或邻近字段。</td></tr>
+      <tr><td><code>clarify_boundary_confusion</code></td><td>2</td><td>8</td><td>少量应填表确认的行被判成 clarify。</td></tr>
+    </tbody>
+  </table>
+
+  <h2>建议</h2>
+  <ul>
+    <li>下一阶段开 <code>design-form-fill-remediation-cases</code>，先设计 reviewed public-safe examples 和 prompt/policy wording。</li>
+    <li>不要修改当前 formal held-out dev/test split。</li>
+    <li>不要用 <code>slot_f1_soft</code> 替代 strict exact-match 结论。</li>
+  </ul>
+
+  <h2>边界</h2>
+  <div class="warn">
+    本阶段没有新增数据、没有 gold policy 变更、没有 SFT/DPO、没有 A100 job、没有 prediction rerun、没有 evaluator metric 变更，也没有模型恢复声明。
+  </div>
+
+  <h2>关键产物</h2>
+  <ul>
+    <li><code>reports/public-sample/form-fill-remediation-plan/form_fill_remediation_plan.json</code></li>
+    <li><code>reports/public-sample/form-fill-remediation-plan/form_fill_remediation_plan.md</code></li>
+    <li><code>openspec/changes/remediate-form-fill-formal-heldout-residuals/</code></li>
+  </ul>
+</main>
+</body>
+</html>

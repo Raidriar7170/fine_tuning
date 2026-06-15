@@ -2110,6 +2110,127 @@ def write_formal_heldout_remediation_target_selection_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_form_fill_remediation_plan_report(
+    diagnosis: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task form-fill remediation plan diagnosis",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "form_fill_remediation_plan.json"
+    markdown_path = output_dir / "form_fill_remediation_plan.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_diagnosis = _sanitize_report_value(diagnosis)
+    write_json(json_path, safe_diagnosis)
+
+    manifest = {
+        "evidence_kind": safe_diagnosis["evidence_kind"],
+        "remediation_status": safe_diagnosis["remediation_status"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_target_selection": safe_diagnosis["source_target_selection"],
+        "source_residual_diagnosis": safe_diagnosis["source_residual_diagnosis"],
+        "summary": safe_diagnosis["summary"],
+        "acceptance_boundary": safe_diagnosis["acceptance_boundary"],
+        "execution_scope": safe_diagnosis["execution_scope"],
+        "claims": safe_diagnosis["claims"],
+        "artifact_policy": {
+            "raw_predictions_copied_to_git": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "private_corpus_rows_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+            "gold_policy_change": False,
+            "slot_normalization": False,
+            "data_generation": False,
+            "training_run": False,
+            "dpo_run": False,
+            "a100_job": False,
+        },
+        "diagnostic_artifacts": {
+            "diagnosis": "reports/public-sample/form-fill-remediation-plan/form_fill_remediation_plan.json",
+            "markdown": "reports/public-sample/form-fill-remediation-plan/form_fill_remediation_plan.md",
+            "manifest": "reports/public-sample/form-fill-remediation-plan/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_diagnosis["summary"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This report is a plan-only diagnosis for the selected `form_fill` formal held-out residuals. "
+            "It does not generate data, change gold labels, launch training, rerun predictions, or relax "
+            "evaluator metrics."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- strict `contract_exact_match` remains primary.",
+        "- Strict `slot_f1` remains authoritative for slot scoring.",
+        "- `slot_f1_soft` remains diagnostic-only.",
+        "- No current public held-out split is modified.",
+        "- Any future data design, training, DPO, or A100 work needs a separate confirmed phase.",
+        "",
+        "## Summary",
+        "",
+        f"- Target: `{summary['target']}`",
+        f"- Task family: `{summary['target_task_family']}`",
+        f"- Residual rows: `{summary['residual_row_count']}`",
+        f"- Residual fields: `{summary['residual_field_count']}`",
+        f"- Bucket field counts: `{summary['bucket_field_counts']}`",
+        f"- Bucket row counts: `{summary['bucket_row_counts']}`",
+        f"- Field counts: `{summary['by_field_path']}`",
+        f"- Count consistency: `{summary['count_consistency']}`",
+        f"- Recommended strategy: `{summary['recommended_strategy']}`",
+        f"- Recommended next change: `{summary['recommended_next_change']}`",
+        f"- Training recommended now: `{summary['training_recommended_now']}`",
+        f"- DPO recommended now: `{summary['dpo_recommended_now']}`",
+        f"- Evaluator change recommended now: `{summary['evaluator_change_recommended_now']}`",
+        "",
+        "## Remediation Buckets",
+        "",
+    ]
+    for bucket in safe_diagnosis.get("remediation_buckets", []):
+        lines.extend(
+            [
+                f"### `{bucket['bucket']}`",
+                "",
+                f"- Residual rows: `{bucket['residual_row_count']}`",
+                f"- Residual fields: `{bucket['residual_field_count']}`",
+                f"- By split: `{bucket['by_split']}`",
+                f"- By field path: `{bucket['by_field_path']}`",
+                f"- By source family: `{bucket['by_source_family']}`",
+                "",
+                "Representative examples:",
+            ]
+        )
+        for example in bucket.get("representative_examples", []):
+            lines.append(
+                "- "
+                f"`{example['split']} / {example['row_id']} / {example['field_path']}`: "
+                f"gold {example['gold_value_summary']}; prediction {example['predicted_value_summary']}"
+            )
+        lines.append("")
+    lines.extend(
+        [
+            "## Recommended Next Step",
+            "",
+            (
+                "Open a new bounded case-design phase for `form_fill`. That phase can propose reviewed "
+                "public-safe examples or prompt/policy wording, but this diagnosis does not authorize "
+                "materialization, training, DPO, or evaluator changes."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_slot_value_generalization_case_design_report(
     diagnostics: dict[str, Any],
     output_dir: Path,

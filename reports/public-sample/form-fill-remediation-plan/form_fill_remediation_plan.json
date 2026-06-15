@@ -1,0 +1,1050 @@
+{
+  "acceptance_boundary": {
+    "future_case_design_must_not_mutate_current_heldout_splits": true,
+    "future_training_requires_separate_user_confirmed_phase": true,
+    "must_preserve_strict_contract_exact_match_as_primary": true,
+    "must_preserve_strict_slot_f1_as_primary": true,
+    "slot_f1_soft_diagnostic_only": true
+  },
+  "claims": {
+    "adapter_release_claim": false,
+    "checkpoint_release_claim": false,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false
+  },
+  "evidence_kind": "formal_heldout_form_fill_remediation_plan",
+  "execution_scope": {
+    "a100_job": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "gold_policy_change": false,
+    "new_data_generated": false,
+    "prediction_run": false,
+    "public_heldout_modified": false,
+    "raw_predictions_read": false,
+    "slot_normalization": false,
+    "source_residual_diagnosis_read_as_input": true,
+    "source_target_selection_read_as_input": true,
+    "training_run": false
+  },
+  "remediation_buckets": [
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "by_field_path": {
+        "normalized_command": 23
+      },
+      "by_source_family": {
+        "family-confirmation-dev-1": 1,
+        "family-confirmation-dev-2": 2,
+        "family-confirmation-dev-3": 1,
+        "family-confirmation-test-1": 2,
+        "family-confirmation-test-2": 1,
+        "family-confirmation-test-3": 2,
+        "family-form_fill-dev-1": 2,
+        "family-form_fill-dev-2": 1,
+        "family-form_fill-dev-3": 3,
+        "family-form_fill-test-1": 2,
+        "family-form_fill-test-2": 3,
+        "family-form_fill-test-3": 3
+      },
+      "by_split": {
+        "dev": 10,
+        "test": 13
+      },
+      "representative_examples": [
+        {
+          "field_path": "normalized_command",
+          "gold_value": "填写手机号并确认",
+          "gold_value_summary": "string(8): 填写手机号并确认",
+          "predicted_value": "填写手机号",
+          "predicted_value_summary": "string(5): 填写手机号",
+          "row_id": "family-form_fill-dev-1",
+          "source_family_id": "family-form_fill-dev-1",
+          "split": "dev"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value": "填写手机号并确认",
+          "gold_value_summary": "string(8): 填写手机号并确认",
+          "predicted_value": "填写手机号码",
+          "predicted_value_summary": "string(6): 填写手机号码",
+          "row_id": "family-form_fill-dev-1-aug-2",
+          "source_family_id": "family-form_fill-dev-1",
+          "split": "dev"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value": "填写收货地址并确认",
+          "gold_value_summary": "string(9): 填写收货地址并确认",
+          "predicted_value": "填写地址到表单",
+          "predicted_value_summary": "string(7): 填写地址到表单",
+          "row_id": "family-form_fill-dev-2-aug-1",
+          "source_family_id": "family-form_fill-dev-2",
+          "split": "dev"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value": "填写发票抬头并确认",
+          "gold_value_summary": "string(9): 填写发票抬头并确认",
+          "predicted_value": "填写发票抬头",
+          "predicted_value_summary": "string(6): 填写发票抬头",
+          "row_id": "family-form_fill-dev-3",
+          "source_family_id": "family-form_fill-dev-3",
+          "split": "dev"
+        },
+        {
+          "field_path": "normalized_command",
+          "gold_value": "填写发票抬头并确认",
+          "gold_value_summary": "string(9): 填写发票抬头并确认",
+          "predicted_value": "填写发票抬头",
+          "predicted_value_summary": "string(6): 填写发票抬头",
+          "row_id": "family-form_fill-dev-3-aug-1",
+          "source_family_id": "family-form_fill-dev-3",
+          "split": "dev"
+        }
+      ],
+      "residual_field_count": 23,
+      "residual_row_count": 23,
+      "residual_row_refs": [
+        "dev:family-confirmation-dev-1-aug-2",
+        "dev:family-confirmation-dev-2",
+        "dev:family-confirmation-dev-2-aug-2",
+        "dev:family-confirmation-dev-3-aug-2",
+        "dev:family-form_fill-dev-1",
+        "dev:family-form_fill-dev-1-aug-2",
+        "dev:family-form_fill-dev-2-aug-1",
+        "dev:family-form_fill-dev-3",
+        "dev:family-form_fill-dev-3-aug-1",
+        "dev:family-form_fill-dev-3-aug-2",
+        "test:family-confirmation-test-1",
+        "test:family-confirmation-test-1-aug-1",
+        "test:family-confirmation-test-2-aug-1",
+        "test:family-confirmation-test-3",
+        "test:family-confirmation-test-3-aug-2",
+        "test:family-form_fill-test-1-aug-1",
+        "test:family-form_fill-test-1-aug-2",
+        "test:family-form_fill-test-2",
+        "test:family-form_fill-test-2-aug-1",
+        "test:family-form_fill-test-2-aug-2",
+        "test:family-form_fill-test-3",
+        "test:family-form_fill-test-3-aug-1",
+        "test:family-form_fill-test-3-aug-2"
+      ]
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "by_field_path": {
+        "normalized_command": 4,
+        "slots": 14
+      },
+      "by_source_family": {
+        "family-confirmation-dev-1": 1,
+        "family-confirmation-dev-2": 1,
+        "family-confirmation-dev-3": 4,
+        "family-confirmation-test-2": 1,
+        "family-confirmation-test-3": 3,
+        "family-form_fill-dev-2": 1,
+        "family-form_fill-dev-3": 3,
+        "family-form_fill-test-1": 2,
+        "family-form_fill-test-2": 2
+      },
+      "by_split": {
+        "dev": 10,
+        "test": 8
+      },
+      "representative_examples": [
+        {
+          "field_path": "slots",
+          "gold_value": {
+            "field": "收货地址"
+          },
+          "gold_value_summary": "object with keys: field",
+          "predicted_value": {
+            "field": "地址"
+          },
+          "predicted_value_summary": "object with keys: field",
+          "row_id": "family-form_fill-dev-2-aug-1",
+          "source_family_id": "family-form_fill-dev-2",
+          "split": "dev"
+        },
+        {
+          "field_path": "slots",
+          "gold_value": {
+            "field": "发票抬头"
+          },
+          "gold_value_summary": "object with keys: field",
+          "predicted_value": {
+            "field": "抬头"
+          },
+          "predicted_value_summary": "object with keys: field",
+          "row_id": "family-form_fill-dev-3",
+          "source_family_id": "family-form_fill-dev-3",
+          "split": "dev"
+        },
+        {
+          "field_path": "slots",
+          "gold_value": {
+            "field": "发票抬头"
+          },
+          "gold_value_summary": "object with keys: field",
+          "predicted_value": {
+            "field": "抬头"
+          },
+          "predicted_value_summary": "object with keys: field",
+          "row_id": "family-form_fill-dev-3-aug-1",
+          "source_family_id": "family-form_fill-dev-3",
+          "split": "dev"
+        },
+        {
+          "field_path": "slots",
+          "gold_value": {
+            "field": "发票抬头"
+          },
+          "gold_value_summary": "object with keys: field",
+          "predicted_value": {
+            "field": "发票信息"
+          },
+          "predicted_value_summary": "object with keys: field",
+          "row_id": "family-form_fill-dev-3-aug-2",
+          "source_family_id": "family-form_fill-dev-3",
+          "split": "dev"
+        },
+        {
+          "field_path": "slots",
+          "gold_value": {
+            "field": "预约时间"
+          },
+          "gold_value_summary": "object with keys: field",
+          "predicted_value": {
+            "field": "时间"
+          },
+          "predicted_value_summary": "object with keys: field",
+          "row_id": "family-confirmation-dev-1-aug-1",
+          "source_family_id": "family-confirmation-dev-1",
+          "split": "dev"
+        }
+      ],
+      "residual_field_count": 18,
+      "residual_row_count": 16,
+      "residual_row_refs": [
+        "dev:family-confirmation-dev-1-aug-1",
+        "dev:family-confirmation-dev-2-aug-2",
+        "dev:family-confirmation-dev-3",
+        "dev:family-confirmation-dev-3-aug-1",
+        "dev:family-confirmation-dev-3-aug-2",
+        "dev:family-form_fill-dev-2-aug-1",
+        "dev:family-form_fill-dev-3",
+        "dev:family-form_fill-dev-3-aug-1",
+        "dev:family-form_fill-dev-3-aug-2",
+        "test:family-confirmation-test-2-aug-2",
+        "test:family-confirmation-test-3-aug-1",
+        "test:family-confirmation-test-3-aug-2",
+        "test:family-form_fill-test-1",
+        "test:family-form_fill-test-1-aug-1",
+        "test:family-form_fill-test-2-aug-1",
+        "test:family-form_fill-test-2-aug-2"
+      ]
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "by_field_path": {
+        "route": 2,
+        "safety.reason": 2,
+        "slots": 2,
+        "task_type": 2
+      },
+      "by_source_family": {
+        "family-confirmation-dev-1": 4,
+        "family-form_fill-test-3": 4
+      },
+      "by_split": {
+        "dev": 4,
+        "test": 4
+      },
+      "representative_examples": [
+        {
+          "field_path": "task_type",
+          "gold_value": "form_fill",
+          "gold_value_summary": "string(9): form_fill",
+          "predicted_value": "clarify",
+          "predicted_value_summary": "string(7): clarify",
+          "row_id": "family-confirmation-dev-1-aug-2",
+          "source_family_id": "family-confirmation-dev-1",
+          "split": "dev"
+        },
+        {
+          "field_path": "route",
+          "gold_value": "fill_form",
+          "gold_value_summary": "string(9): fill_form",
+          "predicted_value": "clarify",
+          "predicted_value_summary": "string(7): clarify",
+          "row_id": "family-confirmation-dev-1-aug-2",
+          "source_family_id": "family-confirmation-dev-1",
+          "split": "dev"
+        },
+        {
+          "field_path": "safety.reason",
+          "gold_value": "requires_confirmation",
+          "gold_value_summary": "string(21): requires_confirmation",
+          "predicted_value": "ambiguous_request",
+          "predicted_value_summary": "string(17): ambiguous_request",
+          "row_id": "family-confirmation-dev-1-aug-2",
+          "source_family_id": "family-confirmation-dev-1",
+          "split": "dev"
+        },
+        {
+          "field_path": "slots",
+          "gold_value": {
+            "field": "预约时间"
+          },
+          "gold_value_summary": "object with keys: field",
+          "predicted_value": {
+            "ambiguity": "目标不明确，未指定具体时间"
+          },
+          "predicted_value_summary": "object with keys: ambiguity",
+          "row_id": "family-confirmation-dev-1-aug-2",
+          "source_family_id": "family-confirmation-dev-1",
+          "split": "dev"
+        },
+        {
+          "field_path": "task_type",
+          "gold_value": "form_fill",
+          "gold_value_summary": "string(9): form_fill",
+          "predicted_value": "clarify",
+          "predicted_value_summary": "string(7): clarify",
+          "row_id": "family-form_fill-test-3-aug-2",
+          "source_family_id": "family-form_fill-test-3",
+          "split": "test"
+        }
+      ],
+      "residual_field_count": 8,
+      "residual_row_count": 2,
+      "residual_row_refs": [
+        "dev:family-confirmation-dev-1-aug-2",
+        "test:family-form_fill-test-3-aug-2"
+      ]
+    }
+  ],
+  "remediation_status": "plan_only_no_data_no_training_no_metric_change",
+  "residuals": [
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写手机号并确认",
+      "gold_value_summary": "string(8): 填写手机号并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写手机号",
+      "predicted_value_summary": "string(5): 填写手机号",
+      "row_id": "family-form_fill-dev-1",
+      "source_family_id": "family-form_fill-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写手机号并确认",
+      "gold_value_summary": "string(8): 填写手机号并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写手机号码",
+      "predicted_value_summary": "string(6): 填写手机号码",
+      "row_id": "family-form_fill-dev-1-aug-2",
+      "source_family_id": "family-form_fill-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "收货地址"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "地址"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-form_fill-dev-2-aug-1",
+      "source_family_id": "family-form_fill-dev-2",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写收货地址并确认",
+      "gold_value_summary": "string(9): 填写收货地址并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写地址到表单",
+      "predicted_value_summary": "string(7): 填写地址到表单",
+      "row_id": "family-form_fill-dev-2-aug-1",
+      "source_family_id": "family-form_fill-dev-2",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "发票抬头"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "抬头"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-form_fill-dev-3",
+      "source_family_id": "family-form_fill-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写发票抬头并确认",
+      "gold_value_summary": "string(9): 填写发票抬头并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写发票抬头",
+      "predicted_value_summary": "string(6): 填写发票抬头",
+      "row_id": "family-form_fill-dev-3",
+      "source_family_id": "family-form_fill-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "发票抬头"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "抬头"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-form_fill-dev-3-aug-1",
+      "source_family_id": "family-form_fill-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写发票抬头并确认",
+      "gold_value_summary": "string(9): 填写发票抬头并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写发票抬头",
+      "predicted_value_summary": "string(6): 填写发票抬头",
+      "row_id": "family-form_fill-dev-3-aug-1",
+      "source_family_id": "family-form_fill-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "发票抬头"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "发票信息"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-form_fill-dev-3-aug-2",
+      "source_family_id": "family-form_fill-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写发票抬头并确认",
+      "gold_value_summary": "string(9): 填写发票抬头并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写发票信息",
+      "predicted_value_summary": "string(6): 填写发票信息",
+      "row_id": "family-form_fill-dev-3-aug-2",
+      "source_family_id": "family-form_fill-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "预约时间"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "时间"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-confirmation-dev-1-aug-1",
+      "source_family_id": "family-confirmation-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "task_type",
+      "gold_value": "form_fill",
+      "gold_value_summary": "string(9): form_fill",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "clarify",
+      "predicted_value_summary": "string(7): clarify",
+      "row_id": "family-confirmation-dev-1-aug-2",
+      "source_family_id": "family-confirmation-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "route",
+      "gold_value": "fill_form",
+      "gold_value_summary": "string(9): fill_form",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "clarify",
+      "predicted_value_summary": "string(7): clarify",
+      "row_id": "family-confirmation-dev-1-aug-2",
+      "source_family_id": "family-confirmation-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "safety.reason",
+      "gold_value": "requires_confirmation",
+      "gold_value_summary": "string(21): requires_confirmation",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "ambiguous_request",
+      "predicted_value_summary": "string(17): ambiguous_request",
+      "row_id": "family-confirmation-dev-1-aug-2",
+      "source_family_id": "family-confirmation-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "预约时间"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "ambiguity": "目标不明确，未指定具体时间"
+      },
+      "predicted_value_summary": "object with keys: ambiguity",
+      "row_id": "family-confirmation-dev-1-aug-2",
+      "source_family_id": "family-confirmation-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写预约时间并确认",
+      "gold_value_summary": "string(9): 填写预约时间并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "确认预约时间",
+      "predicted_value_summary": "string(6): 确认预约时间",
+      "row_id": "family-confirmation-dev-1-aug-2",
+      "source_family_id": "family-confirmation-dev-1",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写配送方式并确认",
+      "gold_value_summary": "string(9): 填写配送方式并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写并确认配送信息",
+      "predicted_value_summary": "string(9): 填写并确认配送信息",
+      "row_id": "family-confirmation-dev-2",
+      "source_family_id": "family-confirmation-dev-2",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "配送方式"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "配送信息"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-confirmation-dev-2-aug-2",
+      "source_family_id": "family-confirmation-dev-2",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写配送方式并确认",
+      "gold_value_summary": "string(9): 填写配送方式并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写配送信息前确认",
+      "predicted_value_summary": "string(9): 填写配送信息前确认",
+      "row_id": "family-confirmation-dev-2-aug-2",
+      "source_family_id": "family-confirmation-dev-2",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "发票邮箱"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "邮箱"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-confirmation-dev-3",
+      "source_family_id": "family-confirmation-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "发票邮箱"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "邮箱"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-confirmation-dev-3-aug-1",
+      "source_family_id": "family-confirmation-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "normalized_command",
+      "gold_value": "填写发票邮箱并确认",
+      "gold_value_summary": "string(9): 填写发票邮箱并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写邮箱并确认",
+      "predicted_value_summary": "string(7): 填写邮箱并确认",
+      "row_id": "family-confirmation-dev-3-aug-1",
+      "source_family_id": "family-confirmation-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "发票邮箱"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "发票信息"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-confirmation-dev-3-aug-2",
+      "source_family_id": "family-confirmation-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写发票邮箱并确认",
+      "gold_value_summary": "string(9): 填写发票邮箱并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写并确认发票信息",
+      "predicted_value_summary": "string(9): 填写并确认发票信息",
+      "row_id": "family-confirmation-dev-3-aug-2",
+      "source_family_id": "family-confirmation-dev-3",
+      "split": "dev"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "normalized_command",
+      "gold_value": "填写联系人并确认",
+      "gold_value_summary": "string(8): 填写联系人并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写联系信息并确认",
+      "predicted_value_summary": "string(9): 填写联系信息并确认",
+      "row_id": "family-form_fill-test-1",
+      "source_family_id": "family-form_fill-test-1",
+      "split": "test"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "联系人"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "姓名"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-form_fill-test-1-aug-1",
+      "source_family_id": "family-form_fill-test-1",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写联系人并确认",
+      "gold_value_summary": "string(8): 填写联系人并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写联系人姓名",
+      "predicted_value_summary": "string(7): 填写联系人姓名",
+      "row_id": "family-form_fill-test-1-aug-1",
+      "source_family_id": "family-form_fill-test-1",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写联系人并确认",
+      "gold_value_summary": "string(8): 填写联系人并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写联系人信息",
+      "predicted_value_summary": "string(7): 填写联系人信息",
+      "row_id": "family-form_fill-test-1-aug-2",
+      "source_family_id": "family-form_fill-test-1",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写邮政编码并确认",
+      "gold_value_summary": "string(9): 填写邮政编码并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写邮政编码",
+      "predicted_value_summary": "string(6): 填写邮政编码",
+      "row_id": "family-form_fill-test-2",
+      "source_family_id": "family-form_fill-test-2",
+      "split": "test"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "邮政编码"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "邮编"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-form_fill-test-2-aug-1",
+      "source_family_id": "family-form_fill-test-2",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写邮政编码并确认",
+      "gold_value_summary": "string(9): 填写邮政编码并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写邮编",
+      "predicted_value_summary": "string(4): 填写邮编",
+      "row_id": "family-form_fill-test-2-aug-1",
+      "source_family_id": "family-form_fill-test-2",
+      "split": "test"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "邮政编码"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "邮编"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-form_fill-test-2-aug-2",
+      "source_family_id": "family-form_fill-test-2",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写邮政编码并确认",
+      "gold_value_summary": "string(9): 填写邮政编码并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写邮寄地址",
+      "predicted_value_summary": "string(6): 填写邮寄地址",
+      "row_id": "family-form_fill-test-2-aug-2",
+      "source_family_id": "family-form_fill-test-2",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写备注并确认",
+      "gold_value_summary": "string(7): 填写备注并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写备注",
+      "predicted_value_summary": "string(4): 填写备注",
+      "row_id": "family-form_fill-test-3",
+      "source_family_id": "family-form_fill-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写备注并确认",
+      "gold_value_summary": "string(7): 填写备注并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写备注",
+      "predicted_value_summary": "string(4): 填写备注",
+      "row_id": "family-form_fill-test-3-aug-1",
+      "source_family_id": "family-form_fill-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "task_type",
+      "gold_value": "form_fill",
+      "gold_value_summary": "string(9): form_fill",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "clarify",
+      "predicted_value_summary": "string(7): clarify",
+      "row_id": "family-form_fill-test-3-aug-2",
+      "source_family_id": "family-form_fill-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "route",
+      "gold_value": "fill_form",
+      "gold_value_summary": "string(9): fill_form",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "clarify",
+      "predicted_value_summary": "string(7): clarify",
+      "row_id": "family-form_fill-test-3-aug-2",
+      "source_family_id": "family-form_fill-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "safety.reason",
+      "gold_value": "requires_confirmation",
+      "gold_value_summary": "string(21): requires_confirmation",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "ambiguous_request",
+      "predicted_value_summary": "string(17): ambiguous_request",
+      "row_id": "family-form_fill-test-3-aug-2",
+      "source_family_id": "family-form_fill-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "clarify_boundary_confusion",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "备注"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "ambiguity": "备注内容不明确"
+      },
+      "predicted_value_summary": "object with keys: ambiguity",
+      "row_id": "family-form_fill-test-3-aug-2",
+      "source_family_id": "family-form_fill-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写备注并确认",
+      "gold_value_summary": "string(7): 填写备注并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "请求确认备注内容",
+      "predicted_value_summary": "string(8): 请求确认备注内容",
+      "row_id": "family-form_fill-test-3-aug-2",
+      "source_family_id": "family-form_fill-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写报名信息并确认",
+      "gold_value_summary": "string(9): 填写报名信息并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写并确认报名信息",
+      "predicted_value_summary": "string(9): 填写并确认报名信息",
+      "row_id": "family-confirmation-test-1",
+      "source_family_id": "family-confirmation-test-1",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写报名信息并确认",
+      "gold_value_summary": "string(9): 填写报名信息并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写并确认报名表",
+      "predicted_value_summary": "string(8): 填写并确认报名表",
+      "row_id": "family-confirmation-test-1-aug-1",
+      "source_family_id": "family-confirmation-test-1",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写退订原因并确认",
+      "gold_value_summary": "string(9): 填写退订原因并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写取消订阅原因",
+      "predicted_value_summary": "string(8): 填写取消订阅原因",
+      "row_id": "family-confirmation-test-2-aug-1",
+      "source_family_id": "family-confirmation-test-2",
+      "split": "test"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "normalized_command",
+      "gold_value": "填写退订原因并确认",
+      "gold_value_summary": "string(9): 填写退订原因并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写退订表单并确认",
+      "predicted_value_summary": "string(9): 填写退订表单并确认",
+      "row_id": "family-confirmation-test-2-aug-2",
+      "source_family_id": "family-confirmation-test-2",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写收件电话并确认",
+      "gold_value_summary": "string(9): 填写收件电话并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写并确认收件电话",
+      "predicted_value_summary": "string(9): 填写并确认收件电话",
+      "row_id": "family-confirmation-test-3",
+      "source_family_id": "family-confirmation-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "收件电话"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "电话"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-confirmation-test-3-aug-1",
+      "source_family_id": "family-confirmation-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "normalized_command",
+      "gold_value": "填写收件电话并确认",
+      "gold_value_summary": "string(9): 填写收件电话并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写电话并确认",
+      "predicted_value_summary": "string(7): 填写电话并确认",
+      "row_id": "family-confirmation-test-3-aug-1",
+      "source_family_id": "family-confirmation-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "field_name_specificity_drift",
+      "field_path": "slots",
+      "gold_value": {
+        "field": "收件电话"
+      },
+      "gold_value_summary": "object with keys: field",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": {
+        "field": "电话"
+      },
+      "predicted_value_summary": "object with keys: field",
+      "row_id": "family-confirmation-test-3-aug-2",
+      "source_family_id": "family-confirmation-test-3",
+      "split": "test"
+    },
+    {
+      "bucket": "confirmation_marker_missing_or_reordered",
+      "field_path": "normalized_command",
+      "gold_value": "填写收件电话并确认",
+      "gold_value_summary": "string(9): 填写收件电话并确认",
+      "mismatch_category": "value_mismatch",
+      "predicted_value": "填写电话前请确认",
+      "predicted_value_summary": "string(8): 填写电话前请确认",
+      "row_id": "family-confirmation-test-3-aug-2",
+      "source_family_id": "family-confirmation-test-3",
+      "split": "test"
+    }
+  ],
+  "source_residual_diagnosis": {
+    "diagnosis_artifact": "reports/public-sample/formal-heldout-residual-family-diagnosis/formal_heldout_residual_family_diagnosis.json",
+    "evidence_kind": "formal_heldout_residual_family_diagnosis"
+  },
+  "source_target_selection": {
+    "evidence_kind": "formal_heldout_remediation_target_selection",
+    "selected_target": "form_fill",
+    "selected_task_family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+    "selection_artifact": "reports/public-sample/formal-heldout-remediation-target-selection/formal_heldout_remediation_target_selection.json"
+  },
+  "summary": {
+    "bucket_field_counts": {
+      "clarify_boundary_confusion": 8,
+      "confirmation_marker_missing_or_reordered": 23,
+      "field_name_specificity_drift": 18
+    },
+    "bucket_row_counts": {
+      "clarify_boundary_confusion": 2,
+      "confirmation_marker_missing_or_reordered": 23,
+      "field_name_specificity_drift": 16
+    },
+    "by_field_path": {
+      "normalized_command": 27,
+      "route": 2,
+      "safety.reason": 2,
+      "slots": 16,
+      "task_type": 2
+    },
+    "by_source_family": {
+      "family-confirmation-dev-1": 6,
+      "family-confirmation-dev-2": 3,
+      "family-confirmation-dev-3": 5,
+      "family-confirmation-test-1": 2,
+      "family-confirmation-test-2": 2,
+      "family-confirmation-test-3": 5,
+      "family-form_fill-dev-1": 2,
+      "family-form_fill-dev-2": 2,
+      "family-form_fill-dev-3": 6,
+      "family-form_fill-test-1": 4,
+      "family-form_fill-test-2": 5,
+      "family-form_fill-test-3": 7
+    },
+    "by_split": {
+      "dev": 24,
+      "test": 25
+    },
+    "count_consistency": {
+      "computed_residual_fields": 49,
+      "computed_residual_rows": 29,
+      "expected_residual_fields": 49,
+      "expected_residual_rows": 29,
+      "ok": true
+    },
+    "dpo_recommended_now": false,
+    "evaluator_change_recommended_now": false,
+    "recommended_next_change": "design-form-fill-remediation-cases",
+    "recommended_strategy": "prompt_policy_clarification_plus_targeted_public_safe_case_design",
+    "residual_field_count": 49,
+    "residual_row_count": 29,
+    "target": "form_fill",
+    "target_task_family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+    "training_recommended_now": false
+  }
+}

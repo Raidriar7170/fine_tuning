@@ -8,6 +8,7 @@ from voice2task.evaluation import (
     design_slot_value_generalization_cases,
     diagnose_alignment_mismatches,
     diagnose_constrained_contract_decoding,
+    diagnose_form_fill_remediation_plan,
     diagnose_formal_heldout_residual_families,
     diagnose_heldout_family_strategy,
     diagnose_merged_slot_value_residuals,
@@ -29,6 +30,7 @@ from voice2task.io import read_json, read_jsonl
 from voice2task.reports import (
     write_alignment_diagnostics_report,
     write_constrained_decoding_diagnosis_report,
+    write_form_fill_remediation_plan_report,
     write_formal_heldout_remediation_target_selection_report,
     write_formal_heldout_residual_family_report,
     write_heldout_family_strategy_report,
@@ -212,6 +214,15 @@ def build_parser() -> argparse.ArgumentParser:
     select_formal_target.add_argument(
         "--title",
         default="Voice2Task formal held-out remediation target selection",
+    )
+
+    form_fill_plan = subcommands.add_parser("diagnose-form-fill-remediation-plan")
+    form_fill_plan.add_argument("--residual-diagnosis", type=Path, required=True)
+    form_fill_plan.add_argument("--target-selection", type=Path, required=True)
+    form_fill_plan.add_argument("--output", type=Path, required=True)
+    form_fill_plan.add_argument(
+        "--title",
+        default="Voice2Task form-fill remediation plan diagnosis",
     )
 
     design_slot_values = subcommands.add_parser("design-slot-value-generalization-cases")
@@ -410,6 +421,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_formal_heldout_remediation_target_selection_report(
             selection,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "diagnose-form-fill-remediation-plan":
+        diagnosis = diagnose_form_fill_remediation_plan(
+            residual_diagnosis=read_json(args.residual_diagnosis),
+            target_selection=read_json(args.target_selection),
+        )
+        paths = write_form_fill_remediation_plan_report(
+            diagnosis,
             output_dir=args.output,
             title=args.title,
         )

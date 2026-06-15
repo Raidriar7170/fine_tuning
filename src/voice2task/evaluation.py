@@ -2174,6 +2174,212 @@ def select_formal_heldout_remediation_target(
     }
 
 
+_FORM_FILL_TASK_FAMILY = "form_fill|fill_form|requires_confirmation|confirm:true|slots:field"
+
+
+def _is_form_fill_clarify_boundary_residual(residual: dict[str, Any]) -> bool:
+    predicted_value = residual.get("predicted_value")
+    if str(residual.get("field_path", "")) in {"task_type", "route"} and predicted_value == "clarify":
+        return True
+    if str(residual.get("field_path", "")) == "safety.reason" and predicted_value == "ambiguous_request":
+        return True
+    if isinstance(predicted_value, dict) and "ambiguity" in predicted_value:
+        return True
+    return False
+
+
+def _form_fill_remediation_bucket(residual: dict[str, Any]) -> str:
+    if _is_form_fill_clarify_boundary_residual(residual):
+        return "clarify_boundary_confusion"
+    field_path = str(residual.get("field_path", ""))
+    gold_value = residual.get("gold_value")
+    predicted_value = residual.get("predicted_value")
+    if field_path == "slots":
+        return "field_name_specificity_drift"
+    if field_path == "normalized_command":
+        gold_text = str(gold_value)
+        predicted_text = str(predicted_value)
+        if "并确认" in gold_text and not predicted_text.endswith("并确认"):
+            return "confirmation_marker_missing_or_reordered"
+        return "field_name_specificity_drift"
+    return "other_form_fill_strict_drift"
+
+
+def diagnose_form_fill_remediation_plan(
+    *,
+    residual_diagnosis: dict[str, Any],
+    target_selection: dict[str, Any],
+) -> dict[str, Any]:
+    selected_target = target_selection.get("summary", {}).get("selected_target")
+    selected_task_family = target_selection.get("summary", {}).get("selected_task_family")
+    if selected_target != "form_fill" or selected_task_family != _FORM_FILL_TASK_FAMILY:
+        raise ValueError("target selection must select form_fill before publishing this diagnosis")
+
+    source_residuals = [entry for entry in residual_diagnosis.get("residuals", []) if isinstance(entry, dict)]
+    form_fill_residuals = [
+        entry for entry in source_residuals if str(entry.get("task_family", "")) == _FORM_FILL_TASK_FAMILY
+    ]
+    row_ids = {
+        (str(entry.get("split", "")), _sanitize_id(str(entry.get("row_id", "")))) for entry in form_fill_residuals
+    }
+    expected_rows = int(target_selection.get("summary", {}).get("selected_residual_row_count", 0))
+    expected_fields = int(target_selection.get("summary", {}).get("selected_residual_field_count", 0))
+    if len(row_ids) != expected_rows or len(form_fill_residuals) != expected_fields:
+        raise ValueError("form_fill residual counts do not match target selection summary")
+
+    buckets: dict[str, dict[str, Any]] = {}
+    residual_entries: list[dict[str, Any]] = []
+    for residual in form_fill_residuals:
+        bucket = _form_fill_remediation_bucket(residual)
+        split = _sanitize_public_summary(str(residual.get("split", "unknown")))
+        row_id = _sanitize_id(str(residual.get("row_id", "")))
+        source_family_id = _sanitize_id(str(residual.get("source_family_id", "")))
+        field_path = _sanitize_public_summary(str(residual.get("field_path", "unknown")))
+        entry = buckets.setdefault(
+            bucket,
+            {
+                "bucket": bucket,
+                "residual_field_count": 0,
+                "residual_rows": set(),
+                "by_split": {},
+                "by_field_path": {},
+                "by_source_family": {},
+                "representative_examples": [],
+            },
+        )
+        entry["residual_field_count"] += 1
+        entry["residual_rows"].add(f"{split}:{row_id}")
+        entry["by_split"][split] = entry["by_split"].get(split, 0) + 1
+        entry["by_field_path"][field_path] = entry["by_field_path"].get(field_path, 0) + 1
+        entry["by_source_family"][source_family_id] = entry["by_source_family"].get(source_family_id, 0) + 1
+        example = {
+            "split": split,
+            "row_id": row_id,
+            "source_family_id": source_family_id,
+            "field_path": field_path,
+            "gold_value": _sanitize_public_value(residual.get("gold_value")),
+            "predicted_value": _sanitize_public_value(residual.get("predicted_value")),
+            "gold_value_summary": _sanitize_public_summary(str(residual.get("gold_value_summary", "unknown"))),
+            "predicted_value_summary": _sanitize_public_summary(
+                str(residual.get("predicted_value_summary", "unknown"))
+            ),
+        }
+        if len(entry["representative_examples"]) < 5:
+            entry["representative_examples"].append(example)
+        residual_entries.append(
+            {
+                **example,
+                "bucket": bucket,
+                "mismatch_category": _sanitize_public_summary(str(residual.get("mismatch_category", "unknown"))),
+            }
+        )
+
+    bucket_summaries: list[dict[str, Any]] = []
+    for bucket, entry in buckets.items():
+        rows = sorted(entry.pop("residual_rows"))
+        bucket_summaries.append(
+            {
+                **entry,
+                "bucket": bucket,
+                "residual_row_count": len(rows),
+                "residual_row_refs": rows,
+                "by_split": dict(sorted(entry["by_split"].items())),
+                "by_field_path": dict(sorted(entry["by_field_path"].items())),
+                "by_source_family": dict(sorted(entry["by_source_family"].items())),
+            }
+        )
+    bucket_summaries.sort(
+        key=lambda item: (
+            -int(item["residual_row_count"]),
+            -int(item["residual_field_count"]),
+            str(item["bucket"]),
+        )
+    )
+
+    bucket_counts = {item["bucket"]: item["residual_field_count"] for item in bucket_summaries}
+    row_bucket_counts = {item["bucket"]: item["residual_row_count"] for item in bucket_summaries}
+    field_counts = _count_by([entry["field_path"] for entry in residual_entries])
+    split_counts = _count_by([entry["split"] for entry in residual_entries])
+    source_family_counts = _count_by([entry["source_family_id"] for entry in residual_entries])
+
+    return {
+        "evidence_kind": "formal_heldout_form_fill_remediation_plan",
+        "remediation_status": "plan_only_no_data_no_training_no_metric_change",
+        "source_target_selection": {
+            "evidence_kind": _sanitize_public_summary(str(target_selection.get("evidence_kind", ""))),
+            "selection_artifact": (
+                "reports/public-sample/formal-heldout-remediation-target-selection/"
+                "formal_heldout_remediation_target_selection.json"
+            ),
+            "selected_target": "form_fill",
+            "selected_task_family": _FORM_FILL_TASK_FAMILY,
+        },
+        "source_residual_diagnosis": {
+            "evidence_kind": _sanitize_public_summary(str(residual_diagnosis.get("evidence_kind", ""))),
+            "diagnosis_artifact": (
+                "reports/public-sample/formal-heldout-residual-family-diagnosis/"
+                "formal_heldout_residual_family_diagnosis.json"
+            ),
+        },
+        "summary": {
+            "target": "form_fill",
+            "target_task_family": _FORM_FILL_TASK_FAMILY,
+            "residual_row_count": len(row_ids),
+            "residual_field_count": len(form_fill_residuals),
+            "bucket_field_counts": bucket_counts,
+            "bucket_row_counts": row_bucket_counts,
+            "by_field_path": field_counts,
+            "by_split": split_counts,
+            "by_source_family": source_family_counts,
+            "count_consistency": {
+                "expected_residual_rows": expected_rows,
+                "computed_residual_rows": len(row_ids),
+                "expected_residual_fields": expected_fields,
+                "computed_residual_fields": len(form_fill_residuals),
+                "ok": len(row_ids) == expected_rows and len(form_fill_residuals) == expected_fields,
+            },
+            "recommended_strategy": "prompt_policy_clarification_plus_targeted_public_safe_case_design",
+            "recommended_next_change": "design-form-fill-remediation-cases",
+            "training_recommended_now": False,
+            "dpo_recommended_now": False,
+            "evaluator_change_recommended_now": False,
+        },
+        "remediation_buckets": bucket_summaries,
+        "residuals": residual_entries,
+        "acceptance_boundary": {
+            "must_preserve_strict_contract_exact_match_as_primary": True,
+            "must_preserve_strict_slot_f1_as_primary": True,
+            "slot_f1_soft_diagnostic_only": True,
+            "future_case_design_must_not_mutate_current_heldout_splits": True,
+            "future_training_requires_separate_user_confirmed_phase": True,
+        },
+        "execution_scope": {
+            "source_residual_diagnosis_read_as_input": True,
+            "source_target_selection_read_as_input": True,
+            "raw_predictions_read": False,
+            "new_data_generated": False,
+            "public_heldout_modified": False,
+            "gold_policy_change": False,
+            "training_run": False,
+            "dpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "evaluator_metric_change": False,
+            "slot_normalization": False,
+        },
+        "claims": {
+            "model_recovery_claim": False,
+            "held_out_recovery_claim": False,
+            "production_readiness_claim": False,
+            "semantic_equivalence_primary_metric": False,
+            "soft_slot_f1_primary_metric": False,
+            "adapter_release_claim": False,
+            "checkpoint_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+    }
+
+
 def _unique_public_values(values: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     unique: list[dict[str, Any]] = []
