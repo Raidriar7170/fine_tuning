@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Loop Slot Value Candidate SFT Probe</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9e0ea;
+      --panel: #f7f9fc;
+      --accent: #0f766e;
+      --warn: #a16207;
+      --bad: #b91c1c;
+      --good: #047857;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: #edf2f7; border-radius: 4px; padding: 1px 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; line-height: 1.55; }
+    .status { display: inline-block; margin: 10px 0 18px; padding: 5px 9px; border-radius: 6px; background: #fffbeb; color: var(--warn); border: 1px solid #fde68a; font-weight: 600; }
+    .summary { border-left: 4px solid var(--accent); padding: 10px 14px; background: #f0fdfa; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric b { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .good { color: var(--good); font-weight: 600; }
+    .bad { color: var(--bad); font-weight: 600; }
+    .warn { color: var(--warn); font-weight: 600; }
+    .small { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autonomous Loop: Slot Value Candidate SFT Probe</h1>
+  <div class="status">loop status：stopped，触发 hard stop #2，需要用户确认下一步数据策略</div>
+  <section class="summary">
+    <p><strong>一句话结论：</strong>本轮完成并归档两个阶段：candidate-only probe 准备证据，以及真实 A100 7B candidate SFT + train-split prediction；12 条 candidate train rows 达到 <code>contract_exact_match=1.0</code>，但下一步是否 merge 进 formal public sample 会改变数据面和成功标准，必须停下确认。</p>
+  </section>
+
+  <section class="grid" aria-label="key metrics">
+    <div class="metric"><b>2</b><span>archived phases</span></div>
+    <div class="metric"><b class="good">1.0</b><span>candidate train exact match</span></div>
+    <div class="metric"><b class="good">261</b><span>pytest passed</span></div>
+    <div class="metric"><b class="bad">0</b><span>formal sample files modified</span></div>
+  </section>
+
+  <h2>完成的阶段</h2>
+  <table>
+    <thead><tr><th>phase</th><th>结果</th><th>commit</th></tr></thead>
+    <tbody>
+      <tr><td><code>run-slot-value-candidate-sft-probe</code></td><td>候选 manifest/config/dry-run evidence 归档；A100 默认环境缺依赖的 blocked 状态被记录</td><td><code>14e1133</code></td></tr>
+      <tr><td><code>run-a100-slot-value-candidate-sft-probe</code></td><td>A100 7B candidate-only SFT 完成；train-split prediction 完成；candidate train metrics 全 1.0</td><td><code>b4b593a</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>为什么停止</h2>
+  <p><strong>准确 stop condition：</strong>Opsx Auto hard stop #2。下一步不再只是 candidate-only proof，而是要决定是否把 candidate rows merge 进 formal public sample、是否重建 SFT/DPO、以及用 held-out 指标作为下一成功标准；这会改变数据面、成功标准和公开表述边界。</p>
+
+  <h2>项目阶段进度</h2>
+  <ul>
+    <li>当前阶段目标：first-phase speech-to-contract normalization；来源是 <a href="../../CONTEXT.md">CONTEXT.md</a> 和 <a href="../../README.md">README.md</a> 中的 public sample / A100 evidence 边界。</li>
+    <li>本轮推进：证明 slot value candidate 数据不是“写了但模型学不会”，7B SFT 路径可在 train split 上复现 12 条 candidate contracts。</li>
+    <li>剩余能力差距：candidate rows 仍未进入 formal public sample；没有 dev/test held-out evidence；没有 DPO hard negatives；没有证明真实语气或生产任务覆盖已经恢复。</li>
+    <li>下一阶段计划：确认数据策略后开新 OpenSpec。推荐优先选择“merge candidate rows into formal public sample + rebuild SFT/DPO + run held-out dev/test prediction”。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <ul>
+    <li><a href="../../docs/human-briefs/2026-06-15-run-slot-value-candidate-sft-probe.html">candidate probe prep phase brief</a></li>
+    <li><a href="../../docs/human-briefs/2026-06-15-run-a100-slot-value-candidate-sft-probe.html">A100 candidate probe phase brief</a></li>
+    <li><a href="../../reports/public-sample/a100-slot-value-candidate-sft-probe/slot_value_candidate_sft_probe.json">A100 evidence JSON</a></li>
+    <li><a href="../../reports/public-sample/a100-slot-value-candidate-sft-probe/manifest.json">A100 evidence manifest</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-15-run-a100-slot-value-candidate-sft-probe/tasks.md">archived OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q tests/test_slot_value_candidate_sft_probe.py tests/test_slot_value_generalization_materialization.py tests/test_formatting_training.py</code>：<code>33 passed</code>。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>：<code>261 passed</code>。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>：<code>ok=true</code>。</li>
+    <li><code>openspec validate --all --strict</code>：<code>4 passed</code> after archive。</li>
+    <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan ...</code>：public-safe scan passed。</li>
+    <li><code>git diff --check</code>：passed。</li>
+  </ul>
+
+  <h2>Auto Integration</h2>
+  <ul>
+    <li>Target branch：<code>main</code>。</li>
+    <li>Commits：<code>14e1133 Archive slot value candidate SFT probe</code>；<code>b4b593a Archive A100 slot value candidate SFT probe</code>。</li>
+    <li>Push：skipped，repo 当前没有 configured remote/upstream。</li>
+    <li>External review：not run；本轮是 evidence/ML pipeline 阶段，local validation 和 Reviewer pass 足够。</li>
+  </ul>
+
+  <h2>不要夸大的点</h2>
+  <ul>
+    <li>candidate train exact match 1.0 不是 held-out generalization，也不是完整“语气恢复”。</li>
+    <li>没有把 candidate rows merge 进 formal public sample；formal sample 仍是 10 seed / 30 SFT / 90 DPO。</li>
+    <li>没有 DPO/GRPO，没有 release checkpoint/adapter，没有 live-browser benchmark。</li>
+    <li>所有远端 adapter、checkpoint、raw logs、private override、host details 都留在私有 workspace，没有提交。</li>
+  </ul>
+
+  <h2>推荐的人工决策</h2>
+  <p>建议你确认下一阶段采用“merge candidate rows into formal public sample + rebuild SFT/DPO + held-out dev/test prediction”。这是从 candidate learnability 走向泛化验证的自然下一步，但因为会改变正式数据面，需要你明确同意。</p>
+  <p class="small">Generated from archived OpenSpec changes, committed evidence, validation output, and phase Human Briefs.</p>
+</main>
+</body>
+</html>
