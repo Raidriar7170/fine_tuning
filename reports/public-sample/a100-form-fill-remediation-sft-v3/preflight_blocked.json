@@ -1,0 +1,49 @@
+{
+  "evidence_kind": "a100_form_fill_remediation_sft_v3_preflight_blocked",
+  "change_name": "run-a100-form-fill-remediation-sft-v3",
+  "generated_at": "2026-06-16T14:57:01Z",
+  "run_status": "blocked",
+  "preflight_status": "blocked_before_gpu_inspection",
+  "blocked_reason": {
+    "category": "a100_ssh_connect_timeout",
+    "public_summary": "The configured A100 SSH alias timed out before any remote command could run, so GPU occupancy could not be inspected safely.",
+    "sensitive_details_omitted": true
+  },
+  "manifest": {
+    "path": "data/public-samples/manifest_public_sample.json",
+    "manifest_id": "public-sample-20260616T074315Z",
+    "seed_rows": 98,
+    "sft_rows": 252,
+    "dpo_pairs": 850,
+    "split_rows": {
+      "train": 114,
+      "dev": 69,
+      "test": 69
+    },
+    "form_fill_remediation_train_rows": 21
+  },
+  "intended_scope": {
+    "base_model": "Qwen/Qwen2.5-7B-Instruct",
+    "training_config": "configs/sft-a100-form-fill-remediation-v3.json",
+    "dev_prediction_config": "configs/sft-a100-form-fill-remediation-v3-dev-prediction.json",
+    "test_prediction_config": "configs/sft-a100-form-fill-remediation-v3-test-prediction.json",
+    "intended_execution": "A100 SFT v3 training followed by dev/test prediction-only strict evaluation"
+  },
+  "claims": {
+    "a100_execution_performed": false,
+    "gpu_occupancy_inspected": false,
+    "gpu_selected": false,
+    "private_override_created": false,
+    "training_started": false,
+    "model_download_started": false,
+    "adapter_written": false,
+    "prediction_rerun_performed": false,
+    "metrics_generated": false,
+    "model_recovery_claimed": false,
+    "checkpoint_release_claimed": false,
+    "adapter_release_claimed": false,
+    "production_readiness_claimed": false,
+    "live_browser_improvement_claimed": false
+  },
+  "safe_next_step": "Retry the same OpenSpec phase only after A100 SSH connectivity is available; then repeat GPU preflight before launching training."
+}

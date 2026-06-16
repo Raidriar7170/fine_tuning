@@ -49,11 +49,18 @@ confirmation-marker cluster; `clarify` route confusion and `blocked_payment`
 safety recall remain secondary risks. The readiness report selects the current
 public train split (`114` rows, including `21` merged form-fill remediation /
 confirmation-marker rows) and recommends a separate
-`run-a100-form-fill-remediation-sft-v3` phase. That later phase must still do
-fresh A100 GPU preflight, private overrides, sanitized evidence import, and
-held-out prediction follow-up. DPO, evaluator changes, public checkpoint/adapter
-release, production-readiness claims, and live-browser benchmark claims remain
-out of scope unless a later OpenSpec change explicitly scopes them.
+`run-a100-form-fill-remediation-sft-v3` phase.
+
+An initial `run-a100-form-fill-remediation-sft-v3` execution attempt was opened
+on 2026-06-16 but blocked before GPU inspection because the configured A100 SSH
+alias timed out. No A100 command executed, no GPU was selected, no private
+override was created, and no training or prediction ran. The blocked evidence is
+under `reports/public-sample/a100-form-fill-remediation-sft-v3/`. A retry is
+valid only after A100 SSH connectivity is available, and it must repeat fresh
+GPU preflight before launching training. DPO, evaluator changes, public
+checkpoint/adapter release, production-readiness claims, and live-browser
+benchmark claims remain out of scope unless a later OpenSpec change explicitly
+scopes them.
 
 ## Language
 

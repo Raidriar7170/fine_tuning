@@ -1,0 +1,27 @@
+{
+  "evidence_kind": "a100_form_fill_remediation_sft_v3_preflight_blocked",
+  "run_status": "blocked",
+  "manifest_id": "public-sample-20260616T074315Z",
+  "source_files": {
+    "blocked_json": "reports/public-sample/a100-form-fill-remediation-sft-v3/preflight_blocked.json",
+    "blocked_report": "reports/public-sample/a100-form-fill-remediation-sft-v3/preflight_blocked.md"
+  },
+  "public_sample_counts": {
+    "seed_rows": 98,
+    "sft_rows": 252,
+    "dpo_pairs": 850
+  },
+  "split_rows": {
+    "train": 114,
+    "dev": 69,
+    "test": 69
+  },
+  "claim_boundaries": {
+    "training_started": false,
+    "prediction_rerun_performed": false,
+    "strict_metrics_generated": false,
+    "adapter_released": false,
+    "production_readiness": false,
+    "live_browser_improvement": false
+  }
+}

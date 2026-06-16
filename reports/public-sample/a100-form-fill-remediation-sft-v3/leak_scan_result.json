@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-16T15:02:17.349475+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "CONTEXT.md",
+    "reports/final_status.md",
+    "reports/public-sample/a100-form-fill-remediation-sft-v3",
+    "docs/human-briefs/2026-06-16-run-a100-form-fill-remediation-sft-v3.html",
+    "openspec/changes/archive/2026-06-16-run-a100-form-fill-remediation-sft-v3",
+    "openspec/specs/supervised-contract-tuning/spec.md",
+    "openspec/specs/contract-evaluation/spec.md"
+  ]
+}

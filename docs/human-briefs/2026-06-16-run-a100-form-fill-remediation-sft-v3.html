@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voice2Task - A100 form-fill SFT v3 blocked</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #17202a;
+      background: #f7f7fb;
+      line-height: 1.55;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+    h2 {
+      margin-top: 26px;
+      font-size: 18px;
+    }
+    .lead {
+      margin: 0 0 20px;
+      color: #334155;
+      font-size: 17px;
+    }
+    .panel {
+      margin-top: 16px;
+      padding: 18px 20px;
+      border: 1px solid #d9e2ec;
+      border-radius: 8px;
+      background: #fff;
+    }
+    code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #eef2f7;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    a {
+      color: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>A100 form-fill SFT v3 preflight blocked</h1>
+    <p class="lead">结论：本阶段没有启动训练。A100 SSH alias 在 GPU 检查前超时，因此不能安全选择 GPU，也不能继续训练或 prediction。</p>
+
+    <section class="panel">
+      <h2>当前状态</h2>
+      <ul>
+        <li>Status: <code>blocked_before_gpu_inspection</code></li>
+        <li>Manifest: <code>public-sample-20260616T074315Z</code></li>
+        <li>Intended split: train 114 / dev 69 / test 69</li>
+        <li>Form-fill train rows intended for SFT v3: 21</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>没有发生什么</h2>
+      <ul>
+        <li>没有执行 A100 远端命令。</li>
+        <li>没有检查 GPU 占用或选择 GPU。</li>
+        <li>没有创建 private override。</li>
+        <li>没有训练、prediction rerun、指标生成、adapter 或 checkpoint 输出。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>证据</h2>
+      <ul>
+        <li><a href="../../reports/public-sample/a100-form-fill-remediation-sft-v3/preflight_blocked.md">blocked report</a></li>
+        <li><a href="../../reports/public-sample/a100-form-fill-remediation-sft-v3/preflight_blocked.json">blocked JSON</a></li>
+        <li><a href="../../openspec/changes/archive/2026-06-16-run-a100-form-fill-remediation-sft-v3/proposal.md">OpenSpec proposal</a></li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>推荐下一步</h2>
+      <p>等 A100 SSH 连接恢复后，重试同一个 bounded phase；重试时必须重新做 GPU preflight，不能复用这次 blocked 状态作为训练证据。</p>
+    </section>
+  </main>
+</body>
+</html>
