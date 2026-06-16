@@ -14,8 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_SAMPLE_DIR = REPO_ROOT / "data" / "public-samples"
 CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "slot_value_generalization_seed_candidates.jsonl"
 
-EXPECTED_COUNTS = {"dpo_pairs": 661, "seed_rows": 77, "sft_rows": 231}
-EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 93}
+EXPECTED_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 102}
 LEGACY_MERGED_SLOT_VALUE_COUNTS = {"dpo_pairs": 125, "seed_rows": 14, "sft_rows": 42}
 LEGACY_MERGED_SLOT_VALUE_SPLITS = {"dev": 6, "test": 6, "train": 30}
 EXPECTED_CANDIDATE_IDS = {
@@ -66,9 +66,11 @@ def test_merge_slot_value_candidates_rebuilds_formal_public_sample(tmp_path: Pat
     assert manifest_payload["source_summary"]["slot_value_candidates_formal_public_sample"] is True
     assert manifest_payload["source_summary"]["family_stratified_candidate_seed_rows"] == 63
     assert manifest_payload["source_summary"]["family_stratified_candidates_formal_public_sample"] is True
-    assert len(seed_rows) == 77
-    assert len(sft_rows) == 231
-    assert len(dpo_rows) == 661
+    assert manifest_payload["source_summary"]["form_fill_remediation_candidate_seed_rows"] == 9
+    assert manifest_payload["source_summary"]["form_fill_remediation_candidates_formal_public_sample"] is True
+    assert len(seed_rows) == 86
+    assert len(sft_rows) == 240
+    assert len(dpo_rows) == 742
 
     seed_by_id = {row["id"]: row for row in seed_rows}
     sft_by_id = {row["id"]: row for row in sft_rows}
@@ -135,6 +137,7 @@ def test_merge_slot_value_candidates_cli(tmp_path: Path, capsys) -> None:
     assert payload["split_counts"] == EXPECTED_SPLITS
     assert payload["source_summary"]["slot_value_candidate_seed_rows"] == 4
     assert payload["source_summary"]["family_stratified_candidate_seed_rows"] == 63
+    assert payload["source_summary"]["form_fill_remediation_candidate_seed_rows"] == 9
 
 
 def test_merge_slot_value_candidates_rejects_unreviewed_candidate_rows(tmp_path: Path) -> None:

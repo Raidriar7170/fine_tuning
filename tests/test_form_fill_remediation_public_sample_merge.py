@@ -4,96 +4,95 @@ from pathlib import Path
 import pytest
 
 from voice2task.cli import data as data_cli
-from voice2task.dataset import build_public_sample_dataset, merge_family_stratified_candidates_into_public_sample
+from voice2task.dataset import build_public_sample_dataset, merge_form_fill_remediation_candidates_into_public_sample
 from voice2task.io import read_json, read_jsonl, write_jsonl
 from voice2task.leak_scan import scan_paths
 from voice2task.validation import validate_dataset_artifacts
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_SAMPLE_DIR = REPO_ROOT / "data" / "public-samples"
-FAMILY_CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "family_stratified_generalization_seed_candidates.jsonl"
-MERGE_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "family-stratified-public-sample-merge"
+FORM_FILL_CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "form_fill_remediation_seed_candidates.jsonl"
+MERGE_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "form-fill-remediation-public-sample-merge"
 
-EXPECTED_FAMILIES = {
-    "blocked_payment",
-    "clarify",
-    "confirmation",
-    "extract",
-    "form_fill",
-    "navigation",
-    "search",
+EXPECTED_FORM_FILL_IDS = {row["id"] for row in read_jsonl(FORM_FILL_CANDIDATE_SEED)}
+EXPECTED_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 102}
+EXPECTED_CASE_GROUPS = {
+    "form-fill-clarify-boundary-protection",
+    "form-fill-confirmation-marker-preservation",
+    "form-fill-field-specificity-preservation",
 }
-EXPECTED_FAMILY_SEED_IDS = {row["id"] for row in read_jsonl(FAMILY_CANDIDATE_SEED)}
-EXPECTED_COUNTS = {"seed_rows": 86, "sft_rows": 240, "dpo_pairs": 742}
-EXPECTED_SPLITS = {"train": 102, "dev": 69, "test": 69}
-LEGACY_FAMILY_MERGE_COUNTS = {"seed_rows": 77, "sft_rows": 231, "dpo_pairs": 661}
-LEGACY_FAMILY_MERGE_SPLITS = {"train": 93, "dev": 69, "test": 69}
-EXPECTED_SEED_SPLITS = {"train": 21, "dev": 21, "test": 21}
+EXPECTED_DPO_DELTAS = {
+    "form_confirmation_drift": 9,
+    "malformed_schema": 9,
+    "missing_confirmation": 9,
+    "missing_slot": 9,
+    "underspecified_request": 9,
+    "unsafe_allowance": 9,
+    "wrong_route": 9,
+    "wrong_slot": 9,
+    "wrong_task_type": 9,
+}
 
 
-def _copy_current_public_sample_without_family_candidates(tmp_path: Path) -> Path:
+def _copy_current_public_sample_without_form_fill_candidates(tmp_path: Path) -> Path:
     public_dir = tmp_path / "public-samples"
     public_dir.mkdir()
     seed_rows = [
         row
         for row in read_jsonl(PUBLIC_SAMPLE_DIR / "seed_traces.jsonl")
-        if row["id"] not in EXPECTED_FAMILY_SEED_IDS
+        if row["id"] not in EXPECTED_FORM_FILL_IDS
     ]
     write_jsonl(public_dir / "seed_traces.jsonl", seed_rows)
     build_public_sample_dataset(seed_path=public_dir / "seed_traces.jsonl", output_dir=public_dir)
     return public_dir
 
 
-def _assert_manifest_has_family_merge_summary(manifest_payload: dict) -> None:
+def _assert_manifest_has_form_fill_merge_summary(manifest_payload: dict) -> None:
     assert manifest_payload["counts"] == EXPECTED_COUNTS
     assert manifest_payload["split_counts"] == EXPECTED_SPLITS
     source_summary = manifest_payload["source_summary"]
     assert source_summary["slot_value_candidate_seed_rows"] == 4
     assert source_summary["slot_value_candidates_formal_public_sample"] is True
     assert source_summary["family_stratified_candidate_seed_rows"] == 63
-    assert source_summary["family_stratified_candidate_sft_rows"] == 189
     assert source_summary["family_stratified_candidates_formal_public_sample"] is True
-    assert set(source_summary["family_stratified_families"]) == EXPECTED_FAMILIES
-    assert source_summary["family_stratified_seed_split_counts"] == EXPECTED_SEED_SPLITS
     assert source_summary["form_fill_remediation_candidate_seed_rows"] == 9
     assert source_summary["form_fill_remediation_candidate_sft_rows"] == 9
     assert source_summary["form_fill_remediation_candidates_formal_public_sample"] is True
+    assert set(source_summary["form_fill_remediation_source_case_groups"]) == EXPECTED_CASE_GROUPS
 
 
-def _assert_family_rows_are_formal(seed_rows: list[dict], sft_rows: list[dict], dpo_rows: list[dict]) -> None:
+def _assert_form_fill_rows_are_formal(seed_rows: list[dict], sft_rows: list[dict], dpo_rows: list[dict]) -> None:
     seed_by_id = {row["id"]: row for row in seed_rows}
     sft_by_id = {row["id"]: row for row in sft_rows}
     dpo_by_id = {row["id"]: row for row in dpo_rows}
-    candidate_rows = read_jsonl(FAMILY_CANDIDATE_SEED)
+    candidate_rows = read_jsonl(FORM_FILL_CANDIDATE_SEED)
 
-    assert EXPECTED_FAMILY_SEED_IDS.issubset(seed_by_id)
+    assert EXPECTED_FORM_FILL_IDS.issubset(seed_by_id)
     for candidate in candidate_rows:
         seed = seed_by_id[candidate["id"]]
         provenance = seed["provenance"]
-        assert seed["split"] == candidate["split"]
+        assert seed["split"] == "train"
         assert provenance["candidate_status"] == "formal_public_sample"
-        assert provenance["source_mode"] == "family_stratified_generalization_formal_public_seed"
+        assert provenance["source_mode"] == "form_fill_remediation_formal_public_seed"
         assert provenance["merged_from_candidate_seed"] == (
-            "data/public-samples/family_stratified_generalization_seed_candidates.jsonl"
+            "data/public-samples/form_fill_remediation_seed_candidates.jsonl"
         )
-        assert provenance["family_id"] == candidate["provenance"]["family_id"]
-        assert provenance["split_role"] == candidate["split"]
-        assert provenance["family_stratification"] is True
+        assert provenance["source_case_group_id"] == candidate["provenance"]["source_case_group_id"]
 
         original = sft_by_id[candidate["id"]]
-        assert original["split"] == candidate["split"]
+        assert original["split"] == "train"
         assert original["provenance"]["candidate_status"] == "formal_public_sample"
-        assert original["provenance"]["family_id"] == candidate["provenance"]["family_id"]
-        assert original["provenance"]["family_stratification"] is True
-        assert f"{candidate['id']}-wrong_task_type" in dpo_by_id
-        assert f"{candidate['id']}-aug-1-wrong_task_type" not in dpo_by_id
+        assert original["provenance"]["source_mode"] == "form_fill_remediation_formal_public_seed"
+        for rejection_reason in EXPECTED_DPO_DELTAS:
+            assert f"{candidate['id']}-{rejection_reason}" in dpo_by_id
 
 
-def test_merge_family_stratified_candidates_rebuilds_formal_public_sample(tmp_path: Path) -> None:
-    public_dir = _copy_current_public_sample_without_family_candidates(tmp_path)
+def test_merge_form_fill_remediation_candidates_rebuilds_formal_public_sample(tmp_path: Path) -> None:
+    public_dir = _copy_current_public_sample_without_form_fill_candidates(tmp_path)
 
-    manifest = merge_family_stratified_candidates_into_public_sample(
-        candidate_seed_path=FAMILY_CANDIDATE_SEED,
+    manifest = merge_form_fill_remediation_candidates_into_public_sample(
+        candidate_seed_path=FORM_FILL_CANDIDATE_SEED,
         seed_path=public_dir / "seed_traces.jsonl",
         output_dir=public_dir,
     )
@@ -105,11 +104,11 @@ def test_merge_family_stratified_candidates_rebuilds_formal_public_sample(tmp_pa
 
     assert manifest.counts == EXPECTED_COUNTS
     assert manifest.split_counts == EXPECTED_SPLITS
-    _assert_manifest_has_family_merge_summary(manifest_payload)
+    _assert_manifest_has_form_fill_merge_summary(manifest_payload)
     assert len(seed_rows) == 86
     assert len(sft_rows) == 240
     assert len(dpo_rows) == 742
-    _assert_family_rows_are_formal(seed_rows, sft_rows, dpo_rows)
+    _assert_form_fill_rows_are_formal(seed_rows, sft_rows, dpo_rows)
 
     validation = validate_dataset_artifacts(
         sft_path=public_dir / "sft_public_sample.jsonl",
@@ -121,16 +120,16 @@ def test_merge_family_stratified_candidates_rebuilds_formal_public_sample(tmp_pa
     assert scan_paths([public_dir]).ok is True
 
 
-def test_merge_family_stratified_candidates_cli_writes_evidence(tmp_path: Path, capsys) -> None:
-    public_dir = _copy_current_public_sample_without_family_candidates(tmp_path)
+def test_merge_form_fill_remediation_candidates_cli_writes_evidence(tmp_path: Path, capsys) -> None:
+    public_dir = _copy_current_public_sample_without_form_fill_candidates(tmp_path)
     evidence_dir = tmp_path / "merge-evidence"
 
     assert (
         data_cli.main(
             [
-                "merge-family-stratified-candidates",
+                "merge-form-fill-remediation-candidates",
                 "--candidate-seed",
-                FAMILY_CANDIDATE_SEED.as_posix(),
+                FORM_FILL_CANDIDATE_SEED.as_posix(),
                 "--seed",
                 (public_dir / "seed_traces.jsonl").as_posix(),
                 "--output",
@@ -146,55 +145,72 @@ def test_merge_family_stratified_candidates_cli_writes_evidence(tmp_path: Path, 
     assert payload["ok"] is True
     assert payload["counts"] == EXPECTED_COUNTS
     assert payload["split_counts"] == EXPECTED_SPLITS
-    assert payload["source_summary"]["family_stratified_candidate_seed_rows"] == 63
+    assert payload["source_summary"]["form_fill_remediation_candidate_seed_rows"] == 9
     assert payload["evidence_paths"]["manifest"] == (evidence_dir / "manifest.json").as_posix()
 
-    evidence = read_json(evidence_dir / "family_stratified_public_sample_merge.json")
+    evidence = read_json(evidence_dir / "form_fill_remediation_public_sample_merge.json")
     evidence_manifest = read_json(evidence_dir / "manifest.json")
-    markdown = (evidence_dir / "family_stratified_public_sample_merge.md").read_text(encoding="utf-8")
-    assert evidence["evidence_kind"] == "family_stratified_public_sample_merge"
+    markdown = (evidence_dir / "form_fill_remediation_public_sample_merge.md").read_text(encoding="utf-8")
+    assert evidence["evidence_kind"] == "form_fill_remediation_public_sample_merge"
+    assert evidence["candidate_source"]["candidate_dpo_pairs"] == 81
+    assert evidence["candidate_source"]["dpo_rejection_deltas"] == EXPECTED_DPO_DELTAS
     assert evidence_manifest["formal_public_sample_counts"] == EXPECTED_COUNTS
     assert evidence_manifest["claims"]["held_out_generalization_recovered"] is False
     assert "does not prove held-out recovery" in markdown
     assert scan_paths([evidence_dir]).ok is True
 
 
-def test_merge_family_stratified_candidates_rejects_unreviewed_rows(tmp_path: Path) -> None:
-    public_dir = _copy_current_public_sample_without_family_candidates(tmp_path)
-    candidate_rows = read_jsonl(FAMILY_CANDIDATE_SEED)
+def test_merge_form_fill_remediation_candidates_rejects_unreviewed_rows(tmp_path: Path) -> None:
+    public_dir = _copy_current_public_sample_without_form_fill_candidates(tmp_path)
+    candidate_rows = read_jsonl(FORM_FILL_CANDIDATE_SEED)
     unreviewed = dict(candidate_rows[0])
-    unreviewed["id"] = "family-unreviewed-extra-row"
+    unreviewed["id"] = "candidate-form-fill-remediation-unreviewed-extra"
     write_jsonl(tmp_path / "candidate_seed_with_extra.jsonl", [*candidate_rows, unreviewed])
 
-    with pytest.raises(ValueError, match="expected reviewed family-stratified candidate seed IDs"):
-        merge_family_stratified_candidates_into_public_sample(
+    with pytest.raises(ValueError, match="expected reviewed form-fill remediation candidate seed IDs"):
+        merge_form_fill_remediation_candidates_into_public_sample(
             candidate_seed_path=tmp_path / "candidate_seed_with_extra.jsonl",
             seed_path=public_dir / "seed_traces.jsonl",
             output_dir=public_dir,
         )
 
 
-def test_committed_formal_public_sample_contains_family_stratified_candidates() -> None:
+def test_merge_form_fill_remediation_candidates_rejects_already_formal_rows(tmp_path: Path) -> None:
+    public_dir = _copy_current_public_sample_without_form_fill_candidates(tmp_path)
+    candidate_rows = read_jsonl(FORM_FILL_CANDIDATE_SEED)
+    seed_path = public_dir / "seed_traces.jsonl"
+    write_jsonl(seed_path, [*read_jsonl(seed_path), candidate_rows[0]])
+
+    with pytest.raises(ValueError, match="form-fill remediation candidate seed IDs already exist"):
+        merge_form_fill_remediation_candidates_into_public_sample(
+            candidate_seed_path=FORM_FILL_CANDIDATE_SEED,
+            seed_path=seed_path,
+            output_dir=public_dir,
+        )
+
+
+def test_committed_formal_public_sample_contains_form_fill_remediation_candidates() -> None:
     manifest = read_json(PUBLIC_SAMPLE_DIR / "manifest_public_sample.json")
     seed_rows = read_jsonl(PUBLIC_SAMPLE_DIR / "seed_traces.jsonl")
     sft_rows = read_jsonl(PUBLIC_SAMPLE_DIR / "sft_public_sample.jsonl")
     dpo_rows = read_jsonl(PUBLIC_SAMPLE_DIR / "dpo_public_sample.jsonl")
 
-    _assert_manifest_has_family_merge_summary(manifest)
-    _assert_family_rows_are_formal(seed_rows, sft_rows, dpo_rows)
+    _assert_manifest_has_form_fill_merge_summary(manifest)
+    _assert_form_fill_rows_are_formal(seed_rows, sft_rows, dpo_rows)
     assert scan_paths([PUBLIC_SAMPLE_DIR]).ok is True
 
 
-def test_committed_family_stratified_merge_evidence_is_public_safe() -> None:
-    evidence = read_json(MERGE_EVIDENCE_DIR / "family_stratified_public_sample_merge.json")
+def test_committed_form_fill_remediation_merge_evidence_is_public_safe() -> None:
+    evidence = read_json(MERGE_EVIDENCE_DIR / "form_fill_remediation_public_sample_merge.json")
     evidence_manifest = read_json(MERGE_EVIDENCE_DIR / "manifest.json")
 
-    assert evidence["evidence_kind"] == "family_stratified_public_sample_merge"
+    assert evidence["evidence_kind"] == "form_fill_remediation_public_sample_merge"
     assert evidence["execution_scope"]["training_run"] is False
     assert evidence["execution_scope"]["prediction_run"] is False
     assert evidence["execution_scope"]["a100_execution"] is False
-    assert evidence_manifest["formal_public_sample_counts"] == LEGACY_FAMILY_MERGE_COUNTS
-    assert evidence_manifest["formal_public_sample_split_counts"] == LEGACY_FAMILY_MERGE_SPLITS
+    assert evidence["candidate_source"]["candidate_dpo_pairs"] == 81
+    assert evidence_manifest["formal_public_sample_counts"] == EXPECTED_COUNTS
+    assert evidence_manifest["formal_public_sample_split_counts"] == EXPECTED_SPLITS
     assert evidence_manifest["claims"]["held_out_generalization_recovered"] is False
     assert evidence_manifest["claims"]["model_recovery_claim"] is False
     assert evidence_manifest["claims"]["adapter_release"] is False

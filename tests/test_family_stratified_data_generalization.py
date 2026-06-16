@@ -27,8 +27,8 @@ EXPECTED_FAMILIES = {
     "navigation",
     "search",
 }
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 661, "seed_rows": 77, "sft_rows": 231}
-CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 93}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 102}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:

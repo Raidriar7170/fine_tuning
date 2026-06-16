@@ -19,8 +19,8 @@ PUBLIC_SAMPLE_PATHS = [
 ]
 COMMITTED_CANDIDATE_SEED = REPO_ROOT / "data" / "public-samples" / "slot_value_generalization_seed_candidates.jsonl"
 COMMITTED_REPORT_DIR = REPO_ROOT / "reports" / "public-sample" / "slot-value-generalization-materialized-candidates"
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 661, "seed_rows": 77, "sft_rows": 231}
-CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 93}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 102}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
@@ -59,9 +59,9 @@ def test_materialize_slot_value_generalization_candidates_writes_bounded_candida
         "candidate_group_count": 4,
         "candidate_seed_rows": 4,
         "candidate_sft_rows": 12,
-            "formal_public_sample_seed_rows": 77,
-            "formal_public_sample_sft_rows": 231,
-            "formal_public_sample_dpo_pairs": 661,
+            "formal_public_sample_seed_rows": 86,
+            "formal_public_sample_sft_rows": 240,
+            "formal_public_sample_dpo_pairs": 742,
         "formal_public_sample_has_slot_value_candidates": True,
         "public_sample_modified": False,
         "recommended_next_step": "decide_candidate_merge_or_local_sft_probe",

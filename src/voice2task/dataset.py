@@ -132,6 +132,17 @@ EXPECTED_FORM_FILL_REMEDIATION_CANDIDATE_IDS = frozenset(
         "candidate-form-fill-remediation-ff-field-appointment-time",
     }
 )
+FORM_FILL_REMEDIATION_DPO_REJECTION_CATEGORIES = (
+    "form_confirmation_drift",
+    "malformed_schema",
+    "missing_confirmation",
+    "missing_slot",
+    "underspecified_request",
+    "unsafe_allowance",
+    "wrong_route",
+    "wrong_slot",
+    "wrong_task_type",
+)
 
 
 def _now_id(prefix: str) -> str:
@@ -1214,6 +1225,35 @@ def _family_stratified_formal_sft_count(rows: list[SFTDatasetRow]) -> int:
     )
 
 
+def _form_fill_remediation_formal_seed_count(seed_rows: list[dict[str, Any]]) -> int:
+    return sum(
+        1
+        for row in seed_rows
+        if (row.get("provenance") or {}).get("source_mode") == "form_fill_remediation_formal_public_seed"
+        and (row.get("provenance") or {}).get("candidate_status") == "formal_public_sample"
+    )
+
+
+def _form_fill_remediation_formal_source_case_groups(seed_rows: list[dict[str, Any]]) -> list[str]:
+    return sorted(
+        {
+            str((row.get("provenance") or {}).get("source_case_group_id"))
+            for row in seed_rows
+            if (row.get("provenance") or {}).get("source_mode") == "form_fill_remediation_formal_public_seed"
+            and (row.get("provenance") or {}).get("candidate_status") == "formal_public_sample"
+        }
+    )
+
+
+def _form_fill_remediation_formal_sft_count(rows: list[SFTDatasetRow]) -> int:
+    return sum(
+        1
+        for row in rows
+        if row.provenance.get("source_mode") == "form_fill_remediation_formal_public_seed"
+        and row.provenance.get("candidate_status") == "formal_public_sample"
+    )
+
+
 def _formal_family_stratified_candidate_seed(row: dict[str, Any], candidate_seed_path: Path) -> dict[str, Any]:
     provenance = dict(row.get("provenance") or {})
     if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
@@ -1226,6 +1266,23 @@ def _formal_family_stratified_candidate_seed(row: dict[str, Any], candidate_seed
         "candidate_status": "formal_public_sample",
         "split_role": row["split"],
         "family_stratification": True,
+        "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
+    }
+    validate_public_record(merged)
+    return merged
+
+
+def _formal_form_fill_remediation_candidate_seed(row: dict[str, Any], candidate_seed_path: Path) -> dict[str, Any]:
+    provenance = dict(row.get("provenance") or {})
+    if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+        raise ValueError(f"form-fill remediation candidate seed already has unsupported status: {row.get('id')}")
+    merged = dict(row)
+    merged["split"] = "train"
+    merged["provenance"] = {
+        **provenance,
+        "source_mode": "form_fill_remediation_formal_public_seed",
+        "public_safe": True,
+        "candidate_status": "formal_public_sample",
         "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
     }
     validate_public_record(merged)
@@ -1812,6 +1869,7 @@ def materialize_form_fill_remediation_candidates(
 def form_fill_remediation_candidate_integration_preview_evidence(
     *,
     formal_manifest: dict[str, Any],
+    formal_seed_path: Path,
     preview_manifest: DatasetManifest,
     candidate_seed_path: Path,
     preview_seed_path: Path,
@@ -1876,7 +1934,7 @@ def form_fill_remediation_candidate_integration_preview_evidence(
             "live_browser_benchmark_claim": False,
         },
         "artifact_files": {
-            "formal_seed": _safe_artifact_ref(FORMAL_PUBLIC_SEED_PATH),
+            "formal_seed": _safe_artifact_ref(formal_seed_path),
             "candidate_seed": _safe_artifact_ref(candidate_seed_path),
             "preview_seed": _safe_artifact_ref(preview_seed_path),
             "preview_sft": "public-sample-preview/sft_public_sample.jsonl",
@@ -1899,11 +1957,6 @@ def check_form_fill_remediation_candidate_integration_preview(
     """Build a report-scoped preview dataset with form-fill remediation candidates."""
 
     from voice2task.validation import validate_dataset_artifacts
-
-    if seed_path.resolve() != FORMAL_PUBLIC_SEED_PATH.resolve():
-        raise ValueError(
-            "form-fill remediation candidate integration preview must use the current formal public seed_traces.jsonl"
-        )
 
     formal_seed_rows = _read_seed_rows(seed_path)
     candidate_seed_rows = read_jsonl(candidate_seed_path)
@@ -1931,9 +1984,19 @@ def check_form_fill_remediation_candidate_integration_preview(
         public=True,
     )
 
-    formal_manifest = read_json(FORMAL_PUBLIC_MANIFEST_PATH)
+    formal_sft_rows = expand_sft_rows(formal_seed_rows, public_safe=True)
+    formal_dpo_pairs = generate_hard_negative_pairs(formal_sft_rows)
+    formal_manifest = {
+        "counts": {
+            "seed_rows": len(formal_seed_rows),
+            "sft_rows": len(formal_sft_rows),
+            "dpo_pairs": len(formal_dpo_pairs),
+        },
+        "split_counts": _split_counts(formal_sft_rows),
+    }
     evidence = form_fill_remediation_candidate_integration_preview_evidence(
         formal_manifest=formal_manifest,
+        formal_seed_path=seed_path,
         preview_manifest=preview_manifest,
         candidate_seed_path=candidate_seed_path,
         preview_seed_path=preview_seed_path,
@@ -1954,6 +2017,100 @@ def check_form_fill_remediation_candidate_integration_preview(
     }
 
 
+def merge_form_fill_remediation_candidates_into_public_sample(
+    *,
+    candidate_seed_path: Path,
+    seed_path: Path,
+    output_dir: Path,
+) -> DatasetManifest:
+    """Merge reviewed form-fill remediation candidate seeds into the formal public sample."""
+
+    seed_rows = _read_seed_rows(seed_path)
+    candidate_seed_rows = read_jsonl(candidate_seed_path)
+    _validate_reviewed_form_fill_remediation_candidate_seed_rows(candidate_seed_rows)
+    existing_ids = {str(row["id"]) for row in seed_rows}
+    duplicate_ids = sorted(str(row["id"]) for row in candidate_seed_rows if str(row["id"]) in existing_ids)
+    if duplicate_ids:
+        raise ValueError(
+            "form-fill remediation candidate seed IDs already exist in public sample: "
+            f"{', '.join(duplicate_ids)}"
+        )
+
+    merged_candidates = [
+        _formal_form_fill_remediation_candidate_seed(row, candidate_seed_path=candidate_seed_path)
+        for row in candidate_seed_rows
+    ]
+    for row in merged_candidates:
+        as_contract(row["target_contract"])
+
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(seed_path, [*seed_rows, *merged_candidates])
+    return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+
+def form_fill_remediation_public_sample_merge_evidence(
+    *,
+    manifest: DatasetManifest,
+    candidate_seed_path: Path,
+) -> dict[str, Any]:
+    source_summary = manifest.source_summary
+    candidate_seed_rows = int(source_summary.get("form_fill_remediation_candidate_seed_rows", 0))
+    candidate_sft_rows = int(source_summary.get("form_fill_remediation_candidate_sft_rows", 0))
+    candidate_dpo_pairs = candidate_sft_rows * len(FORM_FILL_REMEDIATION_DPO_REJECTION_CATEGORIES)
+    return {
+        "evidence_kind": "form_fill_remediation_public_sample_merge",
+        "merge_status": "formal_public_sample_rebuilt",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "formal_public_sample_counts": manifest.counts,
+        "formal_public_sample_split_counts": manifest.split_counts,
+        "source_summary": source_summary,
+        "candidate_source": {
+            "candidate_seed": _safe_artifact_ref(candidate_seed_path),
+            "candidate_seed_rows": candidate_seed_rows,
+            "candidate_sft_rows": candidate_sft_rows,
+            "candidate_dpo_pairs": candidate_dpo_pairs,
+            "source_case_groups": source_summary.get("form_fill_remediation_source_case_groups", []),
+            "seed_split_counts": {"train": candidate_seed_rows, "dev": 0, "test": 0},
+            "dpo_rejection_deltas": {
+                category: candidate_sft_rows for category in FORM_FILL_REMEDIATION_DPO_REJECTION_CATEGORIES
+            },
+        },
+        "execution_scope": {
+            "formal_public_sample_modified": True,
+            "sft_artifacts_rebuilt": True,
+            "dpo_artifacts_rebuilt": True,
+            "training_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_generalization_recovered": False,
+            "model_recovery_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "seed": manifest.files["seed"],
+            "sft": manifest.files["sft"],
+            "dpo": manifest.files["dpo"],
+            "manifest": manifest.files["manifest"],
+            "merge_json": "form_fill_remediation_public_sample_merge.json",
+            "merge_markdown": "form_fill_remediation_public_sample_merge.md",
+            "merge_manifest": "manifest.json",
+        },
+        "recommended_next_step": "run_prediction_only_eval_against_the_new_manifest_in_a_later_phase",
+    }
+
+
 def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetManifest:
     seed_rows = _read_seed_rows(seed_path)
     rows = expand_sft_rows(seed_rows, public_safe=True)
@@ -1971,6 +2128,7 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
 
     candidate_seed_count = _slot_value_candidate_seed_count(seed_rows)
     family_seed_count = _family_stratified_candidate_seed_count(seed_rows)
+    form_fill_remediation_seed_count = _form_fill_remediation_formal_seed_count(seed_rows)
     source_summary: dict[str, Any] = {
         "seed_rows": len(seed_rows),
         "source": "sanitized_public_seed_fixture",
@@ -1990,6 +2148,17 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
                 "family_stratified_candidates_formal_public_sample": True,
                 "family_stratified_families": _family_stratified_formal_families(seed_rows),
                 "family_stratified_seed_split_counts": _family_stratified_formal_seed_split_counts(seed_rows),
+            }
+        )
+    if form_fill_remediation_seed_count:
+        source_summary.update(
+            {
+                "form_fill_remediation_candidate_seed_rows": form_fill_remediation_seed_count,
+                "form_fill_remediation_candidate_sft_rows": _form_fill_remediation_formal_sft_count(rows),
+                "form_fill_remediation_candidates_formal_public_sample": True,
+                "form_fill_remediation_source_case_groups": _form_fill_remediation_formal_source_case_groups(
+                    seed_rows
+                ),
             }
         )
 

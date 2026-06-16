@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 
 from voice2task.cli import data as data_cli
-from voice2task.dataset import check_form_fill_remediation_candidate_integration_preview
+from voice2task.dataset import build_public_sample_dataset, check_form_fill_remediation_candidate_integration_preview
 from voice2task.io import read_json, read_jsonl, write_jsonl
 from voice2task.leak_scan import scan_paths
 from voice2task.validation import validate_dataset_artifacts
@@ -24,7 +24,9 @@ PUBLIC_SAMPLE_PATHS = [
 COMMITTED_REPORT_DIR = (
     REPO_ROOT / "reports" / "public-sample" / "form-fill-remediation-candidate-integration-preview"
 )
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 661, "seed_rows": 77, "sft_rows": 231}
+FORM_FILL_CANDIDATE_IDS = {row["id"] for row in read_jsonl(FORM_FILL_CANDIDATE_SEED)}
+PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 661, "seed_rows": 77, "sft_rows": 231}
+MERGED_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
 EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
 EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 102}
 
@@ -33,15 +35,25 @@ def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
     return {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
 
 
+def _copy_public_sample_without_form_fill_candidates(tmp_path: Path) -> Path:
+    public_dir = tmp_path / "public-samples"
+    public_dir.mkdir()
+    seed_rows = [row for row in read_jsonl(FORMAL_SEED) if row["id"] not in FORM_FILL_CANDIDATE_IDS]
+    write_jsonl(public_dir / "seed_traces.jsonl", seed_rows)
+    build_public_sample_dataset(seed_path=public_dir / "seed_traces.jsonl", output_dir=public_dir)
+    return public_dir
+
+
 def test_check_form_fill_remediation_candidate_integration_preview_builds_report_scoped_dataset(
     tmp_path: Path,
 ) -> None:
     public_sample_before = _sha256_by_path(PUBLIC_SAMPLE_PATHS)
+    public_dir = _copy_public_sample_without_form_fill_candidates(tmp_path)
     output_dir = tmp_path / "form-fill-remediation-candidate-integration-preview"
 
     paths = check_form_fill_remediation_candidate_integration_preview(
         candidate_seed_path=FORM_FILL_CANDIDATE_SEED,
-        seed_path=FORMAL_SEED,
+        seed_path=public_dir / "seed_traces.jsonl",
         output_dir=output_dir,
     )
 
@@ -69,11 +81,13 @@ def test_check_form_fill_remediation_candidate_integration_preview_builds_report
     assert preview_manifest["split_counts"] == EXPECTED_PREVIEW_SPLITS
     assert evidence["evidence_kind"] == "form_fill_remediation_candidate_integration_preview"
     assert evidence["integration_status"] == "preview_build_validated"
-    assert evidence["formal_public_sample_counts_before"] == CURRENT_FORMAL_COUNTS
+    assert evidence["formal_public_sample_counts_before"] == PRE_MERGE_FORMAL_COUNTS
     assert evidence["preview_counts"] == EXPECTED_PREVIEW_COUNTS
     assert evidence["candidate_source"]["candidate_seed_rows"] == 9
     assert evidence["candidate_source"]["candidate_sft_rows"] == 9
     assert evidence["candidate_source"]["candidate_preview_dpo_pairs"] == 81
+    assert evidence["artifact_files"]["formal_seed"] != "data/public-samples/seed_traces.jsonl"
+    assert evidence["artifact_files"]["formal_seed"] == "seed_traces.jsonl"
     assert evidence["validation"]["ok"] is True
     assert evidence["execution_scope"]["formal_public_sample_modified"] is False
     assert evidence["execution_scope"]["preview_dpo_pairs_generated"] is True
@@ -107,6 +121,7 @@ def test_check_form_fill_remediation_candidate_integration_preview_builds_report
 
 
 def test_check_form_fill_remediation_candidate_integration_preview_cli(tmp_path: Path, capsys: Any) -> None:
+    public_dir = _copy_public_sample_without_form_fill_candidates(tmp_path)
     output_dir = tmp_path / "integration-preview"
 
     assert (
@@ -116,7 +131,7 @@ def test_check_form_fill_remediation_candidate_integration_preview_cli(tmp_path:
                 "--candidate-seed",
                 FORM_FILL_CANDIDATE_SEED.as_posix(),
                 "--seed",
-                FORMAL_SEED.as_posix(),
+                (public_dir / "seed_traces.jsonl").as_posix(),
                 "--output",
                 output_dir.as_posix(),
             ]
@@ -147,20 +162,21 @@ def test_check_form_fill_remediation_candidate_integration_preview_rejects_unrev
     with pytest.raises(ValueError, match="expected reviewed form-fill remediation candidate seed IDs"):
         check_form_fill_remediation_candidate_integration_preview(
             candidate_seed_path=candidate_path,
-            seed_path=FORMAL_SEED,
+            seed_path=_copy_public_sample_without_form_fill_candidates(tmp_path) / "seed_traces.jsonl",
             output_dir=tmp_path / "preview",
         )
 
 
-def test_check_form_fill_remediation_candidate_integration_preview_rejects_non_formal_seed_path(
+def test_check_form_fill_remediation_candidate_integration_preview_rejects_already_formal_ids(
     tmp_path: Path,
 ) -> None:
     candidate_rows = read_jsonl(FORM_FILL_CANDIDATE_SEED)
-    formal_rows = read_jsonl(FORMAL_SEED)
+    public_dir = _copy_public_sample_without_form_fill_candidates(tmp_path)
+    formal_rows = read_jsonl(public_dir / "seed_traces.jsonl")
     formal_path = tmp_path / "seed_traces.jsonl"
     write_jsonl(formal_path, [*formal_rows, candidate_rows[0]])
 
-    with pytest.raises(ValueError, match="must use the current formal public seed_traces.jsonl"):
+    with pytest.raises(ValueError, match="candidate IDs already exist"):
         check_form_fill_remediation_candidate_integration_preview(
             candidate_seed_path=FORM_FILL_CANDIDATE_SEED,
             seed_path=formal_path,
@@ -174,7 +190,8 @@ def test_committed_form_fill_remediation_candidate_integration_preview_is_public
     manifest = read_json(COMMITTED_REPORT_DIR / "manifest.json")
     preview_manifest = read_json(COMMITTED_REPORT_DIR / "public-sample-preview" / "manifest_public_sample.json")
 
-    assert public_manifest["counts"] == CURRENT_FORMAL_COUNTS
+    assert public_manifest["counts"] == MERGED_FORMAL_COUNTS
+    assert evidence["formal_public_sample_counts_before"] == PRE_MERGE_FORMAL_COUNTS
     assert evidence["preview_counts"] == EXPECTED_PREVIEW_COUNTS
     assert evidence["candidate_source"]["candidate_seed_rows"] == 9
     assert evidence["candidate_source"]["candidate_preview_dpo_pairs"] == 81

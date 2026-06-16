@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task form_fill candidates formal merge</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { margin: 0 0 10px; font-size: 28px; }
+    h2 { margin: 24px 0 10px; font-size: 18px; }
+    p, li { line-height: 1.7; }
+    .summary { padding: 18px 20px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .metric { padding: 14px 16px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .metric strong { display: block; font-size: 24px; margin-bottom: 4px; }
+    code { padding: 2px 5px; border-radius: 4px; background: #e9eef6; }
+    a { color: #2457a7; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task form_fill candidates formal merge</h1>
+  <p class="summary">结论：9 条已预览验证的 <code>form_fill</code> remediation candidates 已正式合并进 public sample 的 train split；正式 public manifest 变为 86 seeds / 240 SFT / 742 DPO，但本阶段没有训练、预测或恢复声明。</p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="metric"><strong>archivable</strong>OpenSpec phase</div>
+    <div class="metric"><strong>86</strong>formal seed rows</div>
+    <div class="metric"><strong>240</strong>formal SFT rows</div>
+    <div class="metric"><strong>742</strong>formal DPO pairs</div>
+  </div>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>新增 <code>merge-form-fill-remediation-candidates</code> CLI 和 formal merge helper。</li>
+    <li>将 9 条 standalone candidates 标记为 <code>formal_public_sample</code> 并追加到正式 seed。</li>
+    <li>重建 <code>data/public-samples/seed_traces.jsonl</code>、SFT、DPO、manifest。</li>
+    <li>生成 merge evidence，记录候选数据贡献 9 个 SFT rows 和 81 个 DPO pairs。</li>
+  </ul>
+
+  <h2>关键产物</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/form-fill-remediation-public-sample-merge/form_fill_remediation_public_sample_merge.md">merge evidence Markdown</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-public-sample-merge/form_fill_remediation_public_sample_merge.json">merge evidence JSON</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-public-sample-merge/manifest.json">merge evidence manifest</a></li>
+    <li><a href="../../data/public-samples/manifest_public_sample.json">formal public manifest</a></li>
+    <li><a href="../../openspec/changes/merge-form-fill-remediation-candidates/proposal.md">OpenSpec proposal</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python3 -m pytest -q ...focused...</code>：30 passed。</li>
+    <li><code>voice2task-data validate --public</code>：ok，240 SFT rows / 742 DPO pairs。</li>
+    <li><code>voice2task-data dpo-check</code>：ok，742 total pairs。</li>
+    <li><code>PYTHONPATH=src python3 -m pytest -q</code>：332 passed。</li>
+    <li><code>ruff check src/ scripts/ tests/</code>：All checks passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：5 passed, 0 failed。</li>
+    <li><code>voice2task.leak_scan.scan_paths(...)</code>：ok，0 findings。</li>
+    <li><code>git diff --check</code>：通过，无 whitespace errors。</li>
+  </ul>
+
+  <h2>不要过度解读</h2>
+  <ul>
+    <li>这只是正式 public data boundary 更新，不是模型训练结果。</li>
+    <li>81 个新增 DPO pairs 是构建产物，不是 DPO 训练证据。</li>
+    <li>旧 formal held-out observed report 仍属于旧 manifest；后续新 manifest 需要单独 prediction-only eval。</li>
+    <li><code>contract_exact_match</code> 仍是主指标，soft slot F1 仍是诊断指标。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <p>当前项目阶段目标未在仓库中显式定义。本阶段推进 evidence ladder 的 formal data boundary 层：candidate 已从 preview-only 进入正式 public sample，但还没有新的 held-out prediction 证据。</p>
+
+  <h2>推荐下一步</h2>
+  <p>下一个 bounded OpenSpec 阶段应做 prediction-only held-out eval against the new manifest；不要复用旧 manifest 的 observed 指标当作新边界结果。</p>
+</main>
+</body>
+</html>

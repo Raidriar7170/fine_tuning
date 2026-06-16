@@ -58,7 +58,7 @@ def test_formal_public_heldout_prediction_fixture_checks_current_dev_test_row_se
             fixture_mode=True,
         )
 
-        assert metadata["dataset_manifest_id"] == "public-sample-20260615T111316Z"
+        assert metadata["dataset_manifest_id"] == read_json(PUBLIC_SAMPLE_MANIFEST)["manifest_id"]
         assert metadata["prediction_split"] == split
         assert metadata["prediction_status"] == "fixture_predictions_written"
         assert metadata["prediction_source_kind"] == "public_sample_contract_fixture"
@@ -89,7 +89,7 @@ def test_formal_public_heldout_prediction_report_records_blocked_status_without_
     assert evidence["evidence_kind"] == "a100_formal_public_heldout_prediction"
     assert evidence["run_status"] == "blocked"
     assert evidence["blocked_reason"] == "private_adapter_not_confirmed"
-    assert evidence["dataset_manifest_id"] == "public-sample-20260615T111316Z"
+    assert evidence["dataset_manifest_id"] == read_json(PUBLIC_SAMPLE_MANIFEST)["manifest_id"]
     assert evidence["prediction_splits"] == ["dev", "test"]
     assert evidence["split_results"] == {}
     assert evidence["claims"]["held_out_generalization_recovered"] is False
