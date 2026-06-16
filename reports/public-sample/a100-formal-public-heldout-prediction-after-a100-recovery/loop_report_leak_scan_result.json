@@ -1,15 +1,13 @@
 {
   "findings": [],
-  "generated_at": "2026-06-16T12:08:57.554696+00:00",
+  "generated_at": "2026-06-16T12:11:10.223443+00:00",
   "max_public_jsonl_rows": 5000,
   "ok": true,
   "scanned_paths": [
     "reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery",
     "docs/human-briefs/2026-06-16-retry-formal-heldout-prediction-after-a100-recovery.html",
+    "docs/human-briefs/2026-06-16-autonomous-loop-retry-formal-heldout-prediction-after-a100-recovery.html",
     "openspec/specs/contract-evaluation/spec.md",
-    "openspec/changes/archive/2026-06-16-retry-formal-heldout-prediction-after-a100-recovery",
-    "configs/sft-a100-formal-public-heldout-dev-prediction.json",
-    "configs/sft-a100-formal-public-heldout-test-prediction.json",
-    "data/public-samples/manifest_public_sample.json"
+    "openspec/changes/archive/2026-06-16-retry-formal-heldout-prediction-after-a100-recovery"
   ]
 }
