@@ -9,6 +9,7 @@ from voice2task.io import read_json
 from voice2task.leak_scan import scan_paths
 from voice2task.reports import (
     write_a100_merged_slot_value_adapter_restore_report,
+    write_form_fill_remediation_sft_v3_readiness_report,
     write_hardened_canonical_policy_rerun_report,
     write_merged_slot_value_heldout_eval_report,
     write_runtime_label_provenance_check_evidence_pack,
@@ -76,6 +77,17 @@ def build_parser() -> argparse.ArgumentParser:
     candidate_probe.add_argument("--dependency-env-status", default="not_recorded")
     candidate_probe.add_argument("--sync-status", default="not_recorded")
     candidate_probe.add_argument("--output", type=Path, required=True)
+
+    form_fill_sft_v3 = subcommands.add_parser("form-fill-remediation-sft-v3-readiness")
+    form_fill_sft_v3.add_argument("--dry-run-metadata", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--public-manifest", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--baseline-evidence", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--target-selection", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--remediation-plan", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--sft-config", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--dev-prediction-config", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--test-prediction-config", type=Path, required=True)
+    form_fill_sft_v3.add_argument("--output", type=Path, required=True)
 
     merged_eval = subcommands.add_parser("merged-slot-value-heldout-eval")
     merged_eval.add_argument("--public-manifest", type=Path, required=True)
@@ -232,6 +244,38 @@ def main(argv: list[str] | None = None) -> int:
             remote_workspace_status=args.remote_workspace_status,
             dependency_env_status=args.dependency_env_status,
             sync_status=args.sync_status,
+        )
+        evidence = read_json(report_paths["json"])
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "paths": {key: value.as_posix() for key, value in report_paths.items()},
+                    "summary": evidence.get("summary", {}),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    if args.command == "form-fill-remediation-sft-v3-readiness":
+        report_paths = write_form_fill_remediation_sft_v3_readiness_report(
+            public_manifest=read_json(args.public_manifest),
+            baseline_evidence=read_json(args.baseline_evidence),
+            target_selection=read_json(args.target_selection),
+            remediation_plan=read_json(args.remediation_plan),
+            dry_run_metadata=read_json(args.dry_run_metadata),
+            sft_config=read_json(args.sft_config),
+            dev_prediction_config=read_json(args.dev_prediction_config),
+            test_prediction_config=read_json(args.test_prediction_config),
+            output_dir=args.output,
+            dry_run_metadata_path=args.dry_run_metadata,
+            public_manifest_path=args.public_manifest,
+            baseline_evidence_path=args.baseline_evidence,
+            target_selection_path=args.target_selection,
+            remediation_plan_path=args.remediation_plan,
+            sft_config_path=args.sft_config,
+            dev_prediction_config_path=args.dev_prediction_config,
+            test_prediction_config_path=args.test_prediction_config,
         )
         evidence = read_json(report_paths["json"])
         print(

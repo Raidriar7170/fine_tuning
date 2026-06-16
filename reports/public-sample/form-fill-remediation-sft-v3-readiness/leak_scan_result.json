@@ -1,0 +1,16 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-16T14:48:22.393715+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "CONTEXT.md",
+    "reports/final_status.md",
+    "configs/sft-a100-form-fill-remediation-v3.json",
+    "configs/sft-a100-form-fill-remediation-v3-dev-prediction.json",
+    "configs/sft-a100-form-fill-remediation-v3-test-prediction.json",
+    "reports/public-sample/form-fill-remediation-sft-v3-readiness",
+    "docs/human-briefs/2026-06-16-assess-form-fill-remediation-sft-v3-readiness.html",
+    "openspec/changes/archive/2026-06-16-assess-form-fill-remediation-sft-v3-readiness"
+  ]
+}

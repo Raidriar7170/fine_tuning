@@ -42,12 +42,18 @@ Claim boundaries:
 - The project proves a repeatable post-training/evaluation path and a
   public-safe evidence surface; it does not prove production reliability.
 
-The residual-family diagnosis and target-selection refresh is now complete for
-the current manifest. The selected bounded target is `form_fill` residuals,
-especially the `normalized_command` / confirmation-marker cluster; `clarify`
-route confusion and `blocked_payment` safety recall remain secondary risks.
-Any next step should be a separate, small remediation proposal. New data, SFT
-v3, DPO, or metric changes should not be started directly from this status page.
+The residual-family diagnosis, target-selection refresh, and `form_fill` SFT v3
+readiness check are now complete for the current manifest. The selected bounded
+target remains `form_fill` residuals, especially the `normalized_command` /
+confirmation-marker cluster; `clarify` route confusion and `blocked_payment`
+safety recall remain secondary risks. The readiness report selects the current
+public train split (`114` rows, including `21` merged form-fill remediation /
+confirmation-marker rows) and recommends a separate
+`run-a100-form-fill-remediation-sft-v3` phase. That later phase must still do
+fresh A100 GPU preflight, private overrides, sanitized evidence import, and
+held-out prediction follow-up. DPO, evaluator changes, public checkpoint/adapter
+release, production-readiness claims, and live-browser benchmark claims remain
+out of scope unless a later OpenSpec change explicitly scopes them.
 
 ## Language
 

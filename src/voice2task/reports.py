@@ -4286,6 +4286,282 @@ def write_form_fill_confirmation_marker_extension_public_sample_merge_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def _public_metric_summary(evidence: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    split_results = evidence.get("split_results", {})
+    if not isinstance(split_results, dict):
+        return {}
+    metric_names = (
+        "prediction_count",
+        "contract_exact_match",
+        "slot_f1",
+        "slot_f1_soft",
+        "json_valid_rate",
+        "route_accuracy",
+        "safety_recall",
+    )
+    summary: dict[str, dict[str, Any]] = {}
+    for split, metrics in sorted(split_results.items()):
+        if not isinstance(metrics, dict):
+            continue
+        summary[str(split)] = {name: metrics.get(name) for name in metric_names if name in metrics}
+    return summary
+
+
+def write_form_fill_remediation_sft_v3_readiness_report(
+    *,
+    public_manifest: dict[str, Any],
+    baseline_evidence: dict[str, Any],
+    target_selection: dict[str, Any],
+    remediation_plan: dict[str, Any],
+    dry_run_metadata: dict[str, Any],
+    sft_config: dict[str, Any],
+    dev_prediction_config: dict[str, Any],
+    test_prediction_config: dict[str, Any],
+    output_dir: Path,
+    dry_run_metadata_path: Path,
+    public_manifest_path: Path,
+    baseline_evidence_path: Path,
+    target_selection_path: Path,
+    remediation_plan_path: Path,
+    sft_config_path: Path,
+    dev_prediction_config_path: Path,
+    test_prediction_config_path: Path,
+    title: str = "Voice2Task form-fill remediation SFT v3 readiness",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "form_fill_remediation_sft_v3_readiness.json"
+    markdown_path = output_dir / "form_fill_remediation_sft_v3_readiness.md"
+    manifest_path = output_dir / "manifest.json"
+
+    safe_manifest = _sanitize_report_value(public_manifest)
+    safe_baseline = _sanitize_report_value(baseline_evidence)
+    safe_target = _sanitize_report_value(target_selection)
+    safe_plan = _sanitize_report_value(remediation_plan)
+    safe_dry_run = _sanitize_report_value(dry_run_metadata)
+    safe_sft_config = _sanitize_report_value(sft_config)
+    safe_dev_config = _sanitize_report_value(dev_prediction_config)
+    safe_test_config = _sanitize_report_value(test_prediction_config)
+
+    if not isinstance(safe_manifest, dict):
+        raise AssertionError("public manifest must be a mapping")
+    if not isinstance(safe_baseline, dict):
+        raise AssertionError("baseline evidence must be a mapping")
+    if not isinstance(safe_target, dict):
+        raise AssertionError("target selection must be a mapping")
+    if not isinstance(safe_plan, dict):
+        raise AssertionError("remediation plan must be a mapping")
+    if not isinstance(safe_dry_run, dict):
+        raise AssertionError("dry-run metadata must be a mapping")
+
+    source_summary = safe_manifest.get("source_summary", {})
+    if not isinstance(source_summary, dict):
+        source_summary = {}
+    split_counts = safe_manifest.get("split_counts", {})
+    if not isinstance(split_counts, dict):
+        split_counts = {}
+    target_summary = safe_target.get("summary", {})
+    if not isinstance(target_summary, dict):
+        target_summary = {}
+    plan_summary = safe_plan.get("summary", {})
+    if not isinstance(plan_summary, dict):
+        plan_summary = {}
+
+    manifest_id = str(safe_manifest.get("manifest_id", "unknown"))
+    training_rows_used = int(safe_dry_run.get("training_rows_used", 0))
+    train_split_rows = int(split_counts.get("train", 0))
+    form_fill_remediation_rows = int(source_summary.get("form_fill_remediation_candidate_sft_rows", 0))
+    confirmation_extension_rows = int(
+        source_summary.get("form_fill_confirmation_marker_extension_candidate_sft_rows", 0)
+    )
+    form_fill_train_rows = form_fill_remediation_rows + confirmation_extension_rows
+    selected_residual_rows = int(target_summary.get("selected_residual_row_count", 0))
+    selected_residual_fields = int(target_summary.get("selected_residual_field_count", 0))
+    baseline_interpretation = str(safe_baseline.get("overall_interpretation", "unknown"))
+    baseline_manifest_id = str(safe_baseline.get("dataset_manifest_id", "unknown"))
+    config_manifest_id = (
+        str(safe_sft_config.get("dataset_manifest_id", "unknown"))
+        if isinstance(safe_sft_config, dict)
+        else "unknown"
+    )
+    dry_run_manifest_id = str(safe_dry_run.get("dataset_manifest_id", "unknown"))
+    dry_run_ok = (
+        dry_run_manifest_id == manifest_id
+        and config_manifest_id == manifest_id
+        and str(safe_dry_run.get("training_split")) == "train"
+        and training_rows_used == train_split_rows
+        and form_fill_train_rows > 0
+        and selected_residual_rows > 0
+    )
+    readiness_status = (
+        "ready_for_bounded_a100_sft_v3_phase" if dry_run_ok else "blocked_readiness_metadata_mismatch"
+    )
+
+    summary = {
+        "dataset_manifest_id": manifest_id,
+        "baseline_dataset_manifest_id": baseline_manifest_id,
+        "baseline_interpretation": baseline_interpretation,
+        "formal_public_sample_counts": safe_manifest.get("counts", {}),
+        "formal_public_sample_split_counts": split_counts,
+        "training_rows_used": training_rows_used,
+        "train_split_rows": train_split_rows,
+        "form_fill_remediation_train_rows": form_fill_train_rows,
+        "form_fill_remediation_candidate_sft_rows": form_fill_remediation_rows,
+        "form_fill_confirmation_marker_extension_candidate_sft_rows": confirmation_extension_rows,
+        "selected_target": target_summary.get("selected_target"),
+        "selected_task_family": target_summary.get("selected_task_family"),
+        "selected_residual_row_count": selected_residual_rows,
+        "selected_residual_field_count": selected_residual_fields,
+        "readiness_status": readiness_status,
+        "recommended_next_change": "run-a100-form-fill-remediation-sft-v3",
+        "recommended_next_step": "open_bounded_run-a100-form-fill-remediation-sft-v3_before_training_execution",
+    }
+    execution_scope = {
+        "readiness_only": True,
+        "training_run": False,
+        "prediction_run": False,
+        "dataset_mutation": False,
+        "dpo_run": False,
+        "grpo_run": False,
+        "evaluator_metric_change": False,
+        "prediction_repair_or_replacement": False,
+        "semantic_equivalence_scoring": False,
+        "slot_normalization": False,
+        "a100_execution": False,
+    }
+    claims = {
+        "model_recovery_claim": False,
+        "held_out_generalization_recovered": False,
+        "private_corpus_generalization_claim": False,
+        "checkpoint_release": False,
+        "adapter_release": False,
+        "production_readiness_claim": False,
+        "public_full_corpus_release": False,
+        "live_browser_benchmark_claim": False,
+        "soft_slot_f1_primary_metric": False,
+    }
+    artifact_files = {
+        "dry_run_metadata": dry_run_metadata_path.as_posix(),
+        "public_manifest": public_manifest_path.as_posix(),
+        "baseline_evidence": baseline_evidence_path.as_posix(),
+        "target_selection": target_selection_path.as_posix(),
+        "remediation_plan": remediation_plan_path.as_posix(),
+        "sft_config": sft_config_path.as_posix(),
+        "dev_prediction_config": dev_prediction_config_path.as_posix(),
+        "test_prediction_config": test_prediction_config_path.as_posix(),
+        "evidence_json": json_path.as_posix(),
+        "evidence_markdown": markdown_path.as_posix(),
+        "manifest": manifest_path.as_posix(),
+    }
+    safe_artifact_files = _sanitize_report_value(artifact_files)
+    baseline_metrics = _public_metric_summary(safe_baseline)
+    limitations = [
+        "readiness-only evidence is not model-quality evidence",
+        "A100 SFT v3 execution still requires a later bounded OpenSpec phase and fresh GPU preflight",
+        "strict contract_exact_match and strict slot_f1 remain the headline metrics",
+        "slot_f1_soft remains diagnostic-only",
+    ]
+    evidence = {
+        "evidence_kind": "form_fill_remediation_sft_v3_readiness",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "summary": summary,
+        "baseline_metrics": baseline_metrics,
+        "target_selection_summary": target_summary,
+        "remediation_plan_summary": plan_summary,
+        "dry_run_metadata": safe_dry_run,
+        "sft_config": safe_sft_config,
+        "prediction_configs": {"dev": safe_dev_config, "test": safe_test_config},
+        "execution_scope": execution_scope,
+        "claims": claims,
+        "artifact_files": safe_artifact_files,
+        "limitations": limitations,
+    }
+    safe_evidence = _sanitize_report_value(evidence)
+    if not isinstance(safe_evidence, dict):
+        raise AssertionError("readiness evidence must be a mapping")
+    write_json(json_path, safe_evidence)
+
+    manifest = {
+        "evidence_kind": "form_fill_remediation_sft_v3_readiness",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "summary": summary,
+        "execution_scope": execution_scope,
+        "claims": claims,
+        "source_manifest_id": manifest_id,
+        "source_baseline_manifest_id": baseline_manifest_id,
+        "artifact_policy": {
+            "readiness_only": True,
+            "training_run": False,
+            "prediction_run": False,
+            "dataset_mutation": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+        },
+        "diagnostic_artifacts": safe_artifact_files,
+    }
+    write_json(manifest_path, _sanitize_report_value(manifest))
+
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is readiness-only evidence for a later bounded `form_fill` remediation SFT v3 phase. "
+            "It does not train, rerun predictions, mutate data, repair predictions, or relax evaluator metrics."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- No SFT/DPO/GRPO training was launched.",
+        "- No held-out prediction rerun was launched.",
+        "- No public sample data or evaluator metric was changed.",
+        "- No checkpoint, adapter, production-readiness, private-corpus, or live-browser claim is made.",
+        "- strict `contract_exact_match` and strict `slot_f1` remain authoritative.",
+        "- `slot_f1_soft` remains diagnostic-only.",
+        "",
+        "## Summary",
+        "",
+        f"- Manifest: `{summary['dataset_manifest_id']}`",
+        f"- Baseline interpretation: `{summary['baseline_interpretation']}`",
+        f"- Train split rows selected by dry-run: `{summary['training_rows_used']}`",
+        f"- Merged form-fill train rows: `{summary['form_fill_remediation_train_rows']}`",
+        f"- Selected residual rows / fields: `{selected_residual_rows}` / `{selected_residual_fields}`",
+        f"- Readiness status: `{summary['readiness_status']}`",
+        f"- Recommended next change: `{summary['recommended_next_change']}`",
+        "",
+        "## Current Strict Baseline",
+        "",
+    ]
+    for split, metrics in sorted(baseline_metrics.items()):
+        lines.append(f"- `{split}`: `{metrics}`")
+    lines.extend(
+        [
+            "",
+            "## Evidence Inputs",
+            "",
+            f"- Dry-run metadata: `{safe_artifact_files['dry_run_metadata']}`",
+            f"- Baseline evidence: `{safe_artifact_files['baseline_evidence']}`",
+            f"- Target selection: `{safe_artifact_files['target_selection']}`",
+            f"- Remediation plan: `{safe_artifact_files['remediation_plan']}`",
+            f"- SFT config: `{safe_artifact_files['sft_config']}`",
+            f"- Dev prediction config: `{safe_artifact_files['dev_prediction_config']}`",
+            f"- Test prediction config: `{safe_artifact_files['test_prediction_config']}`",
+            "",
+            "## Recommended Next Step",
+            "",
+            (
+                "Open `run-a100-form-fill-remediation-sft-v3` as a separate bounded phase. "
+                "That phase must perform fresh A100 GPU preflight, use private overrides outside git, "
+                "keep all adapters/logs/checkpoints private, and publish only sanitized evidence."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_slot_value_candidate_sft_probe_report(
     *,
     candidate_manifest: dict[str, Any],
