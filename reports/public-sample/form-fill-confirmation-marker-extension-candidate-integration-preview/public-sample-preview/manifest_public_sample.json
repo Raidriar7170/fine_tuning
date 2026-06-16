@@ -30,8 +30,8 @@
     "seed": "reports/public-sample/form-fill-confirmation-marker-extension-candidate-integration-preview/public-sample-preview/seed_traces.jsonl",
     "sft": "reports/public-sample/form-fill-confirmation-marker-extension-candidate-integration-preview/public-sample-preview/sft_public_sample.jsonl"
   },
-  "generated_at": "2026-06-16T06:58:53.182379+00:00",
-  "manifest_id": "public-sample-20260616T065853Z",
+  "generated_at": "2026-06-16T08:06:53.578516+00:00",
+  "manifest_id": "public-sample-20260616T080653Z",
   "mode": "public_sample",
   "public_safe": true,
   "source_summary": {

@@ -1,8 +1,8 @@
 {
   "counts": {
-    "dpo_pairs": 742,
-    "seed_rows": 86,
-    "sft_rows": 240
+    "dpo_pairs": 850,
+    "seed_rows": 98,
+    "sft_rows": 252
   },
   "dpo_rejection_counts": {
     "blocked_payment_action_drift": 4,
@@ -13,16 +13,16 @@
     "extract_listed_price_wording": 2,
     "extract_query_slot": 10,
     "extract_search_fallback": 10,
-    "form_confirmation_drift": 30,
-    "malformed_schema": 86,
-    "missing_confirmation": 54,
-    "missing_slot": 86,
+    "form_confirmation_drift": 42,
+    "malformed_schema": 98,
+    "missing_confirmation": 66,
+    "missing_slot": 98,
     "navigate_canonical_url_drift": 12,
-    "underspecified_request": 86,
-    "unsafe_allowance": 86,
-    "wrong_route": 86,
-    "wrong_slot": 86,
-    "wrong_task_type": 86
+    "underspecified_request": 98,
+    "unsafe_allowance": 98,
+    "wrong_route": 98,
+    "wrong_slot": 98,
+    "wrong_task_type": 98
   },
   "files": {
     "dpo": "data/public-samples/dpo_public_sample.jsonl",
@@ -30,8 +30,8 @@
     "seed": "data/public-samples/seed_traces.jsonl",
     "sft": "data/public-samples/sft_public_sample.jsonl"
   },
-  "generated_at": "2026-06-16T02:21:51.746343+00:00",
-  "manifest_id": "public-sample-20260616T022151Z",
+  "generated_at": "2026-06-16T07:43:15.281138+00:00",
+  "manifest_id": "public-sample-20260616T074315Z",
   "mode": "public_sample",
   "public_safe": true,
   "source_summary": {
@@ -52,6 +52,28 @@
       "test": 21,
       "train": 21
     },
+    "form_fill_confirmation_marker_extension_candidate_seed_rows": 12,
+    "form_fill_confirmation_marker_extension_candidate_sft_rows": 12,
+    "form_fill_confirmation_marker_extension_candidates_formal_public_sample": true,
+    "form_fill_confirmation_marker_extension_seed_split_counts": {
+      "dev": 0,
+      "test": 0,
+      "train": 12
+    },
+    "form_fill_confirmation_marker_extension_source_family_ids": [
+      "family-confirmation-dev-1",
+      "family-confirmation-dev-2",
+      "family-confirmation-dev-3",
+      "family-confirmation-test-1",
+      "family-confirmation-test-2",
+      "family-confirmation-test-3",
+      "family-form_fill-dev-1",
+      "family-form_fill-dev-2",
+      "family-form_fill-dev-3",
+      "family-form_fill-test-1",
+      "family-form_fill-test-2",
+      "family-form_fill-test-3"
+    ],
     "form_fill_remediation_candidate_seed_rows": 9,
     "form_fill_remediation_candidate_sft_rows": 9,
     "form_fill_remediation_candidates_formal_public_sample": true,
@@ -60,7 +82,7 @@
       "form-fill-confirmation-marker-preservation",
       "form-fill-field-specificity-preservation"
     ],
-    "seed_rows": 86,
+    "seed_rows": 98,
     "slot_value_candidate_seed_rows": 4,
     "slot_value_candidates_formal_public_sample": true,
     "source": "sanitized_public_seed_fixture"
@@ -68,6 +90,6 @@
   "split_counts": {
     "dev": 69,
     "test": 69,
-    "train": 102
+    "train": 114
   }
 }

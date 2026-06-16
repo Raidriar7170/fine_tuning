@@ -30,4 +30,4 @@ This is a preview-only integration check: it proves the standalone form-fill con
 
 ## Recommended Next Step
 
-Use a later bounded OpenSpec phase to decide whether to formally merge the candidates. Keep formal merge, A100 training, prediction, evaluator changes, and recovery claims separate.
+Use this preview only as historical builder-compatibility evidence. Current formal public-sample state must come from the corresponding merge report; keep A100 training, prediction, evaluator changes, and recovery claims separate.

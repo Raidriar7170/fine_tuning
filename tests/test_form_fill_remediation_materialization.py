@@ -24,7 +24,7 @@ PUBLIC_SAMPLE_PATHS = [
 ]
 COMMITTED_CANDIDATE_SEED = REPO_ROOT / "data" / "public-samples" / "form_fill_remediation_seed_candidates.jsonl"
 COMMITTED_REPORT_DIR = REPO_ROOT / "reports" / "public-sample" / "form-fill-remediation-materialized-candidates"
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
@@ -63,9 +63,9 @@ def test_materialize_form_fill_remediation_candidates_writes_bounded_candidate_d
         "candidate_group_count": 3,
         "candidate_seed_rows": 9,
         "candidate_sft_rows": 9,
-            "formal_public_sample_seed_rows": 86,
-            "formal_public_sample_sft_rows": 240,
-            "formal_public_sample_dpo_pairs": 742,
+        "formal_public_sample_seed_rows": CURRENT_FORMAL_COUNTS["seed_rows"],
+        "formal_public_sample_sft_rows": CURRENT_FORMAL_COUNTS["sft_rows"],
+        "formal_public_sample_dpo_pairs": CURRENT_FORMAL_COUNTS["dpo_pairs"],
         "public_sample_modified": False,
         "recommended_next_step": "run_local_form_fill_candidate_integration_check",
     }

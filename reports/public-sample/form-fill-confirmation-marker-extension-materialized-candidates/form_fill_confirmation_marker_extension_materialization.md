@@ -1,11 +1,11 @@
 # Voice2Task form-fill confirmation-marker extension materialized candidates
 
-This is candidate data only: it materializes reviewed form-fill confirmation-marker extension cases into standalone public-safe candidate seed and SFT rows. The rows are not merged into seed_traces.jsonl, and they are not training, DPO, prediction, or A100 evidence.
+This is candidate data only: it materializes reviewed form-fill confirmation-marker extension cases into standalone public-safe candidate seed and SFT rows. The standalone candidate artifacts written by this materialization report remain candidate-only; the current formal sample state is recorded separately by the merge evidence.
 
 ## Boundary
 
-- Candidate rows are not formal public sample rows yet.
-- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.
+- Current formal public sample already includes the reviewed confirmation-marker extension candidates; use the merge report as the authoritative current-state evidence.
+- This materialization command does not rewrite formal public sample seed, SFT, DPO, or manifest files.
 - No DPO pairs, SFT training, prediction run, A100 execution, or evaluator relaxation is performed.
 - Strict `contract_exact_match` and strict `slot_f1` remain authoritative.
 - `slot_f1_soft` is diagnostic-only and not a primary metric.
@@ -19,12 +19,12 @@ This is candidate data only: it materializes reviewed form-fill confirmation-mar
 - Candidate SFT rows: `12`
 - Derived field-label rows: `3`
 - Family-level candidate-label rows: `9`
-- Formal public sample seed rows: `86`
-- Formal public sample SFT rows: `240`
-- Formal public sample DPO pairs: `742`
+- Formal public sample seed rows: `98`
+- Formal public sample SFT rows: `252`
+- Formal public sample DPO pairs: `850`
 - Formal public sample modified: `False`
 - Seed traces modified: `False`
-- Recommended next step: `review_candidate_extension_before_any_formal_public_sample_merge`
+- Recommended next step: `use_formal_merge_report_as_current_public_sample_state`
 
 ## Candidate Cases
 
@@ -150,4 +150,4 @@ This is candidate data only: it materializes reviewed form-fill confirmation-mar
 
 ## Recommended Next Step
 
-Review this standalone candidate extension before any later formal public sample merge, DPO construction, training probe, prediction run, or held-out claim.
+Use the formal public-sample merge report as the authoritative current-state evidence. This materialization report remains standalone candidate-generation evidence, not training, prediction, or held-out recovery evidence.

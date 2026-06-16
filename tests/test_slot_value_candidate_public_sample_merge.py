@@ -14,8 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_SAMPLE_DIR = REPO_ROOT / "data" / "public-samples"
 CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "slot_value_generalization_seed_candidates.jsonl"
 
-EXPECTED_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
-EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 102}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
+CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 114}
 LEGACY_MERGED_SLOT_VALUE_COUNTS = {"dpo_pairs": 125, "seed_rows": 14, "sft_rows": 42}
 LEGACY_MERGED_SLOT_VALUE_SPLITS = {"dev": 6, "test": 6, "train": 30}
 EXPECTED_CANDIDATE_IDS = {
@@ -58,19 +58,24 @@ def test_merge_slot_value_candidates_rebuilds_formal_public_sample(tmp_path: Pat
     dpo_rows = read_jsonl(public_dir / "dpo_public_sample.jsonl")
     manifest_payload = read_json(public_dir / "manifest_public_sample.json")
 
-    assert manifest.counts == EXPECTED_COUNTS
-    assert manifest.split_counts == EXPECTED_SPLITS
-    assert manifest_payload["counts"] == EXPECTED_COUNTS
-    assert manifest_payload["split_counts"] == EXPECTED_SPLITS
+    assert manifest.counts == CURRENT_FORMAL_COUNTS
+    assert manifest.split_counts == CURRENT_FORMAL_SPLITS
+    assert manifest_payload["counts"] == CURRENT_FORMAL_COUNTS
+    assert manifest_payload["split_counts"] == CURRENT_FORMAL_SPLITS
     assert manifest_payload["source_summary"]["slot_value_candidate_seed_rows"] == 4
     assert manifest_payload["source_summary"]["slot_value_candidates_formal_public_sample"] is True
     assert manifest_payload["source_summary"]["family_stratified_candidate_seed_rows"] == 63
     assert manifest_payload["source_summary"]["family_stratified_candidates_formal_public_sample"] is True
     assert manifest_payload["source_summary"]["form_fill_remediation_candidate_seed_rows"] == 9
     assert manifest_payload["source_summary"]["form_fill_remediation_candidates_formal_public_sample"] is True
-    assert len(seed_rows) == 86
-    assert len(sft_rows) == 240
-    assert len(dpo_rows) == 742
+    assert manifest_payload["source_summary"]["form_fill_confirmation_marker_extension_candidate_seed_rows"] == 12
+    assert (
+        manifest_payload["source_summary"]["form_fill_confirmation_marker_extension_candidates_formal_public_sample"]
+        is True
+    )
+    assert len(seed_rows) == CURRENT_FORMAL_COUNTS["seed_rows"]
+    assert len(sft_rows) == CURRENT_FORMAL_COUNTS["sft_rows"]
+    assert len(dpo_rows) == CURRENT_FORMAL_COUNTS["dpo_pairs"]
 
     seed_by_id = {row["id"]: row for row in seed_rows}
     sft_by_id = {row["id"]: row for row in sft_rows}
@@ -133,11 +138,12 @@ def test_merge_slot_value_candidates_cli(tmp_path: Path, capsys) -> None:
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["ok"] is True
-    assert payload["counts"] == EXPECTED_COUNTS
-    assert payload["split_counts"] == EXPECTED_SPLITS
+    assert payload["counts"] == CURRENT_FORMAL_COUNTS
+    assert payload["split_counts"] == CURRENT_FORMAL_SPLITS
     assert payload["source_summary"]["slot_value_candidate_seed_rows"] == 4
     assert payload["source_summary"]["family_stratified_candidate_seed_rows"] == 63
     assert payload["source_summary"]["form_fill_remediation_candidate_seed_rows"] == 9
+    assert payload["source_summary"]["form_fill_confirmation_marker_extension_candidate_seed_rows"] == 12
 
 
 def test_merge_slot_value_candidates_rejects_unreviewed_candidate_rows(tmp_path: Path) -> None:
@@ -161,8 +167,8 @@ def test_committed_formal_public_sample_contains_merged_slot_value_candidates() 
     sft_rows = read_jsonl(PUBLIC_SAMPLE_DIR / "sft_public_sample.jsonl")
     dpo_rows = read_jsonl(PUBLIC_SAMPLE_DIR / "dpo_public_sample.jsonl")
 
-    assert manifest["counts"] == EXPECTED_COUNTS
-    assert manifest["split_counts"] == EXPECTED_SPLITS
+    assert manifest["counts"] == CURRENT_FORMAL_COUNTS
+    assert manifest["split_counts"] == CURRENT_FORMAL_SPLITS
     assert {row["id"] for row in seed_rows}.issuperset(EXPECTED_CANDIDATE_IDS)
     assert {row["id"] for row in sft_rows}.issuperset(
         {row_id for seed_id in EXPECTED_CANDIDATE_IDS for row_id in (seed_id, f"{seed_id}-aug-1", f"{seed_id}-aug-2")}
@@ -271,12 +277,13 @@ def _metrics_payload(exact: float, slot_f1: float, *, slot_failures: int = 0) ->
 def test_merged_slot_value_report_cli_writes_public_safe_evidence(tmp_path: Path, capsys) -> None:
     private_root = "/mnt" + "/data/minghongsun/private"
     manifest = read_json(PUBLIC_SAMPLE_DIR / "manifest_public_sample.json")
+    split_counts = manifest["split_counts"]
     training_metadata = _write_json(
         tmp_path / "training_metadata.raw.json",
             {
                 "base_model": f"{private_root}/models/qwen2.5-7b",
                 "dataset_manifest_id": manifest["manifest_id"],
-                "training_rows_used": EXPECTED_SPLITS["train"],
+                "training_rows_used": split_counts["train"],
                 "training_status": "training_completed",
                 "adapter_path": f"{private_root}/runs/adapter",
             },
@@ -285,7 +292,7 @@ def test_merged_slot_value_report_cli_writes_public_safe_evidence(tmp_path: Path
     dev_metrics = _write_json(tmp_path / "dev_metrics.json", _metrics_payload(0.5, 0.75, slot_failures=3))
     test_metrics = _write_json(tmp_path / "test_metrics.json", _metrics_payload(1 / 3, 0.75, slot_failures=4))
     metadata_paths = {}
-    for split, count in EXPECTED_SPLITS.items():
+    for split, count in split_counts.items():
         metadata_paths[split] = _write_json(
             tmp_path / f"{split}_prediction_metadata.raw.json",
             {
@@ -344,10 +351,10 @@ def test_merged_slot_value_report_cli_writes_public_safe_evidence(tmp_path: Path
     assert payload["ok"] is True
     assert payload["summary"]["overall_interpretation"] == "merged_slot_value_heldout_improved_partial"
     assert evidence["dataset_manifest_id"] == manifest["manifest_id"]
-    assert evidence["formal_public_sample_counts"] == EXPECTED_COUNTS
-    assert evidence["split_results"]["train"]["prediction_count"] == EXPECTED_SPLITS["train"]
-    assert evidence["split_results"]["dev"]["prediction_count"] == EXPECTED_SPLITS["dev"]
-    assert evidence["split_results"]["test"]["prediction_count"] == EXPECTED_SPLITS["test"]
+    assert evidence["formal_public_sample_counts"] == CURRENT_FORMAL_COUNTS
+    assert evidence["split_results"]["train"]["prediction_count"] == split_counts["train"]
+    assert evidence["split_results"]["dev"]["prediction_count"] == split_counts["dev"]
+    assert evidence["split_results"]["test"]["prediction_count"] == split_counts["test"]
     assert evidence["split_results"]["dev"]["contract_exact_match"] == 0.5
     assert evidence["comparison"]["prior_targeted_family_coverage_exact"] == {
         "dev": 1 / 6,

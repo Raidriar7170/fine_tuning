@@ -1296,6 +1296,46 @@ def _form_fill_remediation_formal_sft_count(rows: list[SFTDatasetRow]) -> int:
     )
 
 
+def _is_formal_form_fill_confirmation_marker_extension_seed(row: dict[str, Any]) -> bool:
+    provenance = row.get("provenance") or {}
+    return (
+        provenance.get("source_mode") == "form_fill_confirmation_marker_extension_formal_public_seed"
+        and provenance.get("candidate_status") == "formal_public_sample"
+    )
+
+
+def _form_fill_confirmation_marker_extension_formal_seed_count(seed_rows: list[dict[str, Any]]) -> int:
+    return sum(1 for row in seed_rows if _is_formal_form_fill_confirmation_marker_extension_seed(row))
+
+
+def _form_fill_confirmation_marker_extension_formal_source_family_ids(
+    seed_rows: list[dict[str, Any]],
+) -> list[str]:
+    return sorted(
+        {
+            str((row.get("provenance") or {}).get("source_family_id"))
+            for row in seed_rows
+            if _is_formal_form_fill_confirmation_marker_extension_seed(row)
+        }
+    )
+
+
+def _form_fill_confirmation_marker_extension_formal_seed_split_counts(
+    seed_rows: list[dict[str, Any]],
+) -> dict[str, int]:
+    counts = Counter(row["split"] for row in seed_rows if _is_formal_form_fill_confirmation_marker_extension_seed(row))
+    return {split: counts.get(split, 0) for split in ("train", "dev", "test")}
+
+
+def _form_fill_confirmation_marker_extension_formal_sft_count(rows: list[SFTDatasetRow]) -> int:
+    return sum(
+        1
+        for row in rows
+        if row.provenance.get("source_mode") == "form_fill_confirmation_marker_extension_formal_public_seed"
+        and row.provenance.get("candidate_status") == "formal_public_sample"
+    )
+
+
 def _formal_family_stratified_candidate_seed(row: dict[str, Any], candidate_seed_path: Path) -> dict[str, Any]:
     provenance = dict(row.get("provenance") or {})
     if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
@@ -1323,6 +1363,29 @@ def _formal_form_fill_remediation_candidate_seed(row: dict[str, Any], candidate_
     merged["provenance"] = {
         **provenance,
         "source_mode": "form_fill_remediation_formal_public_seed",
+        "public_safe": True,
+        "candidate_status": "formal_public_sample",
+        "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
+    }
+    validate_public_record(merged)
+    return merged
+
+
+def _formal_form_fill_confirmation_marker_extension_candidate_seed(
+    row: dict[str, Any],
+    candidate_seed_path: Path,
+) -> dict[str, Any]:
+    provenance = dict(row.get("provenance") or {})
+    if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+        raise ValueError(
+            "form-fill confirmation-marker extension candidate seed already has unsupported status: "
+            f"{row.get('id')}"
+        )
+    merged = dict(row)
+    merged["split"] = "train"
+    merged["provenance"] = {
+        **provenance,
+        "source_mode": "form_fill_confirmation_marker_extension_formal_public_seed",
         "public_safe": True,
         "candidate_status": "formal_public_sample",
         "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
@@ -1996,8 +2059,15 @@ def _confirmation_marker_extension_field_label(case: dict[str, Any]) -> tuple[st
         return field, "derived_from_committed_public_artifacts"
     if derivation_status == _FORM_FILL_CONFIRMATION_MARKER_EXTENSION_FIELD_LABEL_NOT_DERIVABLE:
         source_family_id = str(case["source_family_id"])
+        try:
+            family_index = _FORM_FILL_CONFIRMATION_MARKER_EXTENSION_SOURCE_FAMILIES.index(source_family_id) + 1
+        except ValueError as exc:
+            raise ValueError(
+                "unknown confirmation-marker extension source family for fallback field label: "
+                f"{source_family_id}"
+            ) from exc
         return (
-            f"公开候选字段-{source_family_id}",
+            f"公开字段{family_index:02d}",
             "public_safe_family_level_candidate_label_not_recovered_gold_text",
         )
     raise ValueError(
@@ -2165,6 +2235,12 @@ def _confirmation_marker_extension_materialization_summary(
     formal_public_manifest: dict[str, Any],
 ) -> dict[str, Any]:
     formal_counts = formal_public_manifest["counts"]
+    formal_source_summary = formal_public_manifest.get("source_summary") or {}
+    formal_sample_has_candidates = bool(
+        formal_source_summary.get(
+            "form_fill_confirmation_marker_extension_candidates_formal_public_sample"
+        )
+    )
     derived_rows = sum(
         row["provenance"]["field_label_derivation_status"]
         == _FORM_FILL_CONFIRMATION_MARKER_EXTENSION_FIELD_LABEL_DERIVED
@@ -2184,9 +2260,14 @@ def _confirmation_marker_extension_materialization_summary(
         "formal_public_sample_seed_rows": formal_counts["seed_rows"],
         "formal_public_sample_sft_rows": formal_counts["sft_rows"],
         "formal_public_sample_dpo_pairs": formal_counts["dpo_pairs"],
+        "formal_public_sample_has_confirmation_marker_extension_candidates": formal_sample_has_candidates,
         "formal_public_sample_modified": False,
         "seed_traces_modified": False,
-        "recommended_next_step": "review_candidate_extension_before_any_formal_public_sample_merge",
+        "recommended_next_step": (
+            "use_formal_merge_report_as_current_public_sample_state"
+            if formal_sample_has_candidates
+            else "review_candidate_extension_before_any_formal_public_sample_merge"
+        ),
     }
 
 
@@ -2641,6 +2722,41 @@ def merge_form_fill_remediation_candidates_into_public_sample(
     return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
 
 
+def merge_form_fill_confirmation_marker_extension_candidates_into_public_sample(
+    *,
+    candidate_seed_path: Path,
+    seed_path: Path,
+    output_dir: Path,
+) -> DatasetManifest:
+    """Merge reviewed confirmation-marker extension candidate seeds into the formal public sample."""
+
+    seed_rows = _read_seed_rows(seed_path)
+    candidate_seed_rows = read_jsonl(candidate_seed_path)
+    _validate_reviewed_form_fill_confirmation_marker_extension_candidate_seed_rows(candidate_seed_rows)
+    existing_ids = {str(row["id"]) for row in seed_rows}
+    duplicate_ids = sorted(str(row["id"]) for row in candidate_seed_rows if str(row["id"]) in existing_ids)
+    if duplicate_ids:
+        raise ValueError(
+            "form-fill confirmation-marker extension candidate seed IDs already exist in public sample: "
+            f"{', '.join(duplicate_ids)}"
+        )
+
+    merged_candidates = [
+        _formal_form_fill_confirmation_marker_extension_candidate_seed(
+            row,
+            candidate_seed_path=candidate_seed_path,
+        )
+        for row in candidate_seed_rows
+    ]
+    for row in merged_candidates:
+        as_contract(row["target_contract"])
+
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(seed_path, [*seed_rows, *merged_candidates])
+    return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+
 def form_fill_remediation_public_sample_merge_evidence(
     *,
     manifest: DatasetManifest,
@@ -2703,6 +2819,109 @@ def form_fill_remediation_public_sample_merge_evidence(
     }
 
 
+def form_fill_confirmation_marker_extension_public_sample_merge_evidence(
+    *,
+    manifest: DatasetManifest,
+    candidate_seed_path: Path,
+    pre_merge_counts: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    from voice2task.validation import validate_dataset_artifacts
+
+    source_summary = manifest.source_summary
+    candidate_seed_rows = int(
+        source_summary.get("form_fill_confirmation_marker_extension_candidate_seed_rows", 0)
+    )
+    candidate_sft_rows = int(source_summary.get("form_fill_confirmation_marker_extension_candidate_sft_rows", 0))
+    candidate_dpo_pairs = candidate_sft_rows * len(FORM_FILL_REMEDIATION_DPO_REJECTION_CATEGORIES)
+    if pre_merge_counts is None:
+        pre_merge_counts = {
+            "seed_rows": manifest.counts["seed_rows"] - candidate_seed_rows,
+            "sft_rows": manifest.counts["sft_rows"] - candidate_sft_rows,
+            "dpo_pairs": manifest.counts["dpo_pairs"] - candidate_dpo_pairs,
+        }
+    validation = validate_dataset_artifacts(
+        sft_path=Path(manifest.files["sft"]),
+        dpo_path=Path(manifest.files["dpo"]),
+        manifest_path=Path(manifest.files["manifest"]),
+        public=True,
+    )
+    return {
+        "evidence_kind": "form_fill_confirmation_marker_extension_public_sample_merge",
+        "merge_status": "formal_public_sample_rebuilt" if validation.ok else "formal_public_sample_validation_failed",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "pre_merge_public_sample_counts": pre_merge_counts,
+        "formal_public_sample_counts": manifest.counts,
+        "formal_public_sample_split_counts": manifest.split_counts,
+        "source_summary": source_summary,
+        "candidate_source": {
+            "candidate_seed": _safe_artifact_ref(candidate_seed_path),
+            "candidate_seed_rows": candidate_seed_rows,
+            "candidate_sft_rows": candidate_sft_rows,
+            "candidate_dpo_pairs": candidate_dpo_pairs,
+            "candidate_source_mode": "form_fill_confirmation_marker_extension_candidate_seed",
+            "formal_source_mode": "form_fill_confirmation_marker_extension_formal_public_seed",
+            "source_family_ids": source_summary.get(
+                "form_fill_confirmation_marker_extension_source_family_ids",
+                [],
+            ),
+            "seed_split_counts": source_summary.get(
+                "form_fill_confirmation_marker_extension_seed_split_counts",
+                {"train": candidate_seed_rows, "dev": 0, "test": 0},
+            ),
+            "dpo_rejection_deltas": {
+                category: candidate_sft_rows for category in FORM_FILL_REMEDIATION_DPO_REJECTION_CATEGORIES
+            },
+        },
+        "validation": {
+            "ok": validation.ok,
+            "failures": validation.failures,
+            "counts": validation.counts,
+        },
+        "metric_authority": {
+            "contract_evaluation_ladder": "authoritative",
+            "contract_exact_match": "authoritative_strict_metric",
+            "slot_f1": "authoritative_strict_metric",
+            "slot_f1_soft": "diagnostic_only_not_primary",
+        },
+        "execution_scope": {
+            "formal_public_sample_modified": True,
+            "sft_artifacts_rebuilt": True,
+            "dpo_artifacts_rebuilt": True,
+            "training_run": False,
+            "prediction_run": False,
+            "dpo_training_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_recovery_claim": False,
+            "held_out_generalization_recovered": False,
+            "model_recovery_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "seed": _safe_artifact_ref(Path(manifest.files["seed"])),
+            "sft": _safe_artifact_ref(Path(manifest.files["sft"])),
+            "dpo": _safe_artifact_ref(Path(manifest.files["dpo"])),
+            "manifest": _safe_artifact_ref(Path(manifest.files["manifest"])),
+            "merge_json": "form_fill_confirmation_marker_extension_public_sample_merge.json",
+            "merge_markdown": "form_fill_confirmation_marker_extension_public_sample_merge.md",
+            "merge_manifest": "manifest.json",
+        },
+        "recommended_next_step": "run_prediction_only_eval_against_the_new_manifest_in_a_later_phase",
+    }
+
+
 def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetManifest:
     seed_rows = _read_seed_rows(seed_path)
     rows = expand_sft_rows(seed_rows, public_safe=True)
@@ -2721,6 +2940,9 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
     candidate_seed_count = _slot_value_candidate_seed_count(seed_rows)
     family_seed_count = _family_stratified_candidate_seed_count(seed_rows)
     form_fill_remediation_seed_count = _form_fill_remediation_formal_seed_count(seed_rows)
+    confirmation_marker_extension_seed_count = (
+        _form_fill_confirmation_marker_extension_formal_seed_count(seed_rows)
+    )
     source_summary: dict[str, Any] = {
         "seed_rows": len(seed_rows),
         "source": "sanitized_public_seed_fixture",
@@ -2750,6 +2972,24 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
                 "form_fill_remediation_candidates_formal_public_sample": True,
                 "form_fill_remediation_source_case_groups": _form_fill_remediation_formal_source_case_groups(
                     seed_rows
+                ),
+            }
+        )
+    if confirmation_marker_extension_seed_count:
+        source_summary.update(
+            {
+                "form_fill_confirmation_marker_extension_candidate_seed_rows": (
+                    confirmation_marker_extension_seed_count
+                ),
+                "form_fill_confirmation_marker_extension_candidate_sft_rows": (
+                    _form_fill_confirmation_marker_extension_formal_sft_count(rows)
+                ),
+                "form_fill_confirmation_marker_extension_candidates_formal_public_sample": True,
+                "form_fill_confirmation_marker_extension_source_family_ids": (
+                    _form_fill_confirmation_marker_extension_formal_source_family_ids(seed_rows)
+                ),
+                "form_fill_confirmation_marker_extension_seed_split_counts": (
+                    _form_fill_confirmation_marker_extension_formal_seed_split_counts(seed_rows)
                 ),
             }
         )

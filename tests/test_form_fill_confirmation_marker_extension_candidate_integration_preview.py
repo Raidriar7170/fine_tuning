@@ -30,24 +30,37 @@ COMMITTED_REPORT_DIR = (
     / "public-sample"
     / "form-fill-confirmation-marker-extension-candidate-integration-preview"
 )
-FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 114}
+EXPECTED_CANDIDATE_IDS = {row["id"] for row in read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
     return {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
 
 
+def _write_pre_merge_formal_seed(tmp_path: Path) -> Path:
+    seed_path = tmp_path / "pre_merge_seed_traces.jsonl"
+    seed_rows = [
+        row for row in read_jsonl(FORMAL_SEED) if row["id"] not in EXPECTED_CANDIDATE_IDS
+    ]
+    assert len(seed_rows) == PRE_MERGE_FORMAL_COUNTS["seed_rows"]
+    write_jsonl(seed_path, seed_rows)
+    return seed_path
+
+
 def test_check_form_fill_confirmation_marker_extension_candidate_integration_preview_builds_report_scoped_dataset(
     tmp_path: Path,
 ) -> None:
     public_sample_before = _sha256_by_path(PUBLIC_SAMPLE_PATHS)
+    pre_merge_seed = _write_pre_merge_formal_seed(tmp_path)
     output_dir = tmp_path / "form-fill-confirmation-marker-extension-candidate-integration-preview"
 
     paths = check_form_fill_confirmation_marker_extension_candidate_integration_preview(
         candidate_seed_path=FORM_FILL_EXTENSION_CANDIDATE_SEED,
-        seed_path=FORMAL_SEED,
+        seed_path=pre_merge_seed,
         output_dir=output_dir,
     )
 
@@ -75,7 +88,7 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
     assert preview_manifest["split_counts"] == EXPECTED_PREVIEW_SPLITS
     assert evidence["evidence_kind"] == "form_fill_confirmation_marker_extension_candidate_integration_preview"
     assert evidence["integration_status"] == "preview_build_validated"
-    assert evidence["formal_public_sample_counts_before"] == FORMAL_COUNTS
+    assert evidence["formal_public_sample_counts_before"] == PRE_MERGE_FORMAL_COUNTS
     assert evidence["preview_counts"] == EXPECTED_PREVIEW_COUNTS
     assert evidence["candidate_source"]["candidate_seed_rows"] == 12
     assert evidence["candidate_source"]["candidate_sft_rows"] == 12
@@ -102,6 +115,9 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
     assert "Preview DPO pairs are data-construction evidence only" in markdown
     assert "strict `contract_exact_match` remains primary" in markdown
     assert "Soft slot F1 and semantic equivalence remain diagnostic-only" in markdown
+    assert "historical builder-compatibility evidence" in markdown
+    assert "Current formal public-sample state must come from the corresponding merge report" in markdown
+    assert "decide whether to formally merge" not in markdown
 
     preview_candidate_rows = [
         row
@@ -130,6 +146,7 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
     tmp_path: Path,
     capsys: Any,
 ) -> None:
+    pre_merge_seed = _write_pre_merge_formal_seed(tmp_path)
     output_dir = tmp_path / "integration-preview"
 
     assert (
@@ -139,7 +156,7 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
                 "--candidate-seed",
                 FORM_FILL_EXTENSION_CANDIDATE_SEED.as_posix(),
                 "--seed",
-                FORMAL_SEED.as_posix(),
+                pre_merge_seed.as_posix(),
                 "--output",
                 output_dir.as_posix(),
             ]
@@ -162,6 +179,7 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
 def test_check_form_fill_confirmation_marker_extension_candidate_integration_preview_rejects_unreviewed_rows(
     tmp_path: Path,
 ) -> None:
+    pre_merge_seed = _write_pre_merge_formal_seed(tmp_path)
     candidate_rows = read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)
     unreviewed = dict(candidate_rows[0])
     unreviewed["id"] = "candidate-form-fill-confirmation-marker-extension-extra"
@@ -174,7 +192,7 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
     ):
         check_form_fill_confirmation_marker_extension_candidate_integration_preview(
             candidate_seed_path=candidate_path,
-            seed_path=FORMAL_SEED,
+            seed_path=pre_merge_seed,
             output_dir=tmp_path / "preview",
         )
 
@@ -182,8 +200,9 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
 def test_check_form_fill_confirmation_marker_extension_candidate_integration_preview_rejects_already_formal_ids(
     tmp_path: Path,
 ) -> None:
+    pre_merge_seed = _write_pre_merge_formal_seed(tmp_path)
     candidate_rows = read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)
-    formal_rows = read_jsonl(FORMAL_SEED)
+    formal_rows = read_jsonl(pre_merge_seed)
     formal_path = tmp_path / "seed_traces.jsonl"
     write_jsonl(formal_path, [*formal_rows, candidate_rows[0]])
 
@@ -198,9 +217,10 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
 def test_form_fill_confirmation_marker_extension_candidate_integration_report_writer_rejects_contradictory_scope(
     tmp_path: Path,
 ) -> None:
+    pre_merge_seed = _write_pre_merge_formal_seed(tmp_path)
     paths = check_form_fill_confirmation_marker_extension_candidate_integration_preview(
         candidate_seed_path=FORM_FILL_EXTENSION_CANDIDATE_SEED,
-        seed_path=FORMAL_SEED,
+        seed_path=pre_merge_seed,
         output_dir=tmp_path / "source-preview",
     )
     evidence = read_json(paths["json"])
@@ -216,9 +236,10 @@ def test_form_fill_confirmation_marker_extension_candidate_integration_report_wr
 def test_form_fill_confirmation_marker_extension_candidate_integration_report_writer_rejects_prediction_repair_claim(
     tmp_path: Path,
 ) -> None:
+    pre_merge_seed = _write_pre_merge_formal_seed(tmp_path)
     paths = check_form_fill_confirmation_marker_extension_candidate_integration_preview(
         candidate_seed_path=FORM_FILL_EXTENSION_CANDIDATE_SEED,
-        seed_path=FORMAL_SEED,
+        seed_path=pre_merge_seed,
         output_dir=tmp_path / "source-preview",
     )
     evidence = read_json(paths["json"])
@@ -239,8 +260,8 @@ def test_committed_form_fill_confirmation_marker_extension_candidate_integration
     manifest = read_json(COMMITTED_REPORT_DIR / "manifest.json")
     preview_manifest = read_json(COMMITTED_REPORT_DIR / "public-sample-preview" / "manifest_public_sample.json")
 
-    assert public_manifest["counts"] == FORMAL_COUNTS
-    assert evidence["formal_public_sample_counts_before"] == FORMAL_COUNTS
+    assert public_manifest["counts"] == CURRENT_FORMAL_COUNTS
+    assert evidence["formal_public_sample_counts_before"] == PRE_MERGE_FORMAL_COUNTS
     assert evidence["preview_counts"] == EXPECTED_PREVIEW_COUNTS
     assert evidence["candidate_source"]["candidate_seed_rows"] == 12
     assert evidence["candidate_source"]["candidate_preview_dpo_pairs"] == 108
@@ -253,4 +274,9 @@ def test_committed_form_fill_confirmation_marker_extension_candidate_integration
     assert manifest["claims"]["model_recovery_claim"] is False
     assert manifest["claims"]["held_out_generalization_recovered"] is False
     assert preview_manifest["counts"] == EXPECTED_PREVIEW_COUNTS
+    markdown = (
+        COMMITTED_REPORT_DIR / "form_fill_confirmation_marker_extension_candidate_integration_preview.md"
+    ).read_text(encoding="utf-8")
+    assert "Current formal public-sample state must come from the corresponding merge report" in markdown
+    assert "decide whether to formally merge" not in markdown
     assert scan_paths([COMMITTED_REPORT_DIR]).ok is True

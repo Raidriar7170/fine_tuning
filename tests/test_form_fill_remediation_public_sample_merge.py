@@ -15,8 +15,10 @@ FORM_FILL_CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "form_fill_remediation_seed_candi
 MERGE_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "form-fill-remediation-public-sample-merge"
 
 EXPECTED_FORM_FILL_IDS = {row["id"] for row in read_jsonl(FORM_FILL_CANDIDATE_SEED)}
-EXPECTED_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
-EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 102}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
+CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 114}
+LEGACY_FORM_FILL_MERGE_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+LEGACY_FORM_FILL_MERGE_SPLITS = {"dev": 69, "test": 69, "train": 102}
 EXPECTED_CASE_GROUPS = {
     "form-fill-clarify-boundary-protection",
     "form-fill-confirmation-marker-preservation",
@@ -49,8 +51,8 @@ def _copy_current_public_sample_without_form_fill_candidates(tmp_path: Path) -> 
 
 
 def _assert_manifest_has_form_fill_merge_summary(manifest_payload: dict) -> None:
-    assert manifest_payload["counts"] == EXPECTED_COUNTS
-    assert manifest_payload["split_counts"] == EXPECTED_SPLITS
+    assert manifest_payload["counts"] == CURRENT_FORMAL_COUNTS
+    assert manifest_payload["split_counts"] == CURRENT_FORMAL_SPLITS
     source_summary = manifest_payload["source_summary"]
     assert source_summary["slot_value_candidate_seed_rows"] == 4
     assert source_summary["slot_value_candidates_formal_public_sample"] is True
@@ -59,6 +61,9 @@ def _assert_manifest_has_form_fill_merge_summary(manifest_payload: dict) -> None
     assert source_summary["form_fill_remediation_candidate_seed_rows"] == 9
     assert source_summary["form_fill_remediation_candidate_sft_rows"] == 9
     assert source_summary["form_fill_remediation_candidates_formal_public_sample"] is True
+    assert source_summary["form_fill_confirmation_marker_extension_candidate_seed_rows"] == 12
+    assert source_summary["form_fill_confirmation_marker_extension_candidate_sft_rows"] == 12
+    assert source_summary["form_fill_confirmation_marker_extension_candidates_formal_public_sample"] is True
     assert set(source_summary["form_fill_remediation_source_case_groups"]) == EXPECTED_CASE_GROUPS
 
 
@@ -102,12 +107,12 @@ def test_merge_form_fill_remediation_candidates_rebuilds_formal_public_sample(tm
     dpo_rows = read_jsonl(public_dir / "dpo_public_sample.jsonl")
     manifest_payload = read_json(public_dir / "manifest_public_sample.json")
 
-    assert manifest.counts == EXPECTED_COUNTS
-    assert manifest.split_counts == EXPECTED_SPLITS
+    assert manifest.counts == CURRENT_FORMAL_COUNTS
+    assert manifest.split_counts == CURRENT_FORMAL_SPLITS
     _assert_manifest_has_form_fill_merge_summary(manifest_payload)
-    assert len(seed_rows) == 86
-    assert len(sft_rows) == 240
-    assert len(dpo_rows) == 742
+    assert len(seed_rows) == CURRENT_FORMAL_COUNTS["seed_rows"]
+    assert len(sft_rows) == CURRENT_FORMAL_COUNTS["sft_rows"]
+    assert len(dpo_rows) == CURRENT_FORMAL_COUNTS["dpo_pairs"]
     _assert_form_fill_rows_are_formal(seed_rows, sft_rows, dpo_rows)
 
     validation = validate_dataset_artifacts(
@@ -143,8 +148,8 @@ def test_merge_form_fill_remediation_candidates_cli_writes_evidence(tmp_path: Pa
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["ok"] is True
-    assert payload["counts"] == EXPECTED_COUNTS
-    assert payload["split_counts"] == EXPECTED_SPLITS
+    assert payload["counts"] == CURRENT_FORMAL_COUNTS
+    assert payload["split_counts"] == CURRENT_FORMAL_SPLITS
     assert payload["source_summary"]["form_fill_remediation_candidate_seed_rows"] == 9
     assert payload["evidence_paths"]["manifest"] == (evidence_dir / "manifest.json").as_posix()
 
@@ -154,7 +159,7 @@ def test_merge_form_fill_remediation_candidates_cli_writes_evidence(tmp_path: Pa
     assert evidence["evidence_kind"] == "form_fill_remediation_public_sample_merge"
     assert evidence["candidate_source"]["candidate_dpo_pairs"] == 81
     assert evidence["candidate_source"]["dpo_rejection_deltas"] == EXPECTED_DPO_DELTAS
-    assert evidence_manifest["formal_public_sample_counts"] == EXPECTED_COUNTS
+    assert evidence_manifest["formal_public_sample_counts"] == CURRENT_FORMAL_COUNTS
     assert evidence_manifest["claims"]["held_out_generalization_recovered"] is False
     assert "does not prove held-out recovery" in markdown
     assert scan_paths([evidence_dir]).ok is True
@@ -209,8 +214,8 @@ def test_committed_form_fill_remediation_merge_evidence_is_public_safe() -> None
     assert evidence["execution_scope"]["prediction_run"] is False
     assert evidence["execution_scope"]["a100_execution"] is False
     assert evidence["candidate_source"]["candidate_dpo_pairs"] == 81
-    assert evidence_manifest["formal_public_sample_counts"] == EXPECTED_COUNTS
-    assert evidence_manifest["formal_public_sample_split_counts"] == EXPECTED_SPLITS
+    assert evidence_manifest["formal_public_sample_counts"] == LEGACY_FORM_FILL_MERGE_COUNTS
+    assert evidence_manifest["formal_public_sample_split_counts"] == LEGACY_FORM_FILL_MERGE_SPLITS
     assert evidence_manifest["claims"]["held_out_generalization_recovered"] is False
     assert evidence_manifest["claims"]["model_recovery_claim"] is False
     assert evidence_manifest["claims"]["adapter_release"] is False

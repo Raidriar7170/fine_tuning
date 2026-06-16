@@ -34,7 +34,7 @@ COMMITTED_REPORT_DIR = (
     / "public-sample"
     / "form-fill-confirmation-marker-extension-materialized-candidates"
 )
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
@@ -94,12 +94,13 @@ def test_materialize_confirmation_marker_extension_candidates_writes_standalone_
         "candidate_sft_rows": 12,
         "derived_field_label_rows": 3,
         "family_level_candidate_label_rows": 9,
-        "formal_public_sample_seed_rows": 86,
-        "formal_public_sample_sft_rows": 240,
-        "formal_public_sample_dpo_pairs": 742,
+        "formal_public_sample_seed_rows": CURRENT_FORMAL_COUNTS["seed_rows"],
+        "formal_public_sample_sft_rows": CURRENT_FORMAL_COUNTS["sft_rows"],
+        "formal_public_sample_dpo_pairs": CURRENT_FORMAL_COUNTS["dpo_pairs"],
+        "formal_public_sample_has_confirmation_marker_extension_candidates": True,
         "formal_public_sample_modified": False,
         "seed_traces_modified": False,
-        "recommended_next_step": "review_candidate_extension_before_any_formal_public_sample_merge",
+        "recommended_next_step": "use_formal_merge_report_as_current_public_sample_state",
     }
     assert materialization["metric_authority"]["contract_exact_match"] == "authoritative_strict_metric"
     assert materialization["metric_authority"]["slot_f1"] == "authoritative_strict_metric"
@@ -118,6 +119,9 @@ def test_materialize_confirmation_marker_extension_candidates_writes_standalone_
     assert manifest["artifact_policy"]["formal_public_sample_files_modified"] is False
     assert manifest["artifact_policy"]["dpo_pairs_generated"] is False
     assert "candidate data only" in markdown
+    assert "already includes the reviewed confirmation-marker extension candidates" in markdown
+    assert "use the merge report as the authoritative current-state evidence" in markdown
+    assert "before any later formal public sample merge" not in markdown
     assert "not recovered gold text" in markdown
     assert "slot_f1_soft` is diagnostic-only" in markdown
 
@@ -129,7 +133,7 @@ def test_materialize_confirmation_marker_extension_candidates_writes_standalone_
     assert derived["provenance"]["field_label_provenance"] == "derived_from_committed_public_artifacts"
 
     non_derivable = seed_by_case["ff-confirm-marker-extension-family-confirmation-dev-1"]
-    family_label = "公开候选字段-family-confirmation-dev-1"
+    family_label = "公开字段01"
     assert non_derivable["input_text"] == f"填写{family_label}并确认"
     _assert_candidate_contract(non_derivable, family_label)
     assert non_derivable["provenance"]["field_label_derivation_status"] == (
@@ -204,6 +208,9 @@ def test_committed_confirmation_marker_extension_materialized_candidates_are_pub
         COMMITTED_REPORT_DIR / "form_fill_confirmation_marker_extension_materialization.json"
     )
     manifest = read_json(COMMITTED_REPORT_DIR / "manifest.json")
+    markdown = (
+        COMMITTED_REPORT_DIR / "form_fill_confirmation_marker_extension_materialization.md"
+    ).read_text(encoding="utf-8")
     seed_rows = read_jsonl(COMMITTED_CANDIDATE_SEED)
     sft_rows = read_jsonl(COMMITTED_REPORT_DIR / "sft_candidate_rows.jsonl")
 
@@ -211,13 +218,19 @@ def test_committed_confirmation_marker_extension_materialized_candidates_are_pub
     assert materialization["summary"]["candidate_case_count"] == 12
     assert materialization["summary"]["candidate_seed_rows"] == 12
     assert materialization["summary"]["candidate_sft_rows"] == 12
+    assert materialization["summary"]["formal_public_sample_has_confirmation_marker_extension_candidates"] is True
     assert materialization["summary"]["formal_public_sample_modified"] is False
+    assert materialization["summary"]["recommended_next_step"] == (
+        "use_formal_merge_report_as_current_public_sample_state"
+    )
     assert materialization["metric_authority"]["slot_f1_soft"] == "diagnostic_only_not_primary"
     assert manifest["artifact_policy"]["formal_public_sample_files_modified"] is False
     assert manifest["artifact_policy"]["dpo_pairs_generated"] is False
     assert manifest["execution_scope"]["training_run"] is False
     assert manifest["execution_scope"]["prediction_run"] is False
     assert manifest["execution_scope"]["dpo_run"] is False
+    assert "use the merge report as the authoritative current-state evidence" in markdown
+    assert "before any later formal public sample merge" not in markdown
     assert len(seed_rows) == 12
     assert len(sft_rows) == 12
     assert scan_paths([COMMITTED_CANDIDATE_SEED, COMMITTED_REPORT_DIR]).ok is True

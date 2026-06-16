@@ -1,7 +1,7 @@
 {
   "artifact_files": {
     "candidate_seed": "data/public-samples/form_fill_confirmation_marker_extension_seed_candidates.jsonl",
-    "formal_seed": "data/public-samples/seed_traces.jsonl",
+    "formal_seed": ".tmp-premerge-confirmation-marker-extension-seed.jsonl",
     "integration_json": "form_fill_confirmation_marker_extension_candidate_integration_preview.json",
     "integration_markdown": "form_fill_confirmation_marker_extension_candidate_integration_preview.md",
     "manifest": "manifest.json",
@@ -71,7 +71,7 @@
     "train": 102
   },
   "formal_seed_id_count_before": 86,
-  "generated_at": "2026-06-16T06:58:53.223369+00:00",
+  "generated_at": "2026-06-16T08:06:53.618531+00:00",
   "integration_status": "preview_build_validated",
   "preview_artifacts": {
     "preview_dpo": "public-sample-preview/dpo_public_sample.jsonl",

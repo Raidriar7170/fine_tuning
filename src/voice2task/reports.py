@@ -3530,19 +3530,42 @@ def write_form_fill_confirmation_marker_extension_materialization_report(
     write_json(manifest_path, manifest)
 
     summary = safe_materialization["summary"]
+    current_formal_has_candidates = bool(
+        summary.get("formal_public_sample_has_confirmation_marker_extension_candidates", False)
+    )
+    formal_state_line = (
+        "- Current formal public sample already includes the reviewed confirmation-marker extension candidates; "
+        "use the merge report as the authoritative current-state evidence."
+        if current_formal_has_candidates
+        else "- Candidate rows are not formal public sample rows yet."
+    )
+    materialization_state_note = (
+        "The standalone candidate artifacts written by this materialization report remain candidate-only; "
+        "the current formal sample state is recorded separately by the merge evidence."
+        if current_formal_has_candidates
+        else "The rows are not merged into seed_traces.jsonl, and they are not training, DPO, prediction, "
+        "or A100 evidence."
+    )
+    recommended_next_step_text = (
+        "Use the formal public-sample merge report as the authoritative current-state evidence. "
+        "This materialization report remains standalone candidate-generation evidence, not training, "
+        "prediction, or held-out recovery evidence."
+        if current_formal_has_candidates
+        else "Review this standalone candidate extension before any later formal public sample merge, DPO "
+        "construction, training probe, prediction run, or held-out claim."
+    )
     lines = [
         f"# {title}",
         "",
         (
             "This is candidate data only: it materializes reviewed form-fill confirmation-marker extension "
-            "cases into standalone public-safe candidate seed and SFT rows. The rows are not merged into "
-            "seed_traces.jsonl, and they are not training, DPO, prediction, or A100 evidence."
+            f"cases into standalone public-safe candidate seed and SFT rows. {materialization_state_note}"
         ),
         "",
         "## Boundary",
         "",
-        "- Candidate rows are not formal public sample rows yet.",
-        "- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.",
+        formal_state_line,
+        "- This materialization command does not rewrite formal public sample seed, SFT, DPO, or manifest files.",
         "- No DPO pairs, SFT training, prediction run, A100 execution, or evaluator relaxation is performed.",
         "- Strict `contract_exact_match` and strict `slot_f1` remain authoritative.",
         "- `slot_f1_soft` is diagnostic-only and not a primary metric.",
@@ -3587,10 +3610,7 @@ def write_form_fill_confirmation_marker_extension_materialization_report(
         [
             "## Recommended Next Step",
             "",
-            (
-                "Review this standalone candidate extension before any later formal public sample merge, DPO "
-                "construction, training probe, prediction run, or held-out claim."
-            ),
+            recommended_next_step_text,
         ]
     )
     markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
@@ -3815,8 +3835,9 @@ def write_form_fill_confirmation_marker_extension_candidate_integration_preview_
         "## Recommended Next Step",
         "",
         (
-            "Use a later bounded OpenSpec phase to decide whether to formally merge the candidates. "
-            "Keep formal merge, A100 training, prediction, evaluator changes, and recovery claims separate."
+            "Use this preview only as historical builder-compatibility evidence. "
+            "Current formal public-sample state must come from the corresponding merge report; "
+            "keep A100 training, prediction, evaluator changes, and recovery claims separate."
         ),
     ]
     markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
@@ -4111,6 +4132,138 @@ def write_form_fill_remediation_public_sample_merge_report(
         f"- Candidate DPO pair contribution: `{candidate['candidate_dpo_pairs']}`",
         f"- Source case groups: `{candidate['source_case_groups']}`",
         f"- Candidate seed split counts: `{candidate['seed_split_counts']}`",
+        "",
+        "## DPO Rejection Deltas",
+        "",
+    ]
+    for category, count in sorted(candidate.get("dpo_rejection_deltas", {}).items()):
+        lines.append(f"- `{category}`: `{count}`")
+    lines.extend(
+        [
+            "",
+            "## Recommended Next Step",
+            "",
+            (
+                "Use the new manifest ID for a later prediction-only eval phase. "
+                "Do not compare new results to prior held-out metrics without noting "
+                "that the formal public sample boundary changed."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
+def write_form_fill_confirmation_marker_extension_public_sample_merge_report(
+    evidence: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task form-fill confirmation-marker extension public sample merge",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "form_fill_confirmation_marker_extension_public_sample_merge.json"
+    markdown_path = output_dir / "form_fill_confirmation_marker_extension_public_sample_merge.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_evidence = _sanitize_report_value(evidence)
+    scope = safe_evidence.get("execution_scope", {})
+    claims = safe_evidence.get("claims", {})
+    allowed_true_scope = {
+        "dpo_artifacts_rebuilt",
+        "formal_public_sample_modified",
+        "sft_artifacts_rebuilt",
+    }
+    allowed_true_claims = {
+        "strict_contract_exact_match_primary_metric",
+        "strict_slot_f1_primary_metric",
+    }
+    bad_scope = [key for key, value in scope.items() if value is True and key not in allowed_true_scope]
+    bad_claims = [key for key, value in claims.items() if value is True and key not in allowed_true_claims]
+    if bad_scope or bad_claims:
+        raise ValueError(
+            "public-sample merge report cannot claim unsupported scope or recovery signals: "
+            f"scope={bad_scope}, claims={bad_claims}"
+        )
+    write_json(json_path, safe_evidence)
+
+    manifest = {
+        "evidence_kind": safe_evidence["evidence_kind"],
+        "merge_status": safe_evidence["merge_status"],
+        "generated_at": safe_evidence["generated_at"],
+        "pre_merge_public_sample_counts": safe_evidence["pre_merge_public_sample_counts"],
+        "formal_public_sample_counts": safe_evidence["formal_public_sample_counts"],
+        "formal_public_sample_split_counts": safe_evidence["formal_public_sample_split_counts"],
+        "source_summary": safe_evidence["source_summary"],
+        "candidate_source": safe_evidence["candidate_source"],
+        "validation": safe_evidence["validation"],
+        "metric_authority": safe_evidence["metric_authority"],
+        "execution_scope": safe_evidence["execution_scope"],
+        "claims": safe_evidence["claims"],
+        "artifact_policy": {
+            "public_sample_modified": True,
+            "candidate_rows_promoted_to_formal_sample": True,
+            "sft_artifacts_rebuilt": True,
+            "dpo_artifacts_rebuilt": True,
+            "training_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+        },
+        "diagnostic_artifacts": {
+            "merge": "form_fill_confirmation_marker_extension_public_sample_merge.json",
+            "markdown": "form_fill_confirmation_marker_extension_public_sample_merge.md",
+            "manifest": "manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    counts = safe_evidence["formal_public_sample_counts"]
+    pre_counts = safe_evidence["pre_merge_public_sample_counts"]
+    splits = safe_evidence["formal_public_sample_split_counts"]
+    candidate = safe_evidence["candidate_source"]
+    validation = safe_evidence["validation"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This report records a formal data merge into the public sample. "
+            "It does not prove held-out recovery, model recovery, adapter release, "
+            "checkpoint release, production readiness, private-corpus generalization, "
+            "public full-corpus release, or live-browser improvement."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Formal public sample seed, SFT, DPO, and manifest files were rebuilt.",
+        "- The 108 DPO pairs are data-construction artifacts, not DPO training evidence.",
+        "- No SFT/DPO/GRPO training, prediction run, or A100 execution was performed.",
+        "- strict `contract_exact_match` remains the authoritative primary metric.",
+        "- strict `slot_f1` remains the authoritative primary metric.",
+        "- `slot_f1_soft` and semantic equivalence remain diagnostic-only.",
+        "",
+        "## Summary",
+        "",
+        f"- Pre-merge counts: `{pre_counts}`",
+        f"- Post-merge seed rows: `{counts['seed_rows']}`",
+        f"- Post-merge SFT rows: `{counts['sft_rows']}`",
+        f"- Post-merge DPO pairs: `{counts['dpo_pairs']}`",
+        f"- SFT split counts: `{splits}`",
+        f"- Merged candidate seed rows: `{candidate['candidate_seed_rows']}`",
+        f"- Merged candidate SFT rows: `{candidate['candidate_sft_rows']}`",
+        f"- Candidate DPO pair contribution: `{candidate['candidate_dpo_pairs']}`",
+        f"- Source family IDs: `{candidate['source_family_ids']}`",
+        f"- Candidate seed split counts: `{candidate['seed_split_counts']}`",
+        "",
+        "## Validation",
+        "",
+        f"- Public artifact validation ok: `{validation['ok']}`",
+        f"- Validation counts: `{validation['counts']}`",
+        f"- Validation failures: `{validation['failures']}`",
         "",
         "## DPO Rejection Deltas",
         "",

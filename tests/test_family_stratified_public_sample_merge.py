@@ -24,8 +24,8 @@ EXPECTED_FAMILIES = {
     "search",
 }
 EXPECTED_FAMILY_SEED_IDS = {row["id"] for row in read_jsonl(FAMILY_CANDIDATE_SEED)}
-EXPECTED_COUNTS = {"seed_rows": 86, "sft_rows": 240, "dpo_pairs": 742}
-EXPECTED_SPLITS = {"train": 102, "dev": 69, "test": 69}
+CURRENT_FORMAL_COUNTS = {"seed_rows": 98, "sft_rows": 252, "dpo_pairs": 850}
+CURRENT_FORMAL_SPLITS = {"train": 114, "dev": 69, "test": 69}
 LEGACY_FAMILY_MERGE_COUNTS = {"seed_rows": 77, "sft_rows": 231, "dpo_pairs": 661}
 LEGACY_FAMILY_MERGE_SPLITS = {"train": 93, "dev": 69, "test": 69}
 EXPECTED_SEED_SPLITS = {"train": 21, "dev": 21, "test": 21}
@@ -45,8 +45,8 @@ def _copy_current_public_sample_without_family_candidates(tmp_path: Path) -> Pat
 
 
 def _assert_manifest_has_family_merge_summary(manifest_payload: dict) -> None:
-    assert manifest_payload["counts"] == EXPECTED_COUNTS
-    assert manifest_payload["split_counts"] == EXPECTED_SPLITS
+    assert manifest_payload["counts"] == CURRENT_FORMAL_COUNTS
+    assert manifest_payload["split_counts"] == CURRENT_FORMAL_SPLITS
     source_summary = manifest_payload["source_summary"]
     assert source_summary["slot_value_candidate_seed_rows"] == 4
     assert source_summary["slot_value_candidates_formal_public_sample"] is True
@@ -58,6 +58,9 @@ def _assert_manifest_has_family_merge_summary(manifest_payload: dict) -> None:
     assert source_summary["form_fill_remediation_candidate_seed_rows"] == 9
     assert source_summary["form_fill_remediation_candidate_sft_rows"] == 9
     assert source_summary["form_fill_remediation_candidates_formal_public_sample"] is True
+    assert source_summary["form_fill_confirmation_marker_extension_candidate_seed_rows"] == 12
+    assert source_summary["form_fill_confirmation_marker_extension_candidate_sft_rows"] == 12
+    assert source_summary["form_fill_confirmation_marker_extension_candidates_formal_public_sample"] is True
 
 
 def _assert_family_rows_are_formal(seed_rows: list[dict], sft_rows: list[dict], dpo_rows: list[dict]) -> None:
@@ -103,12 +106,12 @@ def test_merge_family_stratified_candidates_rebuilds_formal_public_sample(tmp_pa
     dpo_rows = read_jsonl(public_dir / "dpo_public_sample.jsonl")
     manifest_payload = read_json(public_dir / "manifest_public_sample.json")
 
-    assert manifest.counts == EXPECTED_COUNTS
-    assert manifest.split_counts == EXPECTED_SPLITS
+    assert manifest.counts == CURRENT_FORMAL_COUNTS
+    assert manifest.split_counts == CURRENT_FORMAL_SPLITS
     _assert_manifest_has_family_merge_summary(manifest_payload)
-    assert len(seed_rows) == 86
-    assert len(sft_rows) == 240
-    assert len(dpo_rows) == 742
+    assert len(seed_rows) == CURRENT_FORMAL_COUNTS["seed_rows"]
+    assert len(sft_rows) == CURRENT_FORMAL_COUNTS["sft_rows"]
+    assert len(dpo_rows) == CURRENT_FORMAL_COUNTS["dpo_pairs"]
     _assert_family_rows_are_formal(seed_rows, sft_rows, dpo_rows)
 
     validation = validate_dataset_artifacts(
@@ -144,8 +147,8 @@ def test_merge_family_stratified_candidates_cli_writes_evidence(tmp_path: Path, 
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["ok"] is True
-    assert payload["counts"] == EXPECTED_COUNTS
-    assert payload["split_counts"] == EXPECTED_SPLITS
+    assert payload["counts"] == CURRENT_FORMAL_COUNTS
+    assert payload["split_counts"] == CURRENT_FORMAL_SPLITS
     assert payload["source_summary"]["family_stratified_candidate_seed_rows"] == 63
     assert payload["evidence_paths"]["manifest"] == (evidence_dir / "manifest.json").as_posix()
 
@@ -153,7 +156,7 @@ def test_merge_family_stratified_candidates_cli_writes_evidence(tmp_path: Path, 
     evidence_manifest = read_json(evidence_dir / "manifest.json")
     markdown = (evidence_dir / "family_stratified_public_sample_merge.md").read_text(encoding="utf-8")
     assert evidence["evidence_kind"] == "family_stratified_public_sample_merge"
-    assert evidence_manifest["formal_public_sample_counts"] == EXPECTED_COUNTS
+    assert evidence_manifest["formal_public_sample_counts"] == CURRENT_FORMAL_COUNTS
     assert evidence_manifest["claims"]["held_out_generalization_recovered"] is False
     assert "does not prove held-out recovery" in markdown
     assert scan_paths([evidence_dir]).ok is True

@@ -61,7 +61,7 @@
     "sft_rows_modified": false,
     "training_run": false
   },
-  "generated_at": "2026-06-16T06:24:05.603661+00:00",
+  "generated_at": "2026-06-16T08:04:52.263458+00:00",
   "materialization_status": "candidate_dataset_materialized",
   "metric_authority": {
     "contract_evaluation_ladder": "authoritative",
@@ -108,11 +108,12 @@
     "candidate_sft_rows": 12,
     "derived_field_label_rows": 3,
     "family_level_candidate_label_rows": 9,
-    "formal_public_sample_dpo_pairs": 742,
+    "formal_public_sample_dpo_pairs": 850,
+    "formal_public_sample_has_confirmation_marker_extension_candidates": true,
     "formal_public_sample_modified": false,
-    "formal_public_sample_seed_rows": 86,
-    "formal_public_sample_sft_rows": 240,
-    "recommended_next_step": "review_candidate_extension_before_any_formal_public_sample_merge",
+    "formal_public_sample_seed_rows": 98,
+    "formal_public_sample_sft_rows": 252,
+    "recommended_next_step": "use_formal_merge_report_as_current_public_sample_state",
     "seed_traces_modified": false
   }
 }

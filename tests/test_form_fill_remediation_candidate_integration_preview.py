@@ -25,10 +25,12 @@ COMMITTED_REPORT_DIR = (
     REPO_ROOT / "reports" / "public-sample" / "form-fill-remediation-candidate-integration-preview"
 )
 FORM_FILL_CANDIDATE_IDS = {row["id"] for row in read_jsonl(FORM_FILL_CANDIDATE_SEED)}
-PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 661, "seed_rows": 77, "sft_rows": 231}
-MERGED_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
-EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
-EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 102}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
+PREVIEW_BASELINE_WITH_EXTENSION_COUNTS = {"dpo_pairs": 769, "seed_rows": 89, "sft_rows": 243}
+EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
+EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 114}
+HISTORICAL_PRE_EXTENSION_FORMAL_COUNTS = {"dpo_pairs": 661, "seed_rows": 77, "sft_rows": 231}
+HISTORICAL_FORM_FILL_PREVIEW_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
@@ -74,14 +76,14 @@ def test_check_form_fill_remediation_candidate_integration_preview_builds_report
     manifest = read_json(paths["manifest"])
     markdown = paths["markdown"].read_text(encoding="utf-8")
 
-    assert len(preview_seed_rows) == 86
-    assert len(preview_sft_rows) == 240
-    assert len(preview_dpo_rows) == 742
+    assert len(preview_seed_rows) == EXPECTED_PREVIEW_COUNTS["seed_rows"]
+    assert len(preview_sft_rows) == EXPECTED_PREVIEW_COUNTS["sft_rows"]
+    assert len(preview_dpo_rows) == EXPECTED_PREVIEW_COUNTS["dpo_pairs"]
     assert preview_manifest["counts"] == EXPECTED_PREVIEW_COUNTS
     assert preview_manifest["split_counts"] == EXPECTED_PREVIEW_SPLITS
     assert evidence["evidence_kind"] == "form_fill_remediation_candidate_integration_preview"
     assert evidence["integration_status"] == "preview_build_validated"
-    assert evidence["formal_public_sample_counts_before"] == PRE_MERGE_FORMAL_COUNTS
+    assert evidence["formal_public_sample_counts_before"] == PREVIEW_BASELINE_WITH_EXTENSION_COUNTS
     assert evidence["preview_counts"] == EXPECTED_PREVIEW_COUNTS
     assert evidence["candidate_source"]["candidate_seed_rows"] == 9
     assert evidence["candidate_source"]["candidate_sft_rows"] == 9
@@ -190,9 +192,9 @@ def test_committed_form_fill_remediation_candidate_integration_preview_is_public
     manifest = read_json(COMMITTED_REPORT_DIR / "manifest.json")
     preview_manifest = read_json(COMMITTED_REPORT_DIR / "public-sample-preview" / "manifest_public_sample.json")
 
-    assert public_manifest["counts"] == MERGED_FORMAL_COUNTS
-    assert evidence["formal_public_sample_counts_before"] == PRE_MERGE_FORMAL_COUNTS
-    assert evidence["preview_counts"] == EXPECTED_PREVIEW_COUNTS
+    assert public_manifest["counts"] == CURRENT_FORMAL_COUNTS
+    assert evidence["formal_public_sample_counts_before"] == HISTORICAL_PRE_EXTENSION_FORMAL_COUNTS
+    assert evidence["preview_counts"] == HISTORICAL_FORM_FILL_PREVIEW_COUNTS
     assert evidence["candidate_source"]["candidate_seed_rows"] == 9
     assert evidence["candidate_source"]["candidate_preview_dpo_pairs"] == 81
     assert evidence["execution_scope"]["formal_public_sample_modified"] is False
@@ -201,5 +203,5 @@ def test_committed_form_fill_remediation_candidate_integration_preview_is_public
     assert manifest["artifact_policy"]["formal_public_sample_files_modified"] is False
     assert manifest["claims"]["model_recovery_claim"] is False
     assert manifest["claims"]["held_out_generalization_recovered"] is False
-    assert preview_manifest["counts"] == EXPECTED_PREVIEW_COUNTS
+    assert preview_manifest["counts"] == HISTORICAL_FORM_FILL_PREVIEW_COUNTS
     assert scan_paths([COMMITTED_REPORT_DIR]).ok is True

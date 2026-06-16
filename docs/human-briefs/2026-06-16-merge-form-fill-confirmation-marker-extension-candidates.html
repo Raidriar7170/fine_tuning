@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>form_fill 确认标记扩展候选正式合入简报</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2937;
+      --muted: #5b6472;
+      --line: #d8dee8;
+      --ok: #0f766e;
+      --warn: #9a5b00;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin: 28px 0 10px;
+      font-size: 18px;
+    }
+    p {
+      margin: 8px 0;
+    }
+    a {
+      color: #2563eb;
+    }
+    .lead {
+      font-size: 17px;
+      color: var(--muted);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      margin-top: 18px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .metric {
+      border-left: 4px solid var(--ok);
+      padding-left: 12px;
+    }
+    .metric strong {
+      display: block;
+      font-size: 22px;
+    }
+    ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+    code {
+      background: #eef2f7;
+      border-radius: 4px;
+      padding: 1px 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.92em;
+    }
+    .ok {
+      color: var(--ok);
+      font-weight: 700;
+    }
+    .pending {
+      color: var(--warn);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>form_fill 确认标记扩展候选正式合入简报</h1>
+    <p class="lead">结论：12 条 reviewed confirmation-marker extension 候选已正式合入 public sample，并重建 seed/SFT/DPO/manifest；这不是训练、预测或模型效果恢复证据。</p>
+
+    <section class="panel">
+      <h2>当前状态</h2>
+      <p><span class="ok">archived / formal merge validated</span>。本简报只概括本阶段正式 public sample merge，不替代 OpenSpec、JSON evidence、测试输出或 main spec。</p>
+      <p><span class="ok">归档状态</span>：Reviewer Must Fix 已处理，OpenSpec change 已归档。</p>
+    </section>
+
+    <section class="panel">
+      <h2>本阶段变化</h2>
+      <div class="grid">
+        <div class="metric"><strong>98</strong>formal seed rows</div>
+        <div class="metric"><strong>252</strong>formal SFT rows</div>
+        <div class="metric"><strong>850</strong>formal DPO pairs</div>
+        <div class="metric"><strong>108</strong>candidate DPO pair contribution</div>
+      </div>
+      <ul>
+        <li>新增正式 merge CLI：<code>merge-form-fill-confirmation-marker-extension-candidates</code>。</li>
+        <li>正式更新 <code>data/public-samples/seed_traces.jsonl</code>、<code>sft_public_sample.jsonl</code>、<code>dpo_public_sample.jsonl</code>、<code>manifest_public_sample.json</code>。</li>
+        <li>新增 merge evidence：pre-merge 86 / 240 / 742，post-merge 98 / 252 / 850，split 为 train 114 / dev 69 / test 69。</li>
+        <li>所有 12 条 candidate 均转为 <code>formal_public_sample</code> provenance，并保持 public-safe 边界。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>关键文件</h2>
+      <ul>
+        <li><a href="../../openspec/changes/archive/2026-06-16-merge-form-fill-confirmation-marker-extension-candidates/proposal.md">Archived OpenSpec proposal</a></li>
+        <li><a href="../../reports/public-sample/form-fill-confirmation-marker-extension-merge/form_fill_confirmation_marker_extension_public_sample_merge.json">merge JSON evidence</a></li>
+        <li><a href="../../reports/public-sample/form-fill-confirmation-marker-extension-merge/form_fill_confirmation_marker_extension_public_sample_merge.md">merge Markdown evidence</a></li>
+        <li><a href="../../reports/public-sample/form-fill-confirmation-marker-extension-merge/manifest.json">merge evidence manifest</a></li>
+        <li><code>tests/test_form_fill_confirmation_marker_extension_public_sample_merge.py</code></li>
+        <li><code>src/voice2task/dataset.py</code>, <code>src/voice2task/reports.py</code>, <code>src/voice2task/cli/data.py</code></li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>验证状态</h2>
+      <ul>
+        <li><span class="ok">Focused tests</span>：confirmation-marker extension materialization / preview / merge tests 23 passed。</li>
+        <li><span class="ok">Formal merge command</span>：返回 ok=true，formal public sample counts 为 98 / 252 / 850。</li>
+        <li><span class="ok">Full pytest</span>：374 passed。</li>
+        <li><span class="ok">Ruff</span>：all checks passed。</li>
+        <li><span class="ok">OpenSpec strict</span>：5 passed, 0 failed。</li>
+        <li><span class="ok">Formal public validator</span>：ok=true，252 SFT rows / 850 DPO pairs。</li>
+        <li><span class="ok">DPO check</span>：850 total pairs，confirmation slice 108。</li>
+        <li><span class="ok">Leak scan</span>：data、merge/materialization/preview reports、Human Brief、OpenSpec change 均 ok=true。</li>
+        <li><span class="ok">Diff hygiene</span>：<code>git diff --check</code> clean。</li>
+        <li><span class="ok">Budget guard</span>：public SFT training text max length 2047，0 rows over 2048。</li>
+        <li><span class="ok">Reviewer</span>：Must Fix / Should Fix 已处理；Re-plan Needed = No。</li>
+        <li><span class="ok">OpenSpec archive</span>：已归档为 <code>2026-06-16-merge-form-fill-confirmation-marker-extension-candidates</code>。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>复现命令</h2>
+      <p><code>PYTHONPATH=src python3 -m voice2task.cli.data merge-form-fill-confirmation-marker-extension-candidates --candidate-seed data/public-samples/form_fill_confirmation_marker_extension_seed_candidates.jsonl --seed data/public-samples/seed_traces.jsonl --output data/public-samples --evidence-output reports/public-sample/form-fill-confirmation-marker-extension-merge</code></p>
+    </section>
+
+    <section class="panel">
+      <h2>不要过度声称</h2>
+      <ul>
+        <li>strict <code>contract_exact_match</code>、strict <code>slot_f1</code> 与 contract evaluation ladder 仍是权威口径。</li>
+        <li><code>slot_f1_soft</code> 仅为 diagnostic-only。</li>
+        <li>本阶段没有 SFT/DPO/GRPO training、prediction、A100 execution、prompt change、evaluator relaxation、held-out recovery、model recovery、checkpoint/adaptor release 或 live-browser benchmark improvement claim。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>项目阶段进度</h2>
+      <p>当前项目阶段目标未在 <code>CONTEXT.md</code> 中显式命名为 MVP/v1/release；可确认的目标是 speech-to-contract post-training companion project，并用 contract evaluation ladder 作为证据边界。</p>
+      <p>本阶段推进的是 public sample 数据准备链路：候选从 preview-only evidence 晋升为 formal public sample artifact，但仍不构成任何模型质量或泛化恢复声明。</p>
+    </section>
+
+    <section class="panel">
+      <h2>建议下一步</h2>
+      <p>后续若继续推进，应另开 bounded OpenSpec phase 做 prediction-only eval 或 residual diagnosis，且明确 formal sample boundary 已改变。</p>
+    </section>
+  </main>
+</body>
+</html>
