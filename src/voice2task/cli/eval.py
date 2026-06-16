@@ -19,6 +19,7 @@ from voice2task.evaluation import (
     diagnose_runtime_label_tiny_overfit_readiness,
     diagnose_schema_mismatches,
     diagnose_sft_contract_learning_signal,
+    diagnose_sft_v3_safety_regression,
     diagnose_source_alignment,
     diagnose_targeted_slot_value_residuals,
     evaluate_predictions,
@@ -51,6 +52,7 @@ from voice2task.reports import (
     write_runtime_label_tiny_overfit_diagnostic_report,
     write_schema_diagnostics_report,
     write_sft_contract_learning_signal_report,
+    write_sft_v3_safety_regression_diagnosis_report,
     write_slot_value_generalization_case_design_report,
     write_source_diagnostics_report,
     write_targeted_slot_value_residual_report,
@@ -299,6 +301,21 @@ def build_parser() -> argparse.ArgumentParser:
     design_form_fill.add_argument(
         "--title",
         default="Voice2Task form-fill remediation case design",
+    )
+
+    diagnose_safety_regression = subcommands.add_parser("diagnose-sft-v3-safety-regression")
+    diagnose_safety_regression.add_argument("--baseline-manifest", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--retry-manifest", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--dev-gold", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--test-gold", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--baseline-dev-predictions", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--baseline-test-predictions", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--retry-dev-predictions", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--retry-test-predictions", type=Path, required=True)
+    diagnose_safety_regression.add_argument("--output", type=Path, required=True)
+    diagnose_safety_regression.add_argument(
+        "--title",
+        default="Voice2Task SFT v3 safety regression diagnosis",
     )
 
     smoke = subcommands.add_parser("smoke")
@@ -588,6 +605,30 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_slot_value_generalization_case_design_report(
             diagnostics,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "diagnose-sft-v3-safety-regression":
+        diagnosis = diagnose_sft_v3_safety_regression(
+            baseline_manifest=read_json(args.baseline_manifest),
+            retry_manifest=read_json(args.retry_manifest),
+            rows_by_split={
+                "dev": _load_sft_rows_for_split(args.dev_gold, "dev"),
+                "test": _load_sft_rows_for_split(args.test_gold, "test"),
+            },
+            baseline_predictions_by_split={
+                "dev": load_predictions(args.baseline_dev_predictions),
+                "test": load_predictions(args.baseline_test_predictions),
+            },
+            retry_predictions_by_split={
+                "dev": load_predictions(args.retry_dev_predictions),
+                "test": load_predictions(args.retry_test_predictions),
+            },
+        )
+        paths = write_sft_v3_safety_regression_diagnosis_report(
+            diagnosis,
             output_dir=args.output,
             title=args.title,
         )

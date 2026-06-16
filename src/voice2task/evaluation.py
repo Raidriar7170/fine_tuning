@@ -1997,6 +1997,272 @@ def diagnose_formal_heldout_residual_families(
     return diagnosis
 
 
+def _safety_task_family(row: SFTDatasetRow, gold_contract: BrowserTaskContract) -> str:
+    if isinstance(row.provenance, dict):
+        family_id = row.provenance.get("family_id")
+        if family_id:
+            return _sanitize_public_summary(str(family_id))
+    return _sanitize_public_summary(str(gold_contract.task_type))
+
+
+def _safety_prediction_outcome(
+    *,
+    gold_stop: bool,
+    prediction: BrowserTaskContract | None,
+) -> dict[str, Any]:
+    if prediction is None:
+        return {
+            "schema_valid": False,
+            "predicted_stop": None,
+            "safety_correct": False,
+            "outcome": "schema_invalid",
+        }
+    predicted_stop = not bool(prediction.safety["allow"])
+    if predicted_stop and gold_stop:
+        outcome = "true_positive"
+    elif predicted_stop and not gold_stop:
+        outcome = "false_positive"
+    elif not predicted_stop and gold_stop:
+        outcome = "false_negative"
+    else:
+        outcome = "true_negative"
+    return {
+        "schema_valid": True,
+        "predicted_stop": predicted_stop,
+        "safety_correct": predicted_stop == gold_stop,
+        "outcome": outcome,
+        "task_type": prediction.task_type,
+        "route": prediction.route,
+        "safety_reason": _sanitize_public_summary(str(prediction.safety.get("reason", "unknown"))),
+    }
+
+
+def _safety_comparison_classification(
+    *,
+    gold_stop: bool,
+    baseline_correct: bool,
+    retry_correct: bool,
+) -> str:
+    if not gold_stop:
+        return "unchanged_non_stop"
+    if baseline_correct and retry_correct:
+        return "stable_correct"
+    if baseline_correct and not retry_correct:
+        return "regressed"
+    if not baseline_correct and retry_correct:
+        return "recovered"
+    return "persistent_miss"
+
+
+def _safety_confusion(rows: list[dict[str, Any]], run_name: str) -> dict[str, Any]:
+    outcomes = [str(row[f"{run_name}_outcome"]["outcome"]) for row in rows]
+    counts = _count_by(outcomes)
+    true_positive = int(counts.get("true_positive", 0))
+    false_negative = int(counts.get("false_negative", 0))
+    false_positive = int(counts.get("false_positive", 0))
+    true_negative = int(counts.get("true_negative", 0))
+    stop_support = true_positive + false_negative
+    predicted_stop_support = true_positive + false_positive
+    return {
+        "true_positive": true_positive,
+        "false_negative": false_negative,
+        "false_positive": false_positive,
+        "true_negative": true_negative,
+        "schema_invalid": int(counts.get("schema_invalid", 0)),
+        "gold_stop_support": stop_support,
+        "predicted_stop_support": predicted_stop_support,
+        "safety_precision": 1.0 if predicted_stop_support == 0 else true_positive / predicted_stop_support,
+        "safety_recall": 1.0 if stop_support == 0 else true_positive / stop_support,
+    }
+
+
+def diagnose_sft_v3_safety_regression(
+    *,
+    baseline_manifest: dict[str, Any],
+    retry_manifest: dict[str, Any],
+    rows_by_split: dict[str, list[SFTDatasetRow]],
+    baseline_predictions_by_split: dict[str, dict[str, Any]],
+    retry_predictions_by_split: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    dataset_manifest_id = _sanitize_public_summary(str(retry_manifest.get("dataset_manifest_id", "")))
+    if dataset_manifest_id != _sanitize_public_summary(str(baseline_manifest.get("dataset_manifest_id", ""))):
+        raise ValueError("baseline and retry manifests must use the same dataset_manifest_id")
+
+    row_summaries: list[dict[str, Any]] = []
+    for split in ("dev", "test"):
+        baseline_predictions = baseline_predictions_by_split.get(split, {})
+        retry_predictions = retry_predictions_by_split.get(split, {})
+        for row in rows_by_split.get(split, []):
+            gold_contract = as_contract(row.target_contract)
+            gold_stop = not bool(gold_contract.safety["allow"])
+            baseline_prediction = _prediction_to_contract(baseline_predictions.get(row.id))
+            retry_prediction = _prediction_to_contract(retry_predictions.get(row.id))
+            baseline_outcome = _safety_prediction_outcome(gold_stop=gold_stop, prediction=baseline_prediction)
+            retry_outcome = _safety_prediction_outcome(gold_stop=gold_stop, prediction=retry_prediction)
+            classification = _safety_comparison_classification(
+                gold_stop=gold_stop,
+                baseline_correct=bool(baseline_outcome["safety_correct"]),
+                retry_correct=bool(retry_outcome["safety_correct"]),
+            )
+            task_family = _safety_task_family(row, gold_contract)
+            row_summaries.append(
+                {
+                    "split": split,
+                    "row_id": _sanitize_id(row.id),
+                    "source_family_id": _source_family_id(row),
+                    "task_family": task_family,
+                    "task_type": gold_contract.task_type,
+                    "route": gold_contract.route,
+                    "gold_stop": gold_stop,
+                    "gold_safety_reason": _sanitize_public_summary(str(gold_contract.safety.get("reason", ""))),
+                    "confirmation_required": gold_contract.confirmation_required,
+                    "slot_keys": sorted(str(key) for key in gold_contract.slots),
+                    "input_summary": _sanitize_public_summary(row.input_text[:80]),
+                    "baseline_outcome": baseline_outcome,
+                    "retry_outcome": retry_outcome,
+                    "classification": classification,
+                }
+            )
+
+    split_summaries: dict[str, Any] = {}
+    for split in ("dev", "test"):
+        split_rows = [row for row in row_summaries if row["split"] == split]
+        split_summaries[split] = {
+            "row_count": len(split_rows),
+            "gold_stop_support": sum(1 for row in split_rows if row["gold_stop"]),
+            "baseline": _safety_confusion(split_rows, "baseline"),
+            "retry": _safety_confusion(split_rows, "retry"),
+            "classification_counts": _count_by([str(row["classification"]) for row in split_rows]),
+            "classification_counts_by_task_family": {
+                family: _count_by(
+                    [str(row["classification"]) for row in split_rows if str(row["task_family"]) == family]
+                )
+                for family in sorted({str(row["task_family"]) for row in split_rows})
+            },
+            "classification_counts_by_task_type": {
+                task_type: _count_by(
+                    [str(row["classification"]) for row in split_rows if str(row["task_type"]) == task_type]
+                )
+                for task_type in sorted({str(row["task_type"]) for row in split_rows})
+            },
+            "classification_counts_by_route": {
+                route: _count_by([str(row["classification"]) for row in split_rows if str(row["route"]) == route])
+                for route in sorted({str(row["route"]) for row in split_rows})
+            },
+        }
+
+    gold_stop_rows = [row for row in row_summaries if row["gold_stop"]]
+    regression_rows = [row for row in row_summaries if row["classification"] == "regressed"]
+    persistent_miss_rows = [row for row in row_summaries if row["classification"] == "persistent_miss"]
+    safety_focus_rows = regression_rows + persistent_miss_rows
+    blocked_payment_rows = [row for row in gold_stop_rows if row["task_family"] == "blocked_payment"]
+    if regression_rows:
+        recommended_next_step = "design_blocked_payment_safety_repair_candidates_before_training"
+    elif persistent_miss_rows:
+        recommended_next_step = "inspect_persistent_blocked_payment_safety_misses_before_training"
+    else:
+        recommended_next_step = "no_safety_regression_data_change_needed"
+
+    return {
+        "evidence_kind": "sft_v3_safety_regression_diagnosis",
+        "diagnostic_mode": "public_safe_no_training_no_prediction_no_metric_change",
+        "dataset_manifest_id": dataset_manifest_id,
+        "source_evidence": {
+            "baseline": {
+                "evidence_kind": _sanitize_public_summary(str(baseline_manifest.get("evidence_kind", ""))),
+                "overall_interpretation": _sanitize_public_summary(
+                    str(baseline_manifest.get("overall_interpretation", ""))
+                ),
+                "artifact": "reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery/",
+            },
+            "retry": {
+                "evidence_kind": _sanitize_public_summary(str(retry_manifest.get("evidence_kind", ""))),
+                "overall_interpretation": _sanitize_public_summary(
+                    str(retry_manifest.get("overall_interpretation", ""))
+                ),
+                "artifact": "reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/",
+            },
+        },
+        "summary": {
+            "row_count": len(row_summaries),
+            "gold_stop_support": len(gold_stop_rows),
+            "blocked_payment_gold_stop_support": len(blocked_payment_rows),
+            "regressed_count": len(regression_rows),
+            "persistent_miss_count": len(persistent_miss_rows),
+            "recovered_count": sum(1 for row in row_summaries if row["classification"] == "recovered"),
+            "recommended_next_step": recommended_next_step,
+            "safety_regression_observed": bool(regression_rows),
+            "safety_regression_rows": [_sanitize_id(str(row["row_id"])) for row in regression_rows],
+            "persistent_miss_rows": [_sanitize_id(str(row["row_id"])) for row in persistent_miss_rows],
+        },
+        "split_summaries": split_summaries,
+        "aggregates": {
+            "classification_counts": _count_by([str(row["classification"]) for row in row_summaries]),
+            "classification_counts_by_split": {
+                split: _count_by([str(row["classification"]) for row in row_summaries if row["split"] == split])
+                for split in ("dev", "test")
+            },
+            "classification_counts_by_task_family": {
+                family: _count_by([str(row["classification"]) for row in row_summaries if row["task_family"] == family])
+                for family in sorted({str(row["task_family"]) for row in row_summaries})
+            },
+            "classification_counts_by_task_type": {
+                task_type: _count_by(
+                    [str(row["classification"]) for row in row_summaries if row["task_type"] == task_type]
+                )
+                for task_type in sorted({str(row["task_type"]) for row in row_summaries})
+            },
+            "classification_counts_by_route": {
+                route: _count_by([str(row["classification"]) for row in row_summaries if row["route"] == route])
+                for route in sorted({str(row["route"]) for row in row_summaries})
+            },
+            "gold_stop_counts_by_task_family": _count_by([str(row["task_family"]) for row in gold_stop_rows]),
+            "gold_stop_counts_by_task_type": _count_by([str(row["task_type"]) for row in gold_stop_rows]),
+            "gold_stop_counts_by_route": _count_by([str(row["route"]) for row in gold_stop_rows]),
+            "regressed_counts_by_task_family": _count_by([str(row["task_family"]) for row in regression_rows]),
+            "regressed_counts_by_task_type": _count_by([str(row["task_type"]) for row in regression_rows]),
+            "regressed_counts_by_route": _count_by([str(row["route"]) for row in regression_rows]),
+            "persistent_miss_counts_by_task_family": _count_by(
+                [str(row["task_family"]) for row in persistent_miss_rows]
+            ),
+            "persistent_miss_counts_by_task_type": _count_by(
+                [str(row["task_type"]) for row in persistent_miss_rows]
+            ),
+            "persistent_miss_counts_by_route": _count_by([str(row["route"]) for row in persistent_miss_rows]),
+        },
+        "safety_focus_rows": safety_focus_rows,
+        "gold_stop_rows": gold_stop_rows,
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "baseline_predictions_read_as_input": True,
+            "retry_predictions_read_as_input": True,
+            "training_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "dataset_mutation": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+        },
+        "claims": {
+            "diagnosis_only": True,
+            "model_recovery_claim": False,
+            "held_out_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+            "soft_slot_f1_primary_metric": False,
+        },
+    }
+
+
 def _family_short_name(task_family: str) -> str:
     return _sanitize_public_summary(task_family.split("|", 1)[0] if task_family else "unknown")
 

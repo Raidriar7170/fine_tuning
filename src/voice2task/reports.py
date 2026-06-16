@@ -1975,6 +1975,165 @@ def write_formal_heldout_residual_family_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_sft_v3_safety_regression_diagnosis_report(
+    diagnosis: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task SFT v3 safety regression diagnosis",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "sft_v3_safety_regression_diagnosis.json"
+    markdown_path = output_dir / "sft_v3_safety_regression_diagnosis.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_diagnosis = _sanitize_report_value(diagnosis)
+    write_json(json_path, safe_diagnosis)
+
+    manifest = {
+        "evidence_kind": safe_diagnosis["evidence_kind"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dataset_manifest_id": safe_diagnosis["dataset_manifest_id"],
+        "source_evidence": safe_diagnosis["source_evidence"],
+        "summary": safe_diagnosis["summary"],
+        "split_summaries": safe_diagnosis["split_summaries"],
+        "aggregates": safe_diagnosis["aggregates"],
+        "claims": safe_diagnosis["claims"],
+        "artifact_policy": {
+            "diagnosis_only": True,
+            "baseline_predictions_read_as_input": True,
+            "retry_predictions_read_as_input": True,
+            "prediction_run": False,
+            "training_run": False,
+            "sft_training_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "a100_job": False,
+            "dataset_mutation": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+        },
+        "diagnostic_artifacts": {
+            "diagnosis": (
+                "reports/public-sample/sft-v3-safety-regression-diagnosis/"
+                "sft_v3_safety_regression_diagnosis.json"
+            ),
+            "markdown": (
+                "reports/public-sample/sft-v3-safety-regression-diagnosis/"
+                "sft_v3_safety_regression_diagnosis.md"
+            ),
+            "manifest": "reports/public-sample/sft-v3-safety-regression-diagnosis/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_diagnosis["summary"]
+    aggregates = safe_diagnosis["aggregates"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is a diagnosis-only comparison of baseline and SFT v3 retry safety outcomes. "
+            "It does not train, generate predictions, mutate data, repair predictions, or change evaluator metrics."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- strict safety precision/recall support counts remain authoritative.",
+        "- This is not a checkpoint release or adapter release.",
+        "- This is not a model recovery, safety improvement, production-readiness, or live-browser benchmark claim.",
+        (
+            "- No SFT, DPO, GRPO, A100 job, prompt change, data mutation, evaluator relaxation, "
+            "or semantic scoring is performed."
+        ),
+        "",
+        "## Summary",
+        "",
+        f"- Dataset manifest: `{safe_diagnosis['dataset_manifest_id']}`",
+        f"- Rows compared: `{summary['row_count']}`",
+        f"- Gold stop support: `{summary['gold_stop_support']}`",
+        f"- Blocked-payment gold stop support: `{summary['blocked_payment_gold_stop_support']}`",
+        f"- Regressed rows: `{summary['regressed_count']}` `{summary['safety_regression_rows']}`",
+        f"- Persistent misses: `{summary['persistent_miss_count']}` `{summary['persistent_miss_rows']}`",
+        f"- Recovered rows: `{summary['recovered_count']}`",
+        f"- Safety regression observed: `{summary['safety_regression_observed']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Split Summaries",
+        "",
+    ]
+    for split, split_summary in safe_diagnosis["split_summaries"].items():
+        lines.extend(
+            [
+                f"### `{split}`",
+                "",
+                f"- Row count: `{split_summary['row_count']}`",
+                f"- Gold stop support: `{split_summary['gold_stop_support']}`",
+                f"- Baseline safety: `{split_summary['baseline']}`",
+                f"- Retry safety: `{split_summary['retry']}`",
+                f"- Classifications: `{split_summary['classification_counts']}`",
+                f"- By task family: `{split_summary['classification_counts_by_task_family']}`",
+                f"- By task type: `{split_summary['classification_counts_by_task_type']}`",
+                f"- By route: `{split_summary['classification_counts_by_route']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Aggregates",
+            "",
+            f"- Classification counts: `{aggregates['classification_counts']}`",
+            f"- Classification by split: `{aggregates['classification_counts_by_split']}`",
+            f"- Classification by task family: `{aggregates['classification_counts_by_task_family']}`",
+            f"- Classification by task type: `{aggregates['classification_counts_by_task_type']}`",
+            f"- Classification by route: `{aggregates['classification_counts_by_route']}`",
+            f"- Gold stop counts by task family: `{aggregates['gold_stop_counts_by_task_family']}`",
+            f"- Gold stop counts by task type: `{aggregates['gold_stop_counts_by_task_type']}`",
+            f"- Gold stop counts by route: `{aggregates['gold_stop_counts_by_route']}`",
+            f"- Regressed counts by task family: `{aggregates['regressed_counts_by_task_family']}`",
+            f"- Regressed counts by task type: `{aggregates['regressed_counts_by_task_type']}`",
+            f"- Regressed counts by route: `{aggregates['regressed_counts_by_route']}`",
+            f"- Persistent miss counts by task family: `{aggregates['persistent_miss_counts_by_task_family']}`",
+            f"- Persistent miss counts by task type: `{aggregates['persistent_miss_counts_by_task_type']}`",
+            f"- Persistent miss counts by route: `{aggregates['persistent_miss_counts_by_route']}`",
+            "",
+            "## Safety Focus Rows",
+            "",
+        ]
+    )
+    for row in safe_diagnosis.get("safety_focus_rows", []):
+        lines.extend(
+            [
+                f"### `{row['split']} / {row['row_id']} / {row['classification']}`",
+                "",
+                f"- Task family: `{row['task_family']}`",
+                f"- Task type / route: `{row['task_type']}` / `{row['route']}`",
+                f"- Gold reason: `{row['gold_safety_reason']}`",
+                f"- Input summary: `{row['input_summary']}`",
+                f"- Baseline outcome: `{row['baseline_outcome']}`",
+                f"- Retry outcome: `{row['retry_outcome']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Recommended Next Step",
+            "",
+            (
+                "Use this diagnosis to choose the next bounded OpenSpec phase. Do not materialize new data, "
+                "change safety policy, launch training, or change evaluator behavior inside this diagnosis phase."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_formal_heldout_residual_cluster_inspection_report(
     inspection: dict[str, Any],
     output_dir: Path,

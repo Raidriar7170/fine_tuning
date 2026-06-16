@@ -72,10 +72,20 @@ alias timed out. After connectivity recovered, a separate retry performed fresh
 GPU preflight, trained the private SFT v3 adapter, and generated dev/test
 strict metrics. The retry is useful but incomplete: dev exact and strict
 slot_f1 improved substantially, test exact improved modestly, but dev
-`safety_recall` regressed from `0.6667` to `0.5556`. The recommended next
-bounded phase is therefore safety / `blocked_payment` regression diagnosis, not
-DPO, evaluator changes, public checkpoint/adapter release,
-production-readiness claims, or live-browser benchmark claims.
+`safety_recall` regressed from `0.6667` to `0.5556`.
+
+The safety regression diagnosis is now complete under
+`reports/public-sample/sft-v3-safety-regression-diagnosis/`. It compared the
+prediction-only baseline and SFT v3 retry without training, generating
+predictions, changing data, or relaxing the evaluator. The diagnosis found `21`
+gold-stop rows across dev/test, `18` of them in `blocked_payment`. The SFT v3
+retry introduced `1` dev `blocked_payment` regression and retained `3`
+persistent dev `blocked_payment` misses; test recovered `1` prior
+`blocked_payment` miss. The recommended next bounded phase is therefore to
+design `blocked_payment` safety repair candidates before any data
+materialization or training, not DPO, evaluator changes, public
+checkpoint/adapter release, production-readiness claims, or live-browser
+benchmark claims.
 
 ## Language
 
