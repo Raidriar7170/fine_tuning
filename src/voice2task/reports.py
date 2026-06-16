@@ -2402,6 +2402,142 @@ def write_form_fill_confirmation_field_policy_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_form_fill_confirmation_marker_coverage_report(
+    coverage: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task form-fill confirmation-marker coverage assessment",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "form_fill_confirmation_marker_coverage.json"
+    markdown_path = output_dir / "form_fill_confirmation_marker_coverage.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_coverage = _sanitize_report_value(coverage)
+    write_json(json_path, safe_coverage)
+
+    manifest = {
+        "evidence_kind": safe_coverage["evidence_kind"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_artifacts": safe_coverage["source_artifacts"],
+        "source_count_consistency": safe_coverage["source_count_consistency"],
+        "source_policy": safe_coverage["source_policy"],
+        "existing_remediation": safe_coverage["existing_remediation"],
+        "current_residual_status": safe_coverage["current_residual_status"],
+        "summary": safe_coverage["summary"],
+        "metric_authority": safe_coverage["metric_authority"],
+        "claims": safe_coverage["claims"],
+        "artifact_policy": {
+            "raw_predictions_copied_to_git": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "private_corpus_rows_omitted": True,
+            "new_candidate_rows_generated": False,
+            "data_mutation": False,
+            "dataset_mutation": False,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "sft_rows_modified": False,
+            "dpo_pairs_modified": False,
+            "held_out_gold_labels_modified": False,
+            "prompt_change": False,
+            "gold_policy_change": False,
+            "training_run": False,
+            "checkpoints_or_adapters_modified": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "prediction_rescore": False,
+            "soft_metric_promotion": False,
+        },
+        "diagnostic_artifacts": {
+            "coverage": (
+                "reports/public-sample/form-fill-confirmation-marker-coverage/"
+                "form_fill_confirmation_marker_coverage.json"
+            ),
+            "markdown": (
+                "reports/public-sample/form-fill-confirmation-marker-coverage/"
+                "form_fill_confirmation_marker_coverage.md"
+            ),
+            "manifest": "reports/public-sample/form-fill-confirmation-marker-coverage/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_coverage["summary"]
+    policy = safe_coverage["source_policy"]
+    remediation = safe_coverage["existing_remediation"]
+    residual = safe_coverage["current_residual_status"]
+    count_consistency = safe_coverage["source_count_consistency"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is a coverage assessment only. It compares committed public-safe form-fill "
+            "confirmation policy evidence with existing remediation artifacts; it does not generate "
+            "data, change prompts, run predictions, train, repair predictions, or relax evaluation."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- strict `contract_exact_match` and strict `slot_f1` remain authoritative.",
+        "- `slot_f1_soft` remains diagnostic-only.",
+        "- Existing remediation coverage is not held-out recovery evidence.",
+        "- Current residual evidence still observes the confirmation-marker normalized-command cluster.",
+        (
+            "- Any data, prompt, evaluator, prediction, checkpoint, adapter, or training change "
+            "requires a separate OpenSpec phase."
+        ),
+        "",
+        "## Summary",
+        "",
+        f"- Source manifest id: `{policy['source_manifest_id']}`",
+        f"- Source count consistency: `{count_consistency['ok']}`",
+        f"- Policy bucket: `{policy['policy_bucket']}`",
+        f"- Policy cluster-row incidence total: `{policy['cluster_row_incidence_total']}`",
+        f"- Policy residual fields: `{policy['residual_field_total']}`",
+        f"- Policy source families: `{policy['source_family_count']}`",
+        f"- Existing confirmation candidate cases: `{remediation['case_design_candidate_count']}`",
+        f"- Materialized confirmation seed rows: `{remediation['materialized_candidate_seed_count']}`",
+        f"- Represented field labels: `{remediation['represented_field_labels']}`",
+        (
+            "- Confirmation marker preserved by all candidate patterns: "
+            f"`{remediation['all_candidate_patterns_preserve_confirmation_marker']}`"
+        ),
+        f"- Merge status: `{remediation['merge_status']}`",
+        f"- Current top residual cluster rows: `{residual['top_cluster_residual_rows']}`",
+        f"- Current top residual cluster fields: `{residual['top_cluster_residual_fields']}`",
+        f"- Coverage decision: `{summary['coverage_decision']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Interpretation",
+        "",
+        (
+            "The existing remediation chain provides partial legacy coverage: "
+            f"{summary['legacy_confirmation_candidate_case_count']} confirmation-marker candidate cases "
+            f"cover {summary['legacy_candidate_field_label_count']} field labels, while the current policy "
+            f"evidence spans {summary['policy_source_family_count']} source families and still has "
+            f"{summary['policy_confirmation_cluster_row_incidence_total']} cluster-row incidences in the "
+            "top residual cluster."
+        ),
+        "",
+        "This report makes no held-out recovery claim and does not authorize immediate data or prompt changes.",
+        "",
+        "## Unsupported Changes",
+        "",
+    ]
+    for entry in safe_coverage.get("unsupported_changes", []):
+        lines.append(f"- `{entry['change']}`: {entry['reason']}")
+
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_formal_heldout_remediation_target_selection_report(
     selection: dict[str, Any],
     output_dir: Path,

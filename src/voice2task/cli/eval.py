@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from voice2task.evaluation import (
+    assess_form_fill_confirmation_marker_coverage,
     define_form_fill_confirmation_field_policy,
     design_form_fill_remediation_cases,
     design_slot_value_generalization_cases,
@@ -36,6 +37,7 @@ from voice2task.reports import (
     write_constrained_decoding_diagnosis_report,
     write_form_fill_boundary_field_specificity_report,
     write_form_fill_confirmation_field_policy_report,
+    write_form_fill_confirmation_marker_coverage_report,
     write_form_fill_remediation_case_design_report,
     write_form_fill_remediation_plan_report,
     write_formal_heldout_remediation_target_selection_report,
@@ -246,6 +248,18 @@ def build_parser() -> argparse.ArgumentParser:
     define_form_fill_policy.add_argument(
         "--title",
         default="Voice2Task form-fill confirmation and field-specificity policy",
+    )
+
+    assess_confirmation_coverage = subcommands.add_parser("assess-form-fill-confirmation-marker-coverage")
+    assess_confirmation_coverage.add_argument("--policy", type=Path, required=True)
+    assess_confirmation_coverage.add_argument("--case-design", type=Path, required=True)
+    assess_confirmation_coverage.add_argument("--materialization", type=Path, required=True)
+    assess_confirmation_coverage.add_argument("--merge", type=Path, required=True)
+    assess_confirmation_coverage.add_argument("--residual-clusters", type=Path, required=True)
+    assess_confirmation_coverage.add_argument("--output", type=Path, required=True)
+    assess_confirmation_coverage.add_argument(
+        "--title",
+        default="Voice2Task form-fill confirmation-marker coverage assessment",
     )
 
     form_fill_plan = subcommands.add_parser("diagnose-form-fill-remediation-plan")
@@ -499,6 +513,21 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_form_fill_confirmation_field_policy_report(
             policy,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "assess-form-fill-confirmation-marker-coverage":
+        coverage = assess_form_fill_confirmation_marker_coverage(
+            policy=read_json(args.policy),
+            case_design=read_json(args.case_design),
+            materialization=read_json(args.materialization),
+            merge=read_json(args.merge),
+            residual_clusters=read_json(args.residual_clusters),
+        )
+        paths = write_form_fill_confirmation_marker_coverage_report(
+            coverage,
             output_dir=args.output,
             title=args.title,
         )

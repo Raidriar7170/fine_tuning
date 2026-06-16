@@ -1,0 +1,200 @@
+{
+  "artifact_policy": {
+    "a100_job": false,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "checkpoints_or_adapters_modified": false,
+    "data_mutation": false,
+    "dataset_mutation": false,
+    "dpo_pairs_modified": false,
+    "evaluator_metric_change": false,
+    "evaluator_relaxation": false,
+    "gold_policy_change": false,
+    "held_out_gold_labels_modified": false,
+    "host_details_omitted": true,
+    "new_candidate_rows_generated": false,
+    "prediction_repair": false,
+    "prediction_replacement": false,
+    "prediction_rescore": false,
+    "prediction_run": false,
+    "private_corpus_rows_omitted": true,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "prompt_change": false,
+    "public_sample_modified": false,
+    "raw_logs_copied_to_git": false,
+    "raw_predictions_copied_to_git": false,
+    "seed_traces_modified": false,
+    "sft_rows_modified": false,
+    "soft_metric_promotion": false,
+    "ssh_details_omitted": true,
+    "training_run": false
+  },
+  "claims": {
+    "adapter_release_claim": false,
+    "checkpoint_release_claim": false,
+    "coverage_assessment_only": true,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false
+  },
+  "current_residual_status": {
+    "residual_still_observed": true,
+    "slot_f1_soft": {
+      "dev": 0.7315387631291138,
+      "test": 0.7609315000619348
+    },
+    "slot_f1_soft_primary_metric": false,
+    "strict_contract_exact_match": {
+      "dev": 0.30434782608695654,
+      "test": 0.2898550724637681
+    },
+    "strict_slot_f1": {
+      "dev": 0.391304347826087,
+      "test": 0.5072463768115942
+    },
+    "top_cluster_field_path": "normalized_command",
+    "top_cluster_residual_fields": 27,
+    "top_cluster_residual_rows": 27,
+    "top_cluster_task_family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field"
+  },
+  "diagnostic_artifacts": {
+    "coverage": "reports/public-sample/form-fill-confirmation-marker-coverage/form_fill_confirmation_marker_coverage.json",
+    "manifest": "reports/public-sample/form-fill-confirmation-marker-coverage/manifest.json",
+    "markdown": "reports/public-sample/form-fill-confirmation-marker-coverage/form_fill_confirmation_marker_coverage.md"
+  },
+  "evidence_kind": "form_fill_confirmation_marker_coverage_assessment",
+  "existing_remediation": {
+    "all_candidate_patterns_preserve_confirmation_marker": true,
+    "candidate_dpo_pairs": 81,
+    "candidate_seed_ids": [
+      "candidate-form-fill-remediation-ff-confirm-phone",
+      "candidate-form-fill-remediation-ff-confirm-shipping-address",
+      "candidate-form-fill-remediation-ff-confirm-invoice-title"
+    ],
+    "candidate_sft_row_ids": [
+      "candidate-form-fill-remediation-ff-confirm-phone",
+      "candidate-form-fill-remediation-ff-confirm-shipping-address",
+      "candidate-form-fill-remediation-ff-confirm-invoice-title"
+    ],
+    "case_design_artifact": "reports/public-sample/form-fill-remediation-case-design/form_fill_remediation_case_design.json",
+    "case_design_candidate_count": 3,
+    "expected_normalized_command_patterns": [
+      "填写手机号并确认",
+      "填写收货地址并确认",
+      "填写发票抬头并确认"
+    ],
+    "formal_public_sample_counts": {
+      "dpo_pairs": 742,
+      "seed_rows": 86,
+      "sft_rows": 240
+    },
+    "formal_public_sample_split_counts": {
+      "dev": 69,
+      "test": 69,
+      "train": 102
+    },
+    "legacy_bucket": "confirmation_marker_missing_or_reordered",
+    "materialization_artifact": "reports/public-sample/form-fill-remediation-materialized-candidates/form_fill_remediation_materialization.json",
+    "materialized_candidate_seed_count": 3,
+    "materialized_candidate_sft_count": 3,
+    "merge_artifact": "reports/public-sample/form-fill-remediation-public-sample-merge/form_fill_remediation_public_sample_merge.json",
+    "merge_status": "formal_public_sample_rebuilt",
+    "represented_field_labels": [
+      "发票抬头",
+      "手机号",
+      "收货地址"
+    ]
+  },
+  "generated_at": "2026-06-16T05:10:06.823342+00:00",
+  "metric_authority": {
+    "contract_evaluation_ladder": "authoritative",
+    "contract_exact_match": "authoritative_strict_metric",
+    "prediction_repair_or_rescore": false,
+    "slot_f1": "authoritative_strict_metric",
+    "slot_f1_soft": "diagnostic_only_not_primary"
+  },
+  "source_artifacts": {
+    "case_design": "reports/public-sample/form-fill-remediation-case-design/form_fill_remediation_case_design.json",
+    "materialization": "reports/public-sample/form-fill-remediation-materialized-candidates/form_fill_remediation_materialization.json",
+    "merge": "reports/public-sample/form-fill-remediation-public-sample-merge/form_fill_remediation_public_sample_merge.json",
+    "policy": "reports/public-sample/form-fill-confirmation-field-policy/form_fill_confirmation_field_policy.json",
+    "residual_cluster_inspection": "reports/public-sample/formal-heldout-residual-cluster-inspection/formal_heldout_residual_cluster_inspection.json",
+    "source_formal_heldout_evidence": {
+      "base_model": "Qwen/Qwen2.5-7B-Instruct",
+      "dataset_manifest_id": "public-sample-20260616T022151Z",
+      "evidence_kind": "a100_formal_public_heldout_prediction",
+      "overall_interpretation": "formal_public_heldout_partial_signal",
+      "prediction_splits": [
+        "dev",
+        "test"
+      ]
+    },
+    "source_residual_diagnosis": "reports/public-sample/formal-heldout-residual-family-diagnosis/formal_heldout_residual_family_diagnosis.json"
+  },
+  "source_count_consistency": {
+    "case_design_candidate_count": 3,
+    "case_design_count_matches_materialized_seed_count": true,
+    "case_design_count_matches_materialized_sft_count": true,
+    "current_top_cluster_residual_fields": 27,
+    "current_top_cluster_residual_rows": 27,
+    "materialized_candidate_seed_count": 3,
+    "materialized_candidate_sft_count": 3,
+    "ok": true,
+    "policy_cluster_row_incidence_total": 27,
+    "policy_cluster_rows_match_current_top_cluster": true,
+    "policy_residual_field_total": 27,
+    "policy_residual_fields_match_current_top_cluster": true,
+    "residual_cluster_source_count_consistency": {
+      "clustered_residual_fields": 204,
+      "clustered_residual_rows": 97,
+      "expected_residual_fields": 204,
+      "expected_residual_rows": 97,
+      "ok": true
+    }
+  },
+  "source_policy": {
+    "cluster_row_incidence_total": 27,
+    "field_paths": [
+      "normalized_command"
+    ],
+    "policy_artifact": "reports/public-sample/form-fill-confirmation-field-policy/form_fill_confirmation_field_policy.json",
+    "policy_bucket": "missing_confirmation_marker",
+    "residual_field_total": 27,
+    "source_family_count": 12,
+    "source_family_counts": {
+      "family-confirmation-dev-1": 1,
+      "family-confirmation-dev-2": 2,
+      "family-confirmation-dev-3": 2,
+      "family-confirmation-test-1": 2,
+      "family-confirmation-test-2": 2,
+      "family-confirmation-test-3": 3,
+      "family-form_fill-dev-1": 2,
+      "family-form_fill-dev-2": 1,
+      "family-form_fill-dev-3": 3,
+      "family-form_fill-test-1": 3,
+      "family-form_fill-test-2": 3,
+      "family-form_fill-test-3": 3
+    },
+    "source_manifest_id": "public-sample-20260616T022151Z",
+    "split_counts": {
+      "dev": 11,
+      "test": 16
+    }
+  },
+  "summary": {
+    "coverage_decision": "partial_legacy_coverage_current_residual_still_observed",
+    "current_residual_still_observed": true,
+    "legacy_candidate_field_label_count": 3,
+    "legacy_confirmation_candidate_case_count": 3,
+    "policy_confirmation_cluster_row_incidence_total": 27,
+    "policy_confirmation_residual_field_total": 27,
+    "policy_source_family_count": 12,
+    "recommended_next_step": "propose_bounded_confirmation_marker_coverage_extension_before_training",
+    "represented_field_label_to_source_family_ratio": 0.25
+  }
+}

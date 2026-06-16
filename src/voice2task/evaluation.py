@@ -2608,6 +2608,286 @@ def define_form_fill_confirmation_field_policy(
     }
 
 
+def _case_field_labels(candidate_cases: list[dict[str, Any]]) -> list[str]:
+    labels = {
+        str(case.get("expected_slots", {}).get("field", "")).strip()
+        for case in candidate_cases
+        if isinstance(case, dict)
+    }
+    return sorted(label for label in labels if label)
+
+
+def _find_case_group(groups: list[dict[str, Any]], *, source_bucket: str) -> dict[str, Any]:
+    for group in groups:
+        if isinstance(group, dict) and group.get("source_bucket") == source_bucket:
+            return group
+    raise ValueError(f"missing source bucket in case groups: {source_bucket}")
+
+
+def assess_form_fill_confirmation_marker_coverage(
+    *,
+    policy: dict[str, Any],
+    case_design: dict[str, Any],
+    materialization: dict[str, Any],
+    merge: dict[str, Any],
+    residual_clusters: dict[str, Any],
+) -> dict[str, Any]:
+    if policy.get("evidence_kind") != "form_fill_confirmation_field_policy":
+        raise ValueError("policy must be form_fill_confirmation_field_policy evidence")
+    if case_design.get("evidence_kind") != "form_fill_remediation_case_design":
+        raise ValueError("case design must be form_fill_remediation_case_design evidence")
+    if materialization.get("evidence_kind") != "form_fill_remediation_materialization":
+        raise ValueError("materialization must be form_fill_remediation_materialization evidence")
+    if merge.get("evidence_kind") != "form_fill_remediation_public_sample_merge":
+        raise ValueError("merge must be form_fill_remediation_public_sample_merge evidence")
+    if residual_clusters.get("evidence_kind") != "formal_heldout_residual_cluster_inspection":
+        raise ValueError("residual clusters must be formal_heldout_residual_cluster_inspection evidence")
+
+    policy_sections = [section for section in policy.get("policy_sections", []) if isinstance(section, dict)]
+    confirmation_policy = next(
+        (
+            section
+            for section in policy_sections
+            if section.get("section") == "confirmation_markers"
+            and section.get("source_bucket") == "missing_confirmation_marker"
+        ),
+        None,
+    )
+    if confirmation_policy is None:
+        raise ValueError("policy missing confirmation_markers section for missing_confirmation_marker")
+    policy_evidence = confirmation_policy.get("source_evidence", {})
+    source_family_counts = policy_evidence.get("source_family_counts", {})
+    if not isinstance(source_family_counts, dict):
+        source_family_counts = {}
+
+    case_groups = [group for group in case_design.get("case_groups", []) if isinstance(group, dict)]
+    confirmation_case_group = _find_case_group(
+        case_groups,
+        source_bucket="confirmation_marker_missing_or_reordered",
+    )
+    candidate_cases = [
+        case
+        for case in confirmation_case_group.get("candidate_cases", [])
+        if isinstance(case, dict)
+    ]
+    represented_field_labels = _case_field_labels(candidate_cases)
+    patterns = [
+        str(case.get("expected_normalized_command_pattern", ""))
+        for case in candidate_cases
+    ]
+    all_patterns_preserve_confirmation = bool(patterns) and all("确认" in pattern for pattern in patterns)
+
+    materialized_groups = [
+        group
+        for group in materialization.get("candidate_case_groups", [])
+        if isinstance(group, dict)
+    ]
+    materialized_confirmation_group = _find_case_group(
+        materialized_groups,
+        source_bucket="confirmation_marker_missing_or_reordered",
+    )
+    candidate_seed_ids = [
+        item for item in materialized_confirmation_group.get("candidate_seed_ids", []) if isinstance(item, str)
+    ]
+    candidate_sft_ids = [
+        item for item in materialized_confirmation_group.get("candidate_sft_row_ids", []) if isinstance(item, str)
+    ]
+
+    residual_summary = residual_clusters.get("summary", {})
+    current_residual_status = {
+        "residual_still_observed": bool(residual_summary.get("top_cluster_residual_rows", 0)),
+        "top_cluster_task_family": _sanitize_public_summary(str(residual_summary.get("top_cluster_task_family", ""))),
+        "top_cluster_field_path": _sanitize_public_summary(str(residual_summary.get("top_cluster_field_path", ""))),
+        "top_cluster_residual_rows": int(residual_summary.get("top_cluster_residual_rows", 0)),
+        "top_cluster_residual_fields": int(residual_summary.get("top_cluster_residual_fields", 0)),
+        "strict_contract_exact_match": _sanitize_public_value(residual_summary.get("strict_contract_exact_match", {})),
+        "strict_slot_f1": _sanitize_public_value(residual_summary.get("strict_slot_f1", {})),
+        "slot_f1_soft": _sanitize_public_value(residual_summary.get("soft_slot_f1", {})),
+        "slot_f1_soft_primary_metric": False,
+    }
+    source_family_count = len(source_family_counts)
+    represented_count = len(represented_field_labels)
+    ratio = round(represented_count / source_family_count, 4) if source_family_count else 0.0
+    case_design_candidate_count = len(candidate_cases)
+    materialized_candidate_seed_count = len(candidate_seed_ids)
+    materialized_candidate_sft_count = len(candidate_sft_ids)
+    policy_cluster_rows = int(policy_evidence.get("cluster_row_incidence_total", 0))
+    policy_residual_fields = int(policy_evidence.get("residual_field_total", 0))
+    current_top_cluster_rows = current_residual_status["top_cluster_residual_rows"]
+    current_top_cluster_fields = current_residual_status["top_cluster_residual_fields"]
+    source_residual_diagnosis = _sanitize_public_value(residual_clusters.get("source_residual_diagnosis", {}))
+
+    source_count_consistency = {
+        "ok": (
+            policy_cluster_rows == current_top_cluster_rows
+            and policy_residual_fields == current_top_cluster_fields
+            and case_design_candidate_count == materialized_candidate_seed_count
+            and case_design_candidate_count == materialized_candidate_sft_count
+            and bool(residual_clusters.get("source_count_consistency", {}).get("ok"))
+        ),
+        "policy_cluster_row_incidence_total": policy_cluster_rows,
+        "current_top_cluster_residual_rows": current_top_cluster_rows,
+        "policy_residual_field_total": policy_residual_fields,
+        "current_top_cluster_residual_fields": current_top_cluster_fields,
+        "case_design_candidate_count": case_design_candidate_count,
+        "materialized_candidate_seed_count": materialized_candidate_seed_count,
+        "materialized_candidate_sft_count": materialized_candidate_sft_count,
+        "policy_cluster_rows_match_current_top_cluster": policy_cluster_rows == current_top_cluster_rows,
+        "policy_residual_fields_match_current_top_cluster": policy_residual_fields == current_top_cluster_fields,
+        "case_design_count_matches_materialized_seed_count": (
+            case_design_candidate_count == materialized_candidate_seed_count
+        ),
+        "case_design_count_matches_materialized_sft_count": (
+            case_design_candidate_count == materialized_candidate_sft_count
+        ),
+        "residual_cluster_source_count_consistency": _sanitize_public_value(
+            residual_clusters.get("source_count_consistency", {})
+        ),
+    }
+
+    unsupported_changes = [
+        {"change": "data_mutation", "reason": "coverage assessment does not add or rewrite rows"},
+        {"change": "prompt_change", "reason": "prompt changes require a separate OpenSpec phase"},
+        {"change": "training_run", "reason": "training requires a separate A100 phase and fresh evaluation"},
+        {"change": "evaluator_relaxation", "reason": "strict contract metrics remain authoritative"},
+        {"change": "prediction_repair", "reason": "predictions are not repaired, replaced, normalized, or re-scored"},
+        {
+            "change": "held_out_recovery_claim",
+            "reason": "current held-out residual evidence still observes the cluster",
+        },
+    ]
+
+    return {
+        "evidence_kind": "form_fill_confirmation_marker_coverage_assessment",
+        "assessment_kind": "public_form_fill_confirmation_marker_coverage",
+        "source_artifacts": {
+            "policy": (
+                "reports/public-sample/form-fill-confirmation-field-policy/"
+                "form_fill_confirmation_field_policy.json"
+            ),
+            "case_design": (
+                "reports/public-sample/form-fill-remediation-case-design/"
+                "form_fill_remediation_case_design.json"
+            ),
+            "materialization": (
+                "reports/public-sample/form-fill-remediation-materialized-candidates/"
+                "form_fill_remediation_materialization.json"
+            ),
+            "merge": (
+                "reports/public-sample/form-fill-remediation-public-sample-merge/"
+                "form_fill_remediation_public_sample_merge.json"
+            ),
+            "residual_cluster_inspection": (
+                "reports/public-sample/formal-heldout-residual-cluster-inspection/"
+                "formal_heldout_residual_cluster_inspection.json"
+            ),
+            "source_residual_diagnosis": source_residual_diagnosis.get("diagnosis_artifact", ""),
+            "source_formal_heldout_evidence": source_residual_diagnosis.get("source_formal_heldout_evidence", {}),
+        },
+        "source_count_consistency": source_count_consistency,
+        "source_policy": {
+            "policy_artifact": (
+                "reports/public-sample/form-fill-confirmation-field-policy/"
+                "form_fill_confirmation_field_policy.json"
+            ),
+            "source_manifest_id": _sanitize_public_summary(
+                str(policy.get("source_form_fill_inspection", {}).get("source_manifest_id", ""))
+            ),
+            "policy_bucket": "missing_confirmation_marker",
+            "cluster_row_incidence_total": policy_cluster_rows,
+            "residual_field_total": policy_residual_fields,
+            "split_counts": _sanitize_public_value(policy_evidence.get("split_counts", {})),
+            "field_paths": _sanitize_public_value(policy_evidence.get("field_paths", [])),
+            "source_family_count": source_family_count,
+            "source_family_counts": _sanitize_public_value(source_family_counts),
+        },
+        "existing_remediation": {
+            "case_design_artifact": (
+                "reports/public-sample/form-fill-remediation-case-design/"
+                "form_fill_remediation_case_design.json"
+            ),
+            "materialization_artifact": (
+                "reports/public-sample/form-fill-remediation-materialized-candidates/"
+                "form_fill_remediation_materialization.json"
+            ),
+            "merge_artifact": (
+                "reports/public-sample/form-fill-remediation-public-sample-merge/"
+                "form_fill_remediation_public_sample_merge.json"
+            ),
+            "legacy_bucket": "confirmation_marker_missing_or_reordered",
+            "case_design_candidate_count": case_design_candidate_count,
+            "materialized_candidate_seed_count": materialized_candidate_seed_count,
+            "materialized_candidate_sft_count": materialized_candidate_sft_count,
+            "candidate_seed_ids": _sanitize_public_value(candidate_seed_ids),
+            "candidate_sft_row_ids": _sanitize_public_value(candidate_sft_ids),
+            "represented_field_labels": represented_field_labels,
+            "expected_normalized_command_patterns": _sanitize_public_value(patterns),
+            "all_candidate_patterns_preserve_confirmation_marker": all_patterns_preserve_confirmation,
+            "merge_status": _sanitize_public_summary(str(merge.get("merge_status", ""))),
+            "candidate_dpo_pairs": int(merge.get("candidate_source", {}).get("candidate_dpo_pairs", 0)),
+            "formal_public_sample_counts": _sanitize_public_value(merge.get("formal_public_sample_counts", {})),
+            "formal_public_sample_split_counts": _sanitize_public_value(
+                merge.get("formal_public_sample_split_counts", {})
+            ),
+        },
+        "current_residual_status": current_residual_status,
+        "summary": {
+            "coverage_decision": "partial_legacy_coverage_current_residual_still_observed",
+            "policy_confirmation_cluster_row_incidence_total": policy_cluster_rows,
+            "policy_confirmation_residual_field_total": policy_residual_fields,
+            "legacy_candidate_field_label_count": represented_count,
+            "legacy_confirmation_candidate_case_count": case_design_candidate_count,
+            "policy_source_family_count": source_family_count,
+            "represented_field_label_to_source_family_ratio": ratio,
+            "current_residual_still_observed": current_residual_status["residual_still_observed"],
+            "recommended_next_step": "propose_bounded_confirmation_marker_coverage_extension_before_training",
+        },
+        "metric_authority": {
+            "contract_exact_match": "authoritative_strict_metric",
+            "slot_f1": "authoritative_strict_metric",
+            "slot_f1_soft": "diagnostic_only_not_primary",
+            "contract_evaluation_ladder": "authoritative",
+            "prediction_repair_or_rescore": False,
+        },
+        "unsupported_changes": unsupported_changes,
+        "execution_scope": {
+            "committed_public_artifacts_read": True,
+            "raw_predictions_read": False,
+            "new_candidate_rows_generated": False,
+            "dataset_mutation": False,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "sft_rows_modified": False,
+            "dpo_pairs_modified": False,
+            "held_out_gold_labels_modified": False,
+            "prompt_change": False,
+            "gold_policy_change": False,
+            "prediction_run": False,
+            "training_run": False,
+            "checkpoints_or_adapters_modified": False,
+            "a100_job": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "prediction_rescore": False,
+        },
+        "claims": {
+            "coverage_assessment_only": True,
+            "model_recovery_claim": False,
+            "held_out_recovery_claim": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+            "adapter_release_claim": False,
+            "checkpoint_release_claim": False,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+        },
+    }
+
+
 def select_formal_heldout_remediation_target(
     *,
     residual_diagnosis: dict[str, Any],
