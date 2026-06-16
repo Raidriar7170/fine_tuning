@@ -7,6 +7,7 @@ from pathlib import Path
 from voice2task.evaluation import (
     assess_form_fill_confirmation_marker_coverage,
     define_form_fill_confirmation_field_policy,
+    design_blocked_payment_safety_repair_candidates,
     design_form_fill_confirmation_marker_coverage_extension,
     design_form_fill_remediation_cases,
     design_slot_value_generalization_cases,
@@ -36,6 +37,7 @@ from voice2task.evaluation import (
 from voice2task.io import read_json, read_jsonl
 from voice2task.reports import (
     write_alignment_diagnostics_report,
+    write_blocked_payment_safety_repair_candidate_design_report,
     write_constrained_decoding_diagnosis_report,
     write_form_fill_boundary_field_specificity_report,
     write_form_fill_confirmation_field_policy_report,
@@ -316,6 +318,15 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose_safety_regression.add_argument(
         "--title",
         default="Voice2Task SFT v3 safety regression diagnosis",
+    )
+
+    design_blocked_payment = subcommands.add_parser("design-blocked-payment-safety-repair-candidates")
+    design_blocked_payment.add_argument("--safety-diagnosis", type=Path, required=True)
+    design_blocked_payment.add_argument("--public-manifest", type=Path, required=True)
+    design_blocked_payment.add_argument("--output", type=Path, required=True)
+    design_blocked_payment.add_argument(
+        "--title",
+        default="Voice2Task blocked-payment safety repair candidate design",
     )
 
     smoke = subcommands.add_parser("smoke")
@@ -629,6 +640,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_sft_v3_safety_regression_diagnosis_report(
             diagnosis,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "design-blocked-payment-safety-repair-candidates":
+        design = design_blocked_payment_safety_repair_candidates(
+            safety_diagnosis=read_json(args.safety_diagnosis),
+            public_manifest=read_json(args.public_manifest),
+        )
+        paths = write_blocked_payment_safety_repair_candidate_design_report(
+            design,
             output_dir=args.output,
             title=args.title,
         )

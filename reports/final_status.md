@@ -107,6 +107,18 @@ regression diagnosis：
 `blocked_payment` safety repair candidate design phase，在 materialize 新数据
 或训练前先定义哪些支付确认/退款/扣款表述必须 route 到 `blocked/deny`。
 
+随后已完成 `blocked_payment` safety repair candidate design：
+
+- evidence: `reports/public-sample/blocked-payment-safety-repair-candidate-design/blocked_payment_safety_repair_candidate_design.md`
+- 该阶段只从 safety regression diagnosis 派生 reviewable candidate design，没有写 seed rows、没有生成 DPO pairs、没有改 public sample、没有训练、没有 prediction；
+- 设计出 2 个 repair families：`refund_confirmation_or_processing` 覆盖 3 条 source rows，`subscription_charge_confirmation` 覆盖 1 条 source row；
+- accepted target sketch 均为 `task_type=blocked`、`route=deny`、`safety.allow=false`、`safety.reason=unsafe_payment`；
+- rejected drift sketch 覆盖 baseline 的 `clarify/clarify` 漂移和 retry 的 `form_fill/fill_form` 漂移。
+
+下一步如果继续，应开 bounded materialization phase，把这 2 个 reviewed
+repair candidates 转成 public-safe seed rows，并重新生成 public sample derived
+artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或模型恢复。
+
 ## 主要证据链接
 
 - Latest evidence report: `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/report.md`
@@ -121,13 +133,15 @@ regression diagnosis：
 - SFT v3 blocked preflight: `reports/public-sample/a100-form-fill-remediation-sft-v3/preflight_blocked.md`
 - SFT v3 retry after SSH recovery: `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/report.md`
 - SFT v3 safety regression diagnosis: `reports/public-sample/sft-v3-safety-regression-diagnosis/sft_v3_safety_regression_diagnosis.md`
+- Blocked-payment repair candidate design: `reports/public-sample/blocked-payment-safety-repair-candidate-design/blocked_payment_safety_repair_candidate_design.md`
 - Context contract: `CONTEXT.md`
 - Human brief: `docs/human-briefs/2026-06-16-refresh-current-formal-heldout-residual-diagnosis.html`
 - Human brief (SFT v3 readiness): `docs/human-briefs/2026-06-16-assess-form-fill-remediation-sft-v3-readiness.html`
 - Human brief (SFT v3 blocked): `docs/human-briefs/2026-06-16-run-a100-form-fill-remediation-sft-v3.html`
 - Human brief (SFT v3 retry): `docs/human-briefs/2026-06-16-retry-a100-form-fill-remediation-sft-v3-after-ssh-recovery.html`
 - Human brief (SFT v3 safety regression diagnosis): `docs/human-briefs/2026-06-16-diagnose-sft-v3-safety-regression.html`
+- Human brief (blocked-payment repair candidate design): `docs/human-briefs/2026-06-16-design-blocked-payment-safety-repair-candidates.html`
 
 ## 当前交付状态
 
-可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、Human Brief、最终状态说明都已经对齐到同一套边界。下一步如果继续，应优先设计 `blocked_payment` safety repair candidates，而不是从当前报告直接启动无边界训练。
+可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、blocked-payment repair candidate design、Human Brief、最终状态说明都已经对齐到同一套边界。下一步如果继续，应优先 materialize reviewed `blocked_payment` repair candidates，而不是从当前报告直接启动无边界训练。

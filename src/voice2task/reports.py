@@ -2134,6 +2134,130 @@ def write_sft_v3_safety_regression_diagnosis_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_blocked_payment_safety_repair_candidate_design_report(
+    design: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task blocked-payment safety repair candidate design",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "blocked_payment_safety_repair_candidate_design.json"
+    markdown_path = output_dir / "blocked_payment_safety_repair_candidate_design.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_design = _sanitize_report_value(design)
+    write_json(json_path, safe_design)
+
+    manifest = {
+        "evidence_kind": safe_design["evidence_kind"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dataset_manifest_id": safe_design["dataset_manifest_id"],
+        "source_diagnosis": safe_design["source_diagnosis"],
+        "summary": safe_design["summary"],
+        "aggregates": safe_design["aggregates"],
+        "claims": safe_design["claims"],
+        "artifact_policy": {
+            "design_only": True,
+            "formal_public_sample_modified": False,
+            "local_private_corpus_modified": False,
+            "candidate_seed_rows_materialized": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+        },
+        "diagnostic_artifacts": {
+            "design": (
+                "reports/public-sample/blocked-payment-safety-repair-candidate-design/"
+                "blocked_payment_safety_repair_candidate_design.json"
+            ),
+            "markdown": (
+                "reports/public-sample/blocked-payment-safety-repair-candidate-design/"
+                "blocked_payment_safety_repair_candidate_design.md"
+            ),
+            "manifest": "reports/public-sample/blocked-payment-safety-repair-candidate-design/manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_design["summary"]
+    aggregates = safe_design["aggregates"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is a design-only repair-candidate report derived from committed SFT v3 safety regression "
+            "diagnosis evidence. It does not materialize seed rows, generate DPO pairs, train, generate "
+            "predictions, repair predictions, or change evaluator metrics."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Formal public sample modified: `False`.",
+        "- Candidate seed rows materialized: `False`.",
+        "- DPO pairs generated: `False`.",
+        "- No SFT, DPO, GRPO, A100 job, prompt change, evaluator relaxation, or semantic scoring is performed.",
+        "- This is not a model recovery, safety improvement, production-readiness, or live-browser benchmark claim.",
+        "",
+        "## Summary",
+        "",
+        f"- Dataset manifest: `{safe_design['dataset_manifest_id']}`",
+        f"- Candidate count: `{summary['candidate_count']}`",
+        f"- Source row count: `{summary['source_row_count']}`",
+        f"- Source rows: `{summary['source_row_ids']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Aggregates",
+        "",
+        f"- Source classifications: `{aggregates['source_classification_counts']}`",
+        f"- Candidate counts by repair family: `{aggregates['candidate_counts_by_repair_family']}`",
+        f"- Source rows by repair family: `{aggregates['source_rows_by_repair_family']}`",
+        f"- Accepted target task types: `{aggregates['accepted_target_task_type_counts']}`",
+        f"- Accepted target routes: `{aggregates['accepted_target_route_counts']}`",
+        f"- Accepted safety reasons: `{aggregates['accepted_safety_reason_counts']}`",
+        "",
+        "## Candidates",
+        "",
+    ]
+    for candidate in safe_design.get("candidates", []):
+        lines.extend(
+            [
+                f"### `{candidate['candidate_id']}`",
+                "",
+                f"- Repair family: `{candidate['repair_family']}`",
+                f"- Source rows: `{candidate['source_row_ids']}`",
+                f"- Source classification counts: `{candidate['source_classification_counts']}`",
+                f"- Accepted target contract: `{candidate['accepted_target_contract_sketch']}`",
+                f"- Rejected drift sketches: `{candidate['rejected_drift_sketches']}`",
+                f"- Suggested public utterance templates: `{candidate['suggested_public_utterance_templates']}`",
+                f"- Intended later action: `{candidate['intended_later_action']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Recommended Next Step",
+            "",
+            (
+                "Use this design as reviewable input for a later bounded materialization phase. Do not treat "
+                "these candidate records as committed seed rows or model-quality evidence."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_formal_heldout_residual_cluster_inspection_report(
     inspection: dict[str, Any],
     output_dir: Path,

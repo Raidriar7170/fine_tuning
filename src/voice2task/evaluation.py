@@ -2263,6 +2263,184 @@ def diagnose_sft_v3_safety_regression(
     }
 
 
+def _blocked_payment_repair_family(row: dict[str, Any]) -> tuple[str, str]:
+    text = str(row.get("input_summary", ""))
+    if "退款" in text:
+        return ("refund_confirmation_or_processing", "refund confirmation or direct refund processing")
+    if "扣款" in text or "订阅" in text:
+        return ("subscription_charge_confirmation", "subscription charge confirmation")
+    if "支付" in text or "付款" in text or "账户" in text:
+        return ("payment_or_account_action_confirmation", "payment or account action confirmation")
+    return ("payment_action_confirmation", "payment action confirmation")
+
+
+def _blocked_payment_drift_sketch(row: dict[str, Any], run_name: str) -> dict[str, Any] | None:
+    outcome = row.get(f"{run_name}_outcome")
+    if not isinstance(outcome, dict) or outcome.get("outcome") != "false_negative":
+        return None
+    return {
+        "run": run_name,
+        "task_type": _sanitize_public_summary(str(outcome.get("task_type", "unknown"))),
+        "route": _sanitize_public_summary(str(outcome.get("route", "unknown"))),
+        "safety_reason": _sanitize_public_summary(str(outcome.get("safety_reason", "unknown"))),
+        "failure_mode": "gold_stop_predicted_allow",
+    }
+
+
+def design_blocked_payment_safety_repair_candidates(
+    *,
+    safety_diagnosis: dict[str, Any],
+    public_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    if safety_diagnosis.get("evidence_kind") != "sft_v3_safety_regression_diagnosis":
+        raise ValueError("safety diagnosis must be sft_v3_safety_regression_diagnosis evidence")
+
+    dataset_manifest_id = _sanitize_public_summary(str(safety_diagnosis.get("dataset_manifest_id", "")))
+    current_manifest_id = _sanitize_public_summary(str(public_manifest.get("manifest_id", "")))
+    if dataset_manifest_id != current_manifest_id:
+        raise ValueError("safety diagnosis and public manifest must use the same manifest id")
+
+    focus_rows = [
+        row
+        for row in safety_diagnosis.get("safety_focus_rows", [])
+        if isinstance(row, dict) and row.get("task_family") == "blocked_payment"
+    ]
+    grouped: dict[str, dict[str, Any]] = {}
+    for row in focus_rows:
+        family_id, family_label = _blocked_payment_repair_family(row)
+        entry = grouped.setdefault(
+            family_id,
+            {
+                "candidate_id": f"blocked-payment-{family_id.replace('_', '-')}",
+                "repair_family": family_id,
+                "repair_family_label": family_label,
+                "source_row_ids": [],
+                "source_classifications": [],
+                "suggested_public_utterance_templates": [],
+                "rejected_drift_sketches": [],
+            },
+        )
+        entry["source_row_ids"].append(_sanitize_id(str(row.get("row_id", ""))))
+        entry["source_classifications"].append(_sanitize_public_summary(str(row.get("classification", ""))))
+        input_summary = _sanitize_public_summary(str(row.get("input_summary", "")))
+        if input_summary and input_summary not in entry["suggested_public_utterance_templates"]:
+            entry["suggested_public_utterance_templates"].append(input_summary)
+        for run_name in ("baseline", "retry"):
+            drift = _blocked_payment_drift_sketch(row, run_name)
+            if drift and drift not in entry["rejected_drift_sketches"]:
+                entry["rejected_drift_sketches"].append(drift)
+
+    candidates: list[dict[str, Any]] = []
+    for entry in grouped.values():
+        source_classification_counts = _count_by([str(item) for item in entry["source_classifications"]])
+        candidates.append(
+            {
+                "candidate_id": entry["candidate_id"],
+                "repair_family": entry["repair_family"],
+                "repair_family_label": entry["repair_family_label"],
+                "source_row_ids": sorted(entry["source_row_ids"]),
+                "source_row_count": len(set(entry["source_row_ids"])),
+                "source_classification_counts": source_classification_counts,
+                "source_task_family": "blocked_payment",
+                "safety_pattern": {
+                    "gold_safety_reason": "unsafe_payment",
+                    "payment_action_requires_stop": True,
+                    "accepted_safety_allow": False,
+                },
+                "accepted_target_contract_sketch": {
+                    "task_type": "blocked",
+                    "route": "deny",
+                    "safety": {"allow": False, "reason": "unsafe_payment"},
+                    "confirmation_required": False,
+                },
+                "rejected_drift_sketches": sorted(
+                    entry["rejected_drift_sketches"],
+                    key=lambda item: (str(item["run"]), str(item["task_type"]), str(item["route"])),
+                ),
+                "suggested_public_utterance_templates": sorted(entry["suggested_public_utterance_templates"]),
+                "intended_later_action": "review_before_seed_materialization",
+            }
+        )
+    candidates.sort(key=lambda item: (-int(item["source_row_count"]), str(item["candidate_id"])))
+
+    classification_counts = _count_by(
+        _sanitize_public_summary(str(row.get("classification", ""))) for row in focus_rows
+    )
+    source_row_ids = sorted({row_id for candidate in candidates for row_id in candidate["source_row_ids"]})
+    if candidates:
+        recommended_next_step = "materialize_blocked_payment_safety_repair_candidates_after_review"
+    else:
+        recommended_next_step = "no_candidate_design_needed"
+
+    return {
+        "evidence_kind": "blocked_payment_safety_repair_candidate_design",
+        "design_mode": "public_safe_design_only_no_materialization",
+        "dataset_manifest_id": dataset_manifest_id,
+        "source_diagnosis": {
+            "artifact": "reports/public-sample/sft-v3-safety-regression-diagnosis/",
+            "summary": safety_diagnosis.get("summary", {}),
+        },
+        "summary": {
+            "candidate_count": len(candidates),
+            "source_row_count": len(source_row_ids),
+            "source_row_ids": source_row_ids,
+            "recommended_next_step": recommended_next_step,
+            "formal_public_sample_modified": False,
+            "candidate_seed_rows_materialized": False,
+            "dpo_pairs_generated": False,
+        },
+        "aggregates": {
+            "source_classification_counts": classification_counts,
+            "candidate_counts_by_repair_family": _count_by(
+                [str(candidate["repair_family"]) for candidate in candidates]
+            ),
+            "source_rows_by_repair_family": {
+                str(candidate["repair_family"]): int(candidate["source_row_count"]) for candidate in candidates
+            },
+            "accepted_target_task_type_counts": _count_by(
+                [str(candidate["accepted_target_contract_sketch"]["task_type"]) for candidate in candidates]
+            ),
+            "accepted_target_route_counts": _count_by(
+                [str(candidate["accepted_target_contract_sketch"]["route"]) for candidate in candidates]
+            ),
+            "accepted_safety_reason_counts": _count_by(
+                [str(candidate["accepted_target_contract_sketch"]["safety"]["reason"]) for candidate in candidates]
+            ),
+        },
+        "candidates": candidates,
+        "execution_scope": {
+            "design_only": True,
+            "formal_public_sample_modified": False,
+            "local_private_corpus_modified": False,
+            "candidate_seed_rows_materialized": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+        },
+        "claims": {
+            "candidate_design_only": True,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+            "public_full_corpus_release": False,
+        },
+    }
+
+
 def _family_short_name(task_family: str) -> str:
     return _sanitize_public_summary(task_family.split("|", 1)[0] if task_family else "unknown")
 

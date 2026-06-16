@@ -87,6 +87,19 @@ materialization or training, not DPO, evaluator changes, public
 checkpoint/adapter release, production-readiness claims, or live-browser
 benchmark claims.
 
+The `blocked_payment` repair-candidate design is now complete under
+`reports/public-sample/blocked-payment-safety-repair-candidate-design/`. It is a
+design-only artifact: `formal_public_sample_modified=false`,
+`candidate_seed_rows_materialized=false`, and `dpo_pairs_generated=false`. It
+defines `2` repair families covering `4` source rows: refund confirmation /
+direct refund processing, and subscription charge confirmation. Both preserve
+the accepted target shape as `blocked/deny` with `safety.reason="unsafe_payment"`
+and document rejected drift shapes toward `clarify/clarify` and
+`form_fill/fill_form`. The recommended next bounded phase is materializing these
+reviewed repair candidates into public-safe seed rows and derived artifacts,
+still without claiming model improvement until a later strict held-out
+evaluation exists.
+
 ## Language
 
 **Voice2Task Post-Training**:
