@@ -19,6 +19,7 @@ from voice2task.evaluation import (
     diagnose_source_alignment,
     diagnose_targeted_slot_value_residuals,
     evaluate_predictions,
+    inspect_formal_heldout_residual_clusters,
     load_predictions,
     load_sft_rows,
     prompt_fixture_predictions,
@@ -34,6 +35,7 @@ from voice2task.reports import (
     write_form_fill_remediation_case_design_report,
     write_form_fill_remediation_plan_report,
     write_formal_heldout_remediation_target_selection_report,
+    write_formal_heldout_residual_cluster_inspection_report,
     write_formal_heldout_residual_family_report,
     write_heldout_family_strategy_report,
     write_merged_slot_value_residual_report,
@@ -216,6 +218,14 @@ def build_parser() -> argparse.ArgumentParser:
     select_formal_target.add_argument(
         "--title",
         default="Voice2Task formal held-out remediation target selection",
+    )
+
+    inspect_formal_clusters = subcommands.add_parser("inspect-formal-heldout-residual-clusters")
+    inspect_formal_clusters.add_argument("--residual-diagnosis", type=Path, required=True)
+    inspect_formal_clusters.add_argument("--output", type=Path, required=True)
+    inspect_formal_clusters.add_argument(
+        "--title",
+        default="Voice2Task formal held-out residual cluster inspection",
     )
 
     form_fill_plan = subcommands.add_parser("diagnose-form-fill-remediation-plan")
@@ -431,6 +441,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_formal_heldout_remediation_target_selection_report(
             selection,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "inspect-formal-heldout-residual-clusters":
+        inspection = inspect_formal_heldout_residual_clusters(
+            residual_diagnosis=read_json(args.residual_diagnosis),
+        )
+        paths = write_formal_heldout_residual_cluster_inspection_report(
+            inspection,
             output_dir=args.output,
             title=args.title,
         )

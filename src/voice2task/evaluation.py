@@ -2013,6 +2013,195 @@ def _deferred_target_reason(short_name: str) -> str:
     return "lower-ranked row cluster for the current formal held-out residual diagnosis"
 
 
+def _residual_cluster_action_candidate(short_name: str) -> str:
+    if short_name == "form_fill":
+        return "inspect_form_fill_boundary_and_field_specificity_before_new_data_or_training"
+    if short_name == "blocked":
+        return "dedicated_safety_boundary_inspection_before_data_or_training"
+    if short_name == "clarify":
+        return "route_intent_boundary_inspection_before_data_or_training"
+    if short_name == "extract":
+        return "extract_target_canonicalization_review_before_data_or_training"
+    if short_name in {"search", "navigate"}:
+        return "label_canonicalization_review_before_data_or_training"
+    return "inspect_lower_ranked_cluster_before_data_or_training"
+
+
+def inspect_formal_heldout_residual_clusters(
+    *,
+    residual_diagnosis: dict[str, Any],
+) -> dict[str, Any]:
+    if residual_diagnosis.get("evidence_kind") != "formal_heldout_residual_family_diagnosis":
+        raise ValueError("residual diagnosis must be formal_heldout_residual_family_diagnosis evidence")
+
+    residuals = [entry for entry in residual_diagnosis.get("residuals", []) if isinstance(entry, dict)]
+    cluster_rows: dict[tuple[str, str, str, str], dict[str, set[str]]] = {}
+    cluster_sources: dict[tuple[str, str, str, str], dict[str, int]] = {}
+    cluster_examples: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
+    unique_row_keys: set[tuple[str, str]] = set()
+    for residual in residuals:
+        task_family = _sanitize_public_summary(str(residual.get("task_family", "unknown")))
+        split = _sanitize_public_summary(str(residual.get("split", "unknown")))
+        row_id = _sanitize_id(str(residual.get("row_id", "")))
+        field_path = _sanitize_public_summary(str(residual.get("field_path", "unknown")))
+        category = _sanitize_public_summary(str(residual.get("category", "unknown")))
+        mismatch_category = _sanitize_public_summary(str(residual.get("mismatch_category", "unknown")))
+        source_family_id = _sanitize_id(str(residual.get("source_family_id", "")))
+        cluster_key = (task_family, field_path, category, mismatch_category)
+        unique_row_keys.add((split, row_id))
+
+        cluster_rows.setdefault(cluster_key, {}).setdefault(split, set()).add(row_id)
+        sources = cluster_sources.setdefault(cluster_key, {})
+        sources[source_family_id] = sources.get(source_family_id, 0) + 1
+        examples = cluster_examples.setdefault(cluster_key, [])
+        if len(examples) < 5:
+            examples.append(
+                {
+                    "split": split,
+                    "row_id": row_id,
+                    "source_family_id": source_family_id,
+                    "field_path": field_path,
+                    "category": category,
+                    "mismatch_category": mismatch_category,
+                    "gold_value_summary": _sanitize_public_summary(
+                        str(residual.get("gold_value_summary", "unknown"))
+                    ),
+                    "predicted_value_summary": _sanitize_public_summary(
+                        str(residual.get("predicted_value_summary", "unknown"))
+                    ),
+                }
+            )
+
+    clusters: list[dict[str, Any]] = []
+    for cluster_key, rows_by_split in cluster_rows.items():
+        task_family, field_path, category, mismatch_category = cluster_key
+        split_row_counts = {split: len(rows) for split, rows in sorted(rows_by_split.items())}
+        total_rows = sum(split_row_counts.values())
+        source_counts = dict(sorted(cluster_sources.get(cluster_key, {}).items()))
+        residual_field_count = sum(source_counts.values())
+        short_name = _family_short_name(task_family)
+        clusters.append(
+            {
+                "task_family": task_family,
+                "short_name": short_name,
+                "field_path": field_path,
+                "category": category,
+                "mismatch_category": mismatch_category,
+                "residual_row_count": total_rows,
+                "residual_rows_by_split": split_row_counts,
+                "residual_field_count": residual_field_count,
+                "source_family_counts": source_counts,
+                "representative_examples": cluster_examples.get(cluster_key, []),
+                "recommended_action_candidate": _residual_cluster_action_candidate(short_name),
+            }
+        )
+    clusters.sort(
+        key=lambda item: (
+            -int(item["residual_row_count"]),
+            -int(item["residual_field_count"]),
+            str(item["task_family"]),
+        )
+    )
+    if not clusters:
+        raise ValueError("residual diagnosis contains no residual clusters")
+
+    expected_rows = int(residual_diagnosis.get("summary", {}).get("residual_row_count", 0))
+    expected_fields = len(residuals)
+    clustered_rows = len(unique_row_keys)
+    clustered_fields = sum(int(cluster["residual_field_count"]) for cluster in clusters)
+    source_count_consistency = {
+        "expected_residual_rows": expected_rows,
+        "clustered_residual_rows": clustered_rows,
+        "expected_residual_fields": expected_fields,
+        "clustered_residual_fields": clustered_fields,
+        "ok": expected_rows == clustered_rows and expected_fields == clustered_fields,
+    }
+    if not source_count_consistency["ok"]:
+        raise ValueError("clustered residual rows do not match source residual row count")
+
+    top_cluster = clusters[0]
+    summary = residual_diagnosis.get("summary", {})
+    return {
+        "evidence_kind": "formal_heldout_residual_cluster_inspection",
+        "diagnostic_kind": "formal_public_heldout_residual_cluster_inspection",
+        "source_residual_diagnosis": {
+            "evidence_kind": _sanitize_public_summary(str(residual_diagnosis.get("evidence_kind", ""))),
+            "diagnostic_kind": _sanitize_public_summary(str(residual_diagnosis.get("diagnostic_kind", ""))),
+            "source_formal_heldout_evidence": _sanitize_public_value(
+                residual_diagnosis.get("source_formal_heldout_evidence", {})
+            ),
+            "diagnosis_artifact": (
+                "reports/public-sample/formal-heldout-residual-family-diagnosis/"
+                "formal_heldout_residual_family_diagnosis.json"
+            ),
+        },
+        "summary": {
+            "strict_contract_exact_match": summary.get("strict_contract_exact_match", {}),
+            "strict_slot_f1": summary.get("strict_slot_f1", {}),
+            "soft_slot_f1": summary.get("soft_slot_f1", {}),
+            "soft_slot_f1_primary_metric": False,
+            "residual_row_count": expected_rows,
+            "source_residual_field_count": expected_fields,
+            "cluster_count": len(clusters),
+            "top_cluster_task_family": top_cluster["task_family"],
+            "top_cluster_field_path": top_cluster["field_path"],
+            "top_cluster_residual_rows": top_cluster["residual_row_count"],
+            "top_cluster_residual_fields": top_cluster["residual_field_count"],
+            "recommended_next_step": "review_ranked_clusters_before_data_training_or_evaluator_change",
+        },
+        "source_count_consistency": source_count_consistency,
+        "aggregates": {
+            "by_split_residual_rows": _sanitize_public_value(
+                residual_diagnosis.get("aggregates", {}).get("by_split_residual_rows", {})
+            ),
+            "by_field_path": _sanitize_public_value(
+                residual_diagnosis.get("aggregates", {}).get("by_field_path", {})
+            ),
+            "by_category": _sanitize_public_value(
+                residual_diagnosis.get("aggregates", {}).get("by_category", {})
+            ),
+            "by_source_family": _sanitize_public_value(
+                residual_diagnosis.get("aggregates", {}).get("by_source_family", {})
+            ),
+        },
+        "residual_clusters": clusters,
+        "execution_scope": {
+            "source_residual_diagnosis_read_as_input": True,
+            "raw_predictions_read": False,
+            "prediction_run": False,
+            "training_run": False,
+            "sft_training_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "dataset_mutation": False,
+            "a100_job": False,
+            "new_data_generated": False,
+            "gold_policy_change": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "prediction_repair_or_replacement": False,
+            "prediction_rescore": False,
+        },
+        "claims": {
+            "analysis_only": True,
+            "model_recovery_claim": False,
+            "held_out_recovery_claim": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+            "semantic_equivalence_primary_metric": False,
+            "soft_slot_f1_primary_metric": False,
+            "adapter_release_claim": False,
+            "checkpoint_release_claim": False,
+        },
+    }
+
+
 def select_formal_heldout_remediation_target(
     *,
     residual_diagnosis: dict[str, Any],

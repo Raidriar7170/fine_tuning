@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task residual cluster inspection</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f7f9fb; }
+    main { max-width: 1040px; margin: 0 auto; padding: 34px 20px 54px; }
+    h1 { margin: 0 0 10px; font-size: 29px; letter-spacing: 0; }
+    h2 { margin: 26px 0 10px; font-size: 18px; }
+    p, li { line-height: 1.68; }
+    a { color: #255aa8; }
+    code { padding: 2px 5px; border-radius: 4px; background: #e9eef5; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d7dfeb; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+    th { background: #ecf2f8; }
+    .summary { padding: 18px 20px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { padding: 15px 16px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .metric strong { display: block; font-size: 25px; margin-bottom: 4px; color: #0f5c64; }
+    .warn { padding: 13px 15px; border-left: 4px solid #b7791f; background: #fff8e8; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task residual cluster inspection</h1>
+  <p class="summary">结论：本阶段只把 formal held-out residual diagnosis 聚成可排序的问题簇；当前有 27 个 residual clusters、97 个 residual rows、204 个字段级 residual，最大簇是 <code>form_fill / normalized_command</code>，但这不是训练、预测重跑、指标放宽或 held-out recovery 声明。</p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="metric"><strong>archived</strong>OpenSpec phase</div>
+    <div class="metric"><strong>27</strong>residual clusters</div>
+    <div class="metric"><strong>97</strong>residual rows</div>
+    <div class="metric"><strong>204</strong>field residuals</div>
+  </div>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>新增 deterministic inspection helper，把已提交的 formal residual diagnosis 按 <code>task_family + field_path + category + mismatch_category</code> 聚类。</li>
+    <li>新增 CLI：<code>voice2task-eval inspect-formal-heldout-residual-clusters</code>，输出 JSON、Markdown 和 manifest。</li>
+    <li>生成 public-safe 产物到 <code>reports/public-sample/formal-heldout-residual-cluster-inspection/</code>。</li>
+    <li>补充 focused tests，锁定 source manifest、计数一致性、claim boundaries 和 leak scan。</li>
+  </ul>
+
+  <h2>Top residual clusters</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Cluster</th>
+        <th>Rows</th>
+        <th>Fields</th>
+        <th>建议边界</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>form_fill / normalized_command</code></td>
+        <td>27</td>
+        <td>27</td>
+        <td>先检查 form-fill 边界和字段粒度，不直接补数据或训练。</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>blocked / slots</code></td>
+        <td>18</td>
+        <td>18</td>
+        <td>属于 safety-sensitive cluster，应单独走安全边界 proposal。</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>form_fill / slots</code></td>
+        <td>16</td>
+        <td>16</td>
+        <td>和第一簇同属 form-fill，可作为后续 bounded remediation 的证据输入。</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>clarify / slots</code></td>
+        <td>14</td>
+        <td>14</td>
+        <td>route/intent ambiguity，需要 ontology-boundary phase。</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>blocked / normalized_command</code></td>
+        <td>12</td>
+        <td>12</td>
+        <td>仍属于 blocked-payment safety 方向，不能混入普通 data cleanup。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>关键产物</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/formal-heldout-residual-cluster-inspection/formal_heldout_residual_cluster_inspection.md">residual cluster inspection Markdown</a></li>
+    <li><a href="../../reports/public-sample/formal-heldout-residual-cluster-inspection/formal_heldout_residual_cluster_inspection.json">residual cluster inspection JSON</a></li>
+    <li><a href="../../reports/public-sample/formal-heldout-residual-cluster-inspection/manifest.json">cluster inspection manifest</a></li>
+    <li><a href="../../openspec/changes/inspect-formal-heldout-residual-clusters/proposal.md">OpenSpec proposal</a></li>
+    <li><a href="../../openspec/changes/inspect-formal-heldout-residual-clusters/tasks.md">OpenSpec tasks</a></li>
+  </ul>
+
+  <h2>验证状态</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python3 -m pytest -q tests/test_formal_heldout_residual_cluster_inspection.py</code>：3 passed。</li>
+    <li><code>PYTHONPATH=src python3 -m pytest -q tests/test_formal_heldout_residual_cluster_inspection.py tests/test_formal_heldout_residual_family_diagnosis.py tests/test_formal_heldout_remediation_target_selection.py</code>：9 passed。</li>
+    <li><code>PYTHONPATH=src python3 -m pytest -q</code>：335 passed。</li>
+    <li><code>ruff check src/ scripts/ tests/</code>：All checks passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：4 passed, 0 failed。</li>
+    <li><code>voice2task.leak_scan.scan_paths(...)</code>：ok，0 findings；扫描范围覆盖 cluster report、Human Brief 和 archived OpenSpec change。</li>
+    <li><code>git diff --check</code>：通过，无 whitespace errors。</li>
+  </ul>
+
+  <h2>边界与不要夸大的 claim</h2>
+  <div class="warn">
+    本阶段没有 prediction run、没有 A100 job、没有 SFT 训练、没有 DPO、没有 GRPO、没有新增数据、没有 prompt/gold policy/evaluator metric 变更，也没有模型恢复、生产可用或 private-corpus 泛化声明。<code>slot_f1_soft</code> 仍只是 internal diagnostic，strict <code>contract_exact_match</code> 仍是主证据边界。
+  </div>
+
+  <h2>项目阶段进度</h2>
+  <p>当前项目阶段目标在仓库中仍未显式定义。本阶段推进的是 evidence repository 的 residual diagnosis 可解释性：把上一阶段的 97 行 residual 拆成可排序、可审查、可转成后续 bounded OpenSpec phase 的 cluster 证据。</p>
+
+  <h2>推荐下一步</h2>
+  <p>归档后继续一个很小的新阶段：基于本报告选择并定义一个可执行的 follow-up，优先考虑 <code>form_fill</code> 边界/字段粒度检查；如果要碰 blocked-payment，则必须单独开 safety-boundary proposal。</p>
+</main>
+</body>
+</html>
