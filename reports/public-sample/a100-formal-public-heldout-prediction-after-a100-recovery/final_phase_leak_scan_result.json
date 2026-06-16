@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-16T12:07:48.243505+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery",
+    "docs/human-briefs/2026-06-16-retry-formal-heldout-prediction-after-a100-recovery.html",
+    "configs/sft-a100-formal-public-heldout-dev-prediction.json",
+    "configs/sft-a100-formal-public-heldout-test-prediction.json",
+    "data/public-samples/manifest_public_sample.json"
+  ]
+}

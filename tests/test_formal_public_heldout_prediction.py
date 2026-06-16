@@ -237,3 +237,35 @@ def test_committed_formal_public_heldout_prediction_evidence_is_observed_but_not
     assert "Strict `contract_exact_match` remains primary." in report
     assert "not held-out recovery" in report
     assert scan_paths([evidence_dir]).ok is True
+
+
+def test_committed_a100_recovery_retry_evidence_is_observed_but_not_recovery_claim() -> None:
+    evidence_dir = (
+        REPO_ROOT
+        / "reports"
+        / "public-sample"
+        / "a100-formal-public-heldout-prediction-after-a100-recovery"
+    )
+    evidence = read_json(evidence_dir / "formal_public_heldout_prediction.json")
+    manifest = read_json(evidence_dir / "manifest.json")
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8")
+    leak_scan = read_json(evidence_dir / "phase_validation_leak_scan_result.json")
+
+    assert evidence["run_status"] == "observed"
+    assert evidence["dataset_manifest_id"] == "public-sample-20260616T074315Z"
+    assert evidence["formal_public_sample_counts"] == {"seed_rows": 98, "sft_rows": 252, "dpo_pairs": 850}
+    assert evidence["formal_public_sample_split_counts"] == {"train": 114, "dev": 69, "test": 69}
+    assert evidence["claims"]["training_performed"] is False
+    assert evidence["claims"]["model_recovery_claim"] is False
+    assert evidence["claims"]["held_out_generalization_recovered"] is False
+    assert evidence["claims"]["production_readiness_claim"] is False
+    assert evidence["claims"]["soft_slot_f1_primary_metric"] is False
+    assert evidence["comparison_boundary"]["runtime_recovery_retry"] is True
+    assert evidence["comparison_boundary"]["direct_improvement_regression_comparison_valid"] is False
+    assert manifest["run_status"] == "observed"
+    assert leak_scan["ok"] is True
+    assert leak_scan["findings"] == []
+    assert "runtime-recovery prediction-only retry" in report
+    assert "not a training change" in report
+    assert "model-recovery claim" in report
+    assert scan_paths([evidence_dir]).ok is True

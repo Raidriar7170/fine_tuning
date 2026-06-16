@@ -1,0 +1,14 @@
+{
+  "a100_runtime_recovered": true,
+  "host_details_omitted": true,
+  "prediction_only": true,
+  "private_adapter_status": "available_not_committed",
+  "private_override_status": "created_repo_external_not_committed",
+  "private_paths_omitted": true,
+  "remote_project_root_policy": "private_a100_project_root_not_committed",
+  "selected_gpu_policy": "explicit_single_idle_gpu_after_preflight",
+  "selected_gpu_status": "explicit_idle_gpu_selected_after_preflight",
+  "ssh_details_omitted": true,
+  "status": "ok",
+  "training_performed": false
+}

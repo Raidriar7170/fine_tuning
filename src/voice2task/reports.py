@@ -5067,12 +5067,20 @@ def write_formal_public_heldout_prediction_report(
                 f"- Current dataset manifest: `{boundary.get('current_dataset_manifest_id')}`",
                 f"- Prior formal held-out manifest: `{boundary.get('prior_dataset_manifest_id')}`",
                 f"- Prior evidence: `{boundary.get('prior_evidence_dir')}`",
+                f"- Prior blocked evidence: `{boundary.get('prior_blocked_evidence_dir', 'not_provided')}`",
                 (
                     "- Prior formal held-out metrics used a different public sample boundary and are not a "
                     "clean direct improvement/regression comparison."
                 ),
             ]
         )
+        if boundary.get("runtime_recovery_retry"):
+            lines.append(
+                "- This run is a runtime-recovery prediction-only retry, not a training change, evaluator "
+                "relaxation, prediction repair, or model-recovery claim."
+            )
+        if boundary.get("comparison_note"):
+            lines.append(f"- Boundary note: {boundary.get('comparison_note')}")
     lines.extend(
         [
             "",
