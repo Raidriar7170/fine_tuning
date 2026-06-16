@@ -10,17 +10,20 @@
 
 | 项目 | 值 |
 | --- | --- |
-| Latest evidence pack | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
+| Latest data evidence pack | `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/` |
+| Latest model evidence pack | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
 | Baseline evidence pack | `reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery/` |
-| Manifest | `public-sample-20260616T074315Z` |
-| Public sample | 98 seeds / 252 SFT rows / 850 DPO pairs |
-| Split | train 114 / dev 69 / test 69 |
+| Current data manifest | `public-sample-20260616T165835Z` |
+| Current public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
+| Current split | train 118 / dev 69 / test 69 |
+| Latest evaluated manifest | `public-sample-20260616T074315Z` |
+| Latest evaluated public sample | 98 seeds / 252 SFT rows / 850 DPO pairs |
 | Latest run type | private A100 SFT v3 on public train split + dev/test prediction |
 | Latest interpretation | `form_fill_sft_v3_partial_improvement_with_safety_regression_risk` |
 
-最新 SFT v3 retry 在当前 manifest 上训练了一个 private A100 adapter，然后重新跑 dev/test prediction。它没有改数据、没有修 prediction、没有 normalize slot，也没有放松 evaluator；adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
+最新 SFT v3 retry 绑定的是 `public-sample-20260616T074315Z`，不是当前刚更新的 `public-sample-20260616T165835Z`。它训练了一个 private A100 adapter，然后重新跑 dev/test prediction；没有修 prediction、没有 normalize slot，也没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
 
-## Formal Public Held-Out 指标
+## Formal Public Held-Out 指标（绑定 `public-sample-20260616T074315Z`）
 
 | 指标 | Dev | Test |
 | --- | ---: | ---: |
@@ -119,6 +122,18 @@ regression diagnosis：
 repair candidates 转成 public-safe seed rows，并重新生成 public sample derived
 artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或模型恢复。
 
+随后已完成 bounded `blocked_payment` safety repair materialization：
+
+- materialization evidence: `reports/public-sample/blocked-payment-safety-repair-materialization/blocked_payment_safety_repair_materialization.md`
+- public merge evidence: `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/blocked_payment_safety_repair_public_sample_merge.md`
+- 当前 public sample 已更新为 `public-sample-20260616T165835Z`；
+- counts 从 98 seeds / 252 SFT rows / 850 DPO pairs 变为 100 seeds / 256 SFT rows / 864 DPO pairs；
+- 新增 2 条 train seed rows，对应 `refund_confirmation_or_processing` 和 `subscription_charge_confirmation`；
+- 新增 4 条 SFT rows 和 14 条 DPO construction pairs；
+- 该阶段没有训练、没有 prediction、没有改 evaluator、没有 claim safety improvement 或 model recovery。
+
+下一步如果继续，应先做 current-manifest prediction-only baseline 或训练 readiness check。不要把 `public-sample-20260616T074315Z` 上的模型指标直接当成 `public-sample-20260616T165835Z` 的结果。
+
 ## 主要证据链接
 
 - Latest evidence report: `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/report.md`
@@ -134,6 +149,8 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - SFT v3 retry after SSH recovery: `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/report.md`
 - SFT v3 safety regression diagnosis: `reports/public-sample/sft-v3-safety-regression-diagnosis/sft_v3_safety_regression_diagnosis.md`
 - Blocked-payment repair candidate design: `reports/public-sample/blocked-payment-safety-repair-candidate-design/blocked_payment_safety_repair_candidate_design.md`
+- Blocked-payment repair materialization: `reports/public-sample/blocked-payment-safety-repair-materialization/blocked_payment_safety_repair_materialization.md`
+- Blocked-payment repair public merge: `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/blocked_payment_safety_repair_public_sample_merge.md`
 - Context contract: `CONTEXT.md`
 - Human brief: `docs/human-briefs/2026-06-16-refresh-current-formal-heldout-residual-diagnosis.html`
 - Human brief (SFT v3 readiness): `docs/human-briefs/2026-06-16-assess-form-fill-remediation-sft-v3-readiness.html`
@@ -141,7 +158,8 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - Human brief (SFT v3 retry): `docs/human-briefs/2026-06-16-retry-a100-form-fill-remediation-sft-v3-after-ssh-recovery.html`
 - Human brief (SFT v3 safety regression diagnosis): `docs/human-briefs/2026-06-16-diagnose-sft-v3-safety-regression.html`
 - Human brief (blocked-payment repair candidate design): `docs/human-briefs/2026-06-16-design-blocked-payment-safety-repair-candidates.html`
+- Human brief (blocked-payment repair materialization): `docs/human-briefs/2026-06-16-materialize-blocked-payment-safety-repair-candidates.html`
 
 ## 当前交付状态
 
-可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、blocked-payment repair candidate design、Human Brief、最终状态说明都已经对齐到同一套边界。下一步如果继续，应优先 materialize reviewed `blocked_payment` repair candidates，而不是从当前报告直接启动无边界训练。
+可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、blocked-payment repair candidate design、blocked-payment repair materialization、Human Brief、最终状态说明都已经对齐到明确边界。下一步如果继续，应优先为 `public-sample-20260616T165835Z` 建立 prediction-only baseline 或训练 readiness，而不是把旧 manifest 上的模型指标直接迁移过来。

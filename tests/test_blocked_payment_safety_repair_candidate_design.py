@@ -17,13 +17,13 @@ PUBLIC_MANIFEST = REPO_ROOT / "data" / "public-samples" / "manifest_public_sampl
 EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "blocked-payment-safety-repair-candidate-design"
 
 
-def _design_cli_args(output_dir: Path) -> list[str]:
+def _design_cli_args(output_dir: Path, public_manifest: Path = PUBLIC_MANIFEST) -> list[str]:
     return [
         "design-blocked-payment-safety-repair-candidates",
         "--safety-diagnosis",
         SAFETY_DIAGNOSIS.as_posix(),
         "--public-manifest",
-        PUBLIC_MANIFEST.as_posix(),
+        public_manifest.as_posix(),
         "--output",
         output_dir.as_posix(),
     ]
@@ -34,8 +34,12 @@ def test_blocked_payment_safety_repair_candidate_design_cli_writes_design_only_e
     capsys,  # type: ignore[no-untyped-def]
 ) -> None:
     output_dir = tmp_path / "blocked-payment-safety-repair-candidate-design"
+    historical_manifest = read_json(PUBLIC_MANIFEST)
+    historical_manifest["manifest_id"] = "public-sample-20260616T074315Z"
+    historical_manifest_path = tmp_path / "historical_manifest_public_sample.json"
+    historical_manifest_path.write_text(json.dumps(historical_manifest, ensure_ascii=False), encoding="utf-8")
 
-    assert eval_cli.main(_design_cli_args(output_dir)) == 0
+    assert eval_cli.main(_design_cli_args(output_dir, historical_manifest_path)) == 0
 
     cli_output = json.loads(capsys.readouterr().out)
     assert cli_output["ok"] is True

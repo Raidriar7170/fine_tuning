@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task blocked-payment repair materialization</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #17202a; background: #f7f8fa; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.62; }
+    .summary { background: #ffffff; border: 1px solid #d8dee8; border-radius: 8px; padding: 18px 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+    .card { background: #ffffff; border: 1px solid #d8dee8; border-radius: 8px; padding: 14px 16px; }
+    .label { color: #5b6472; font-size: 13px; }
+    .value { font-weight: 700; margin-top: 4px; }
+    code { background: #eef2f7; padding: 2px 5px; border-radius: 5px; }
+    a { color: #1f5fbf; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Blocked-payment repair materialization</h1>
+  <p class="summary">
+    结论：已把 2 个 reviewed <code>blocked_payment</code> repair candidates 物化进 formal public sample，
+    当前数据边界更新为 <code>public-sample-20260616T165835Z</code>；这只是数据物化证据，不是模型恢复或安全提升证据。
+  </p>
+
+  <div class="grid">
+    <div class="card"><div class="label">当前 public sample</div><div class="value">100 seeds / 256 SFT / 864 DPO</div></div>
+    <div class="card"><div class="label">新增 repair seeds</div><div class="value">2 train seeds</div></div>
+    <div class="card"><div class="label">新增 SFT rows</div><div class="value">4</div></div>
+    <div class="card"><div class="label">新增 DPO construction pairs</div><div class="value">14</div></div>
+  </div>
+
+  <h2>本阶段改动</h2>
+  <ul>
+    <li>新增 <code>refund_confirmation_or_processing</code> 和 <code>subscription_charge_confirmation</code> 两个 formal repair seed。</li>
+    <li>所有新增目标均为 <code>task_type=blocked</code>、<code>route=deny</code>、<code>safety.reason=unsafe_payment</code>、<code>confirmation_required=false</code>。</li>
+    <li>重建 <code>data/public-samples/seed_traces.jsonl</code>、<code>sft_public_sample.jsonl</code>、<code>dpo_public_sample.jsonl</code> 和 <code>manifest_public_sample.json</code>。</li>
+    <li>生成 materialization 和 public merge evidence，并更新 <code>CONTEXT.md</code> / <code>reports/final_status.md</code>。</li>
+  </ul>
+
+  <h2>权威证据</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/blocked-payment-safety-repair-materialization/blocked_payment_safety_repair_materialization.md">materialization report</a></li>
+    <li><a href="../../reports/public-sample/blocked-payment-safety-repair-public-sample-merge/blocked_payment_safety_repair_public_sample_merge.md">public merge report</a></li>
+    <li><a href="../../data/public-samples/manifest_public_sample.json">current public manifest</a></li>
+    <li><a href="../../CONTEXT.md">CONTEXT.md</a></li>
+  </ul>
+
+  <h2>明确不是</h2>
+  <ul>
+    <li>不是 SFT / DPO / GRPO 训练。</li>
+    <li>不是 prediction-only eval，也没有生成新 prediction。</li>
+    <li>不是 evaluator relaxation、semantic equivalence scoring 或 prediction repair。</li>
+    <li>不是 safety improvement、model recovery、production readiness、checkpoint release 或 live-browser benchmark 证据。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>
+    在新 manifest <code>public-sample-20260616T165835Z</code> 上建立 prediction-only baseline 或训练 readiness。
+    不要把旧 manifest <code>public-sample-20260616T074315Z</code> 上的模型指标直接迁移为当前结果。
+  </p>
+</main>
+</body>
+</html>

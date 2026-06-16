@@ -13,17 +13,23 @@ The public-facing truth surface has two current layers:
 2. the bounded SFT v3 retry after SSH recovery under
    `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/`.
 
-Current formal public sample boundary:
+Current formal public sample data boundary:
 
 | item | value |
 | --- | --- |
-| manifest | `public-sample-20260616T074315Z` |
-| public sample | 98 seeds / 252 SFT rows / 850 DPO pairs |
-| split counts | train 114 / dev 69 / test 69 |
+| manifest | `public-sample-20260616T165835Z` |
+| public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
+| split counts | train 118 / dev 69 / test 69 |
+| latest evaluated manifest | `public-sample-20260616T074315Z` |
 | baseline run type | prediction-only held-out evaluation |
 | baseline interpretation | `formal_public_heldout_partial_signal` |
 | latest bounded run type | private A100 SFT v3 on public train split + dev/test prediction |
 | latest bounded interpretation | `form_fill_sft_v3_partial_improvement_with_safety_regression_risk` |
+
+The metric tables below are bound to `public-sample-20260616T074315Z`, not the
+newly materialized `public-sample-20260616T165835Z` data boundary. Future
+prediction-only or training-readiness work must treat the manifest change as a
+comparison boundary.
 
 Prediction-only baseline formal held-out metrics:
 
@@ -99,6 +105,18 @@ and document rejected drift shapes toward `clarify/clarify` and
 reviewed repair candidates into public-safe seed rows and derived artifacts,
 still without claiming model improvement until a later strict held-out
 evaluation exists.
+
+The bounded `blocked_payment` repair materialization is now complete. It added
+2 formal train seed rows and rebuilt the public sample to
+`public-sample-20260616T165835Z` with 100 seeds / 256 SFT rows / 864 DPO pairs.
+The evidence lives under
+`reports/public-sample/blocked-payment-safety-repair-public-sample-merge/` and
+records `candidate_seed_rows=2`, `candidate_sft_rows=4`, and
+`candidate_dpo_pairs=14`. This is data evidence only: no training, prediction,
+evaluator change, safety improvement claim, model-quality claim, checkpoint or
+adapter release, production-readiness claim, or live-browser benchmark claim.
+The recommended next bounded phase is a current-manifest prediction-only
+baseline or training-readiness check before any SFT retry.
 
 ## Language
 

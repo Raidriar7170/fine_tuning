@@ -13,9 +13,9 @@ This is readiness-only evidence for a later bounded `form_fill` remediation SFT 
 
 ## Summary
 
-- Manifest: `public-sample-20260616T074315Z`
+- Manifest: `public-sample-20260616T165835Z`
 - Baseline interpretation: `formal_public_heldout_partial_signal`
-- Train split rows selected by dry-run: `114`
+- Train split rows selected by dry-run: `118`
 - Merged form-fill train rows: `21`
 - Selected residual rows / fields: `29` / `49`
 - Readiness status: `ready_for_bounded_a100_sft_v3_phase`

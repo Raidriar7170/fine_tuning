@@ -15,8 +15,8 @@ FORM_FILL_CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "form_fill_remediation_seed_candi
 MERGE_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "form-fill-remediation-public-sample-merge"
 
 EXPECTED_FORM_FILL_IDS = {row["id"] for row in read_jsonl(FORM_FILL_CANDIDATE_SEED)}
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
-CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 114}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 864, "seed_rows": 100, "sft_rows": 256}
+CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 118}
 LEGACY_FORM_FILL_MERGE_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
 LEGACY_FORM_FILL_MERGE_SPLITS = {"dev": 69, "test": 69, "train": 102}
 EXPECTED_CASE_GROUPS = {

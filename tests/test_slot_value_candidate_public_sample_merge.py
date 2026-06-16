@@ -14,8 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_SAMPLE_DIR = REPO_ROOT / "data" / "public-samples"
 CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "slot_value_generalization_seed_candidates.jsonl"
 
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
-CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 114}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 864, "seed_rows": 100, "sft_rows": 256}
+CURRENT_FORMAL_SPLITS = {"dev": 69, "test": 69, "train": 118}
 LEGACY_MERGED_SLOT_VALUE_COUNTS = {"dpo_pairs": 125, "seed_rows": 14, "sft_rows": 42}
 LEGACY_MERGED_SLOT_VALUE_SPLITS = {"dev": 6, "test": 6, "train": 30}
 EXPECTED_CANDIDATE_IDS = {

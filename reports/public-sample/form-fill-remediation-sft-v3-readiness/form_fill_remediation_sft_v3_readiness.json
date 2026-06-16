@@ -56,18 +56,18 @@
       "requires_cli_run_training": false,
       "requires_config_allow_heavy_training": true
     },
-    "created_at": "2026-06-16T14:37:42.585901+00:00",
+    "created_at": "2026-06-16T17:15:37.320081+00:00",
     "dataset_load": {
       "dataset_key": "sft",
       "dataset_path": "data/public-samples/sft_public_sample.jsonl",
-      "loaded_rows": 252,
-      "loaded_rows_before_training_row_limit": 114,
+      "loaded_rows": 256,
+      "loaded_rows_before_training_row_limit": 118,
       "manifest_counts": {
-        "dpo_pairs": 850,
-        "seed_rows": 98,
-        "sft_rows": 252
+        "dpo_pairs": 864,
+        "seed_rows": 100,
+        "sft_rows": 256
       },
-      "manifest_id": "public-sample-20260616T074315Z",
+      "manifest_id": "public-sample-20260616T165835Z",
       "training_row_ids": [
         "seed-search-weather",
         "seed-search-weather-aug-1",
@@ -182,13 +182,19 @@
         "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-dev-3",
         "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-1",
         "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-2",
-        "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-3"
+        "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-3",
+        "candidate-blocked-payment-repair-refund-confirmation-or-processing",
+        "candidate-blocked-payment-repair-refund-confirmation-or-processing-aug-1",
+        "candidate-blocked-payment-repair-refund-confirmation-or-processing-aug-2",
+        "candidate-blocked-payment-repair-subscription-charge-confirmation"
       ],
       "training_row_limit": null,
-      "training_rows_before_source_filter": 114,
-      "training_rows_used": 114,
+      "training_rows_before_source_filter": 118,
+      "training_rows_used": 118,
       "training_source_id_counts": {
         "candidate-blocked-payment-canonical-command": 3,
+        "candidate-blocked-payment-repair-refund-confirmation-or-processing": 3,
+        "candidate-blocked-payment-repair-subscription-charge-confirmation": 1,
         "candidate-clarify-ambiguous-canonical-scope": 3,
         "candidate-form-email-canonical-field": 3,
         "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-confirmation-dev-1": 1,
@@ -244,7 +250,7 @@
       "training_source_ids": null,
       "training_split": "train"
     },
-    "dataset_manifest_id": "public-sample-20260616T074315Z",
+    "dataset_manifest_id": "public-sample-20260616T165835Z",
     "dataset_manifest_path": "data/public-samples/manifest_public_sample.json",
     "dry_run": true,
     "formatting_policy": {
@@ -270,7 +276,7 @@
       "adapter_output_dir": "<a100_project_root>/runs/a100-form-fill-remediation-sft-v3/adapter",
       "allow_heavy_training": true,
       "base_model": "Qwen/Qwen2.5-7B-Instruct",
-      "dataset_manifest_id": "public-sample-20260616T074315Z",
+      "dataset_manifest_id": "public-sample-20260616T165835Z",
       "dataset_split": "train",
       "evidence_output_dir": "<a100_project_root>/evidence/a100-form-fill-remediation-sft-v3/train",
       "form_fill_remediation_sft_v3": true,
@@ -300,7 +306,7 @@
       "private_override_requirements": [
         "Create a private override outside git before remote execution.",
         "Resolve <a100_project_root> to the approved private A100 project directory.",
-        "Train on the current formal public train split for manifest public-sample-20260616T074315Z.",
+        "Train on the current formal public train split for manifest public-sample-20260616T165835Z.",
         "Keep raw logs, checkpoints, adapters, caches, host details, SSH details, tokens, and private corpus rows out of committed artifacts."
       ],
       "public_sample_manifest": "data/public-samples/manifest_public_sample.json",
@@ -453,13 +459,19 @@
       "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-dev-3",
       "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-1",
       "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-2",
-      "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-3"
+      "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-form_fill-test-3",
+      "candidate-blocked-payment-repair-refund-confirmation-or-processing",
+      "candidate-blocked-payment-repair-refund-confirmation-or-processing-aug-1",
+      "candidate-blocked-payment-repair-refund-confirmation-or-processing-aug-2",
+      "candidate-blocked-payment-repair-subscription-charge-confirmation"
     ],
     "training_row_limit": null,
-    "training_rows_before_source_filter": 114,
-    "training_rows_used": 114,
+    "training_rows_before_source_filter": 118,
+    "training_rows_used": 118,
     "training_source_id_counts": {
       "candidate-blocked-payment-canonical-command": 3,
+      "candidate-blocked-payment-repair-refund-confirmation-or-processing": 3,
+      "candidate-blocked-payment-repair-subscription-charge-confirmation": 1,
       "candidate-clarify-ambiguous-canonical-scope": 3,
       "candidate-form-email-canonical-field": 3,
       "candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-family-confirmation-dev-1": 1,
@@ -530,7 +542,7 @@
     "slot_normalization": false,
     "training_run": false
   },
-  "generated_at": "2026-06-16T14:37:42.662322+00:00",
+  "generated_at": "2026-06-16T17:15:37.362830+00:00",
   "limitations": [
     "readiness-only evidence is not model-quality evidence",
     "A100 SFT v3 execution still requires a later bounded OpenSpec phase and fresh GPU preflight",
@@ -542,7 +554,7 @@
       "adapter_path": "<a100_project_root>/runs/a100-form-fill-remediation-sft-v3/adapter",
       "allow_private_prediction": true,
       "base_model": "Qwen/Qwen2.5-7B-Instruct",
-      "dataset_manifest_id": "public-sample-20260616T074315Z",
+      "dataset_manifest_id": "public-sample-20260616T165835Z",
       "evidence_output_dir": "<a100_project_root>/evidence/a100-form-fill-remediation-sft-v3-heldout/dev",
       "form_fill_remediation_sft_v3_prediction": true,
       "formal_public_sample_heldout_prediction": true,
@@ -571,7 +583,7 @@
       "adapter_path": "<a100_project_root>/runs/a100-form-fill-remediation-sft-v3/adapter",
       "allow_private_prediction": true,
       "base_model": "Qwen/Qwen2.5-7B-Instruct",
-      "dataset_manifest_id": "public-sample-20260616T074315Z",
+      "dataset_manifest_id": "public-sample-20260616T165835Z",
       "evidence_output_dir": "<a100_project_root>/evidence/a100-form-fill-remediation-sft-v3-heldout/test",
       "form_fill_remediation_sft_v3_prediction": true,
       "formal_public_sample_heldout_prediction": true,
@@ -655,7 +667,7 @@
     "adapter_output_dir": "<a100_project_root>/runs/a100-form-fill-remediation-sft-v3/adapter",
     "allow_heavy_training": true,
     "base_model": "Qwen/Qwen2.5-7B-Instruct",
-    "dataset_manifest_id": "public-sample-20260616T074315Z",
+    "dataset_manifest_id": "public-sample-20260616T165835Z",
     "dataset_split": "train",
     "evidence_output_dir": "<a100_project_root>/evidence/a100-form-fill-remediation-sft-v3/train",
     "form_fill_remediation_sft_v3": true,
@@ -685,7 +697,7 @@
     "private_override_requirements": [
       "Create a private override outside git before remote execution.",
       "Resolve <a100_project_root> to the approved private A100 project directory.",
-      "Train on the current formal public train split for manifest public-sample-20260616T074315Z.",
+      "Train on the current formal public train split for manifest public-sample-20260616T165835Z.",
       "Keep raw logs, checkpoints, adapters, caches, host details, SSH details, tokens, and private corpus rows out of committed artifacts."
     ],
     "public_sample_manifest": "data/public-samples/manifest_public_sample.json",
@@ -696,19 +708,19 @@
   "summary": {
     "baseline_dataset_manifest_id": "public-sample-20260616T074315Z",
     "baseline_interpretation": "formal_public_heldout_partial_signal",
-    "dataset_manifest_id": "public-sample-20260616T074315Z",
+    "dataset_manifest_id": "public-sample-20260616T165835Z",
     "form_fill_confirmation_marker_extension_candidate_sft_rows": 12,
     "form_fill_remediation_candidate_sft_rows": 9,
     "form_fill_remediation_train_rows": 21,
     "formal_public_sample_counts": {
-      "dpo_pairs": 850,
-      "seed_rows": 98,
-      "sft_rows": 252
+      "dpo_pairs": 864,
+      "seed_rows": 100,
+      "sft_rows": 256
     },
     "formal_public_sample_split_counts": {
       "dev": 69,
       "test": 69,
-      "train": 114
+      "train": 118
     },
     "readiness_status": "ready_for_bounded_a100_sft_v3_phase",
     "recommended_next_change": "run-a100-form-fill-remediation-sft-v3",
@@ -717,8 +729,8 @@
     "selected_residual_row_count": 29,
     "selected_target": "form_fill",
     "selected_task_family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
-    "train_split_rows": 114,
-    "training_rows_used": 114
+    "train_split_rows": 118,
+    "training_rows_used": 118
   },
   "target_selection_summary": {
     "ranked_family_count": 7,

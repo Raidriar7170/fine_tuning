@@ -30,10 +30,12 @@ COMMITTED_REPORT_DIR = (
     / "public-sample"
     / "form-fill-confirmation-marker-extension-candidate-integration-preview"
 )
-PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
-EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
-EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 114}
+PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 756, "seed_rows": 88, "sft_rows": 244}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 864, "seed_rows": 100, "sft_rows": 256}
+EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 864, "seed_rows": 100, "sft_rows": 256}
+EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 118}
+HISTORICAL_PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+HISTORICAL_PREVIEW_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 EXPECTED_CANDIDATE_IDS = {row["id"] for row in read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)}
 
 
@@ -81,9 +83,9 @@ def test_check_form_fill_confirmation_marker_extension_candidate_integration_pre
     manifest = read_json(paths["manifest"])
     markdown = paths["markdown"].read_text(encoding="utf-8")
 
-    assert len(preview_seed_rows) == 98
-    assert len(preview_sft_rows) == 252
-    assert len(preview_dpo_rows) == 850
+    assert len(preview_seed_rows) == EXPECTED_PREVIEW_COUNTS["seed_rows"]
+    assert len(preview_sft_rows) == EXPECTED_PREVIEW_COUNTS["sft_rows"]
+    assert len(preview_dpo_rows) == EXPECTED_PREVIEW_COUNTS["dpo_pairs"]
     assert preview_manifest["counts"] == EXPECTED_PREVIEW_COUNTS
     assert preview_manifest["split_counts"] == EXPECTED_PREVIEW_SPLITS
     assert evidence["evidence_kind"] == "form_fill_confirmation_marker_extension_candidate_integration_preview"
@@ -261,8 +263,8 @@ def test_committed_form_fill_confirmation_marker_extension_candidate_integration
     preview_manifest = read_json(COMMITTED_REPORT_DIR / "public-sample-preview" / "manifest_public_sample.json")
 
     assert public_manifest["counts"] == CURRENT_FORMAL_COUNTS
-    assert evidence["formal_public_sample_counts_before"] == PRE_MERGE_FORMAL_COUNTS
-    assert evidence["preview_counts"] == EXPECTED_PREVIEW_COUNTS
+    assert evidence["formal_public_sample_counts_before"] == HISTORICAL_PRE_MERGE_FORMAL_COUNTS
+    assert evidence["preview_counts"] == HISTORICAL_PREVIEW_COUNTS
     assert evidence["candidate_source"]["candidate_seed_rows"] == 12
     assert evidence["candidate_source"]["candidate_preview_dpo_pairs"] == 108
     assert evidence["execution_scope"]["formal_public_sample_modified"] is False
@@ -273,7 +275,7 @@ def test_committed_form_fill_confirmation_marker_extension_candidate_integration
     assert manifest["artifact_policy"]["preview_only_not_formal_public_sample"] is True
     assert manifest["claims"]["model_recovery_claim"] is False
     assert manifest["claims"]["held_out_generalization_recovered"] is False
-    assert preview_manifest["counts"] == EXPECTED_PREVIEW_COUNTS
+    assert preview_manifest["counts"] == HISTORICAL_PREVIEW_COUNTS
     markdown = (
         COMMITTED_REPORT_DIR / "form_fill_confirmation_marker_extension_candidate_integration_preview.md"
     ).read_text(encoding="utf-8")

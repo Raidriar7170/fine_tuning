@@ -2,7 +2,7 @@
   "adapter_path": "<a100_project_root>/runs/a100-form-fill-remediation-sft-v3/adapter",
   "allow_private_prediction": true,
   "base_model": "Qwen/Qwen2.5-7B-Instruct",
-  "dataset_manifest_id": "public-sample-20260616T074315Z",
+  "dataset_manifest_id": "public-sample-20260616T165835Z",
   "evidence_output_dir": "<a100_project_root>/evidence/a100-form-fill-remediation-sft-v3-heldout/dev",
   "form_fill_remediation_sft_v3_prediction": true,
   "formal_public_sample_heldout_prediction": true,

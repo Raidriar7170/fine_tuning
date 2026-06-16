@@ -164,6 +164,29 @@ EXPECTED_FORM_FILL_CONFIRMATION_MARKER_EXTENSION_CANDIDATE_IDS = frozenset(
     f"candidate-form-fill-confirmation-marker-extension-ff-confirm-marker-extension-{family_id}"
     for family_id in _FORM_FILL_CONFIRMATION_MARKER_EXTENSION_SOURCE_FAMILIES
 )
+_BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES: dict[str, dict[str, Any]] = {
+    "refund_confirmation_or_processing": {
+        "id": "candidate-blocked-payment-repair-refund-confirmation-or-processing",
+        "split": "train",
+        "input_text": "帮我确认退款到账户",
+        "augmentations": ["替我提交退款确认", "直接处理这笔退款"],
+        "action": "退款确认",
+        "reason": "refund_control",
+        "normalized_command": "拒绝代替用户退款确认",
+    },
+    "subscription_charge_confirmation": {
+        "id": "candidate-blocked-payment-repair-subscription-charge-confirmation",
+        "split": "train",
+        "input_text": "替我确认订阅扣款",
+        "augmentations": [],
+        "action": "订阅扣款",
+        "reason": "subscription_charge_control",
+        "normalized_command": "拒绝订阅扣款确认",
+    },
+}
+EXPECTED_BLOCKED_PAYMENT_SAFETY_REPAIR_CANDIDATE_IDS = frozenset(
+    str(template["id"]) for template in _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES.values()
+)
 FORM_FILL_REMEDIATION_DPO_REJECTION_CATEGORIES = (
     "form_confirmation_drift",
     "malformed_schema",
@@ -1336,6 +1359,46 @@ def _form_fill_confirmation_marker_extension_formal_sft_count(rows: list[SFTData
     )
 
 
+def _is_formal_blocked_payment_safety_repair_seed(row: dict[str, Any]) -> bool:
+    provenance = row.get("provenance") or {}
+    return (
+        provenance.get("source_mode") == "blocked_payment_safety_repair_formal_public_seed"
+        and provenance.get("candidate_status") == "formal_public_sample"
+    )
+
+
+def _blocked_payment_safety_repair_formal_seed_count(seed_rows: list[dict[str, Any]]) -> int:
+    return sum(1 for row in seed_rows if _is_formal_blocked_payment_safety_repair_seed(row))
+
+
+def _blocked_payment_safety_repair_formal_seed_split_counts(seed_rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = Counter(row["split"] for row in seed_rows if _is_formal_blocked_payment_safety_repair_seed(row))
+    return {split: counts.get(split, 0) for split in ("train", "dev", "test")}
+
+
+def _blocked_payment_safety_repair_formal_families(seed_rows: list[dict[str, Any]]) -> list[str]:
+    return sorted(
+        {
+            str((row.get("provenance") or {}).get("repair_family"))
+            for row in seed_rows
+            if _is_formal_blocked_payment_safety_repair_seed(row)
+        }
+    )
+
+
+def _blocked_payment_safety_repair_formal_sft_count(rows: list[SFTDatasetRow]) -> int:
+    return sum(
+        1
+        for row in rows
+        if row.provenance.get("source_mode") in {
+            "blocked_payment_safety_repair_formal_public_seed",
+            "schema_preserving_augmentation",
+        }
+        and row.provenance.get("candidate_status") == "formal_public_sample"
+        and row.provenance.get("repair_family") in _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES
+    )
+
+
 def _formal_family_stratified_candidate_seed(row: dict[str, Any], candidate_seed_path: Path) -> dict[str, Any]:
     provenance = dict(row.get("provenance") or {})
     if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
@@ -1386,6 +1449,26 @@ def _formal_form_fill_confirmation_marker_extension_candidate_seed(
     merged["provenance"] = {
         **provenance,
         "source_mode": "form_fill_confirmation_marker_extension_formal_public_seed",
+        "public_safe": True,
+        "candidate_status": "formal_public_sample",
+        "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
+    }
+    validate_public_record(merged)
+    return merged
+
+
+def _formal_blocked_payment_safety_repair_candidate_seed(
+    row: dict[str, Any],
+    candidate_seed_path: Path,
+) -> dict[str, Any]:
+    provenance = dict(row.get("provenance") or {})
+    if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+        raise ValueError(f"blocked-payment repair candidate seed already has unsupported status: {row.get('id')}")
+    merged = dict(row)
+    merged["split"] = "train"
+    merged["provenance"] = {
+        **provenance,
+        "source_mode": "blocked_payment_safety_repair_formal_public_seed",
         "public_safe": True,
         "candidate_status": "formal_public_sample",
         "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
@@ -2205,6 +2288,143 @@ def _validate_reviewed_form_fill_confirmation_marker_extension_candidate_seed_ro
         validate_public_record(row)
 
 
+def _require_reviewed_blocked_payment_safety_repair_candidates(design: dict[str, Any]) -> list[dict[str, Any]]:
+    if design.get("evidence_kind") != "blocked_payment_safety_repair_candidate_design":
+        raise ValueError("design must be blocked_payment_safety_repair_candidate_design evidence")
+    if design.get("design_mode") != "public_safe_design_only_no_materialization":
+        raise ValueError("blocked-payment repair design must be design-only before materialization")
+    summary = design.get("summary")
+    if not isinstance(summary, dict) or summary.get("candidate_count") != 2:
+        raise ValueError("blocked-payment repair materialization expects exactly two reviewed candidates")
+    if summary.get("candidate_seed_rows_materialized") is not False:
+        raise ValueError("blocked-payment repair design must not already be materialized")
+    if summary.get("dpo_pairs_generated") is not False:
+        raise ValueError("blocked-payment repair design must not already generate DPO pairs")
+
+    candidates = design.get("candidates")
+    if not isinstance(candidates, list) or len(candidates) != 2:
+        raise ValueError("blocked-payment repair design must contain exactly two candidate records")
+    by_family: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            raise ValueError("blocked-payment repair candidate records must be objects")
+        repair_family = str(candidate.get("repair_family"))
+        if repair_family not in _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES:
+            raise ValueError(f"unsupported blocked-payment repair family: {repair_family}")
+        if repair_family in by_family:
+            raise ValueError(f"duplicate blocked-payment repair family: {repair_family}")
+        target = candidate.get("accepted_target_contract_sketch")
+        if not isinstance(target, dict):
+            raise ValueError(f"blocked-payment repair candidate {repair_family} is missing target sketch")
+        safety = target.get("safety")
+        if not isinstance(safety, dict):
+            raise ValueError(f"blocked-payment repair candidate {repair_family} is missing safety sketch")
+        expected = {
+            "task_type": "blocked",
+            "route": "deny",
+            "confirmation_required": False,
+        }
+        for key, value in expected.items():
+            if target.get(key) != value:
+                raise ValueError(f"blocked-payment repair candidate {repair_family} has incompatible {key}")
+        if safety.get("allow") is not False or safety.get("reason") != "unsafe_payment":
+            raise ValueError(f"blocked-payment repair candidate {repair_family} must deny unsafe_payment")
+        source_rows = candidate.get("source_row_ids")
+        if not isinstance(source_rows, list) or not source_rows:
+            raise ValueError(f"blocked-payment repair candidate {repair_family} must preserve source rows")
+        by_family[repair_family] = candidate
+
+    missing = sorted(set(_BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES) - set(by_family))
+    if missing:
+        raise ValueError(f"missing blocked-payment repair families: {', '.join(missing)}")
+    return [by_family[family] for family in _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES]
+
+
+def _blocked_payment_safety_repair_target_contract(template: dict[str, Any]) -> dict[str, Any]:
+    return _contract(
+        task_type="blocked",
+        route="deny",
+        safety_reason="unsafe_payment",
+        allow=False,
+        confirmation_required=False,
+        slots={"action": str(template["action"]), "reason": str(template["reason"])},
+        normalized_command=str(template["normalized_command"]),
+    )
+
+
+def _blocked_payment_safety_repair_candidate_seed_rows(
+    design: dict[str, Any],
+    source_design_ref: str,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for candidate in _require_reviewed_blocked_payment_safety_repair_candidates(design):
+        repair_family = str(candidate["repair_family"])
+        template = _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES[repair_family]
+        suggested_templates = list(candidate.get("suggested_public_utterance_templates") or [])
+        expected_templates = [template["input_text"], *template["augmentations"]]
+        if sorted(str(item) for item in suggested_templates) != sorted(str(item) for item in expected_templates):
+            raise ValueError(f"blocked-payment repair candidate {repair_family} has unexpected utterance templates")
+        row = {
+            "id": template["id"],
+            "split": template["split"],
+            "input_text": template["input_text"],
+            "target_contract": _blocked_payment_safety_repair_target_contract(template),
+            "augmentations": list(template["augmentations"]),
+            "provenance": {
+                "source_mode": "blocked_payment_safety_repair_candidate_seed",
+                "public_safe": True,
+                "candidate_status": "standalone_not_formal_public_sample",
+                "source_design": source_design_ref,
+                "source_design_evidence_kind": design["evidence_kind"],
+                "source_candidate_id": str(candidate["candidate_id"]),
+                "repair_family": repair_family,
+                "source_row_ids": list(candidate["source_row_ids"]),
+                "source_classification_counts": dict(candidate["source_classification_counts"]),
+                "accepted_target_contract_sketch": dict(candidate["accepted_target_contract_sketch"]),
+            },
+        }
+        validate_public_record(row)
+        rows.append(row)
+    return rows
+
+
+def _validate_reviewed_blocked_payment_safety_repair_candidate_seed_rows(
+    candidate_seed_rows: list[dict[str, Any]],
+) -> None:
+    observed_ids = {str(row.get("id")) for row in candidate_seed_rows}
+    if observed_ids != EXPECTED_BLOCKED_PAYMENT_SAFETY_REPAIR_CANDIDATE_IDS:
+        expected = ", ".join(sorted(EXPECTED_BLOCKED_PAYMENT_SAFETY_REPAIR_CANDIDATE_IDS))
+        observed = ", ".join(sorted(observed_ids))
+        raise ValueError(
+            "expected reviewed blocked-payment repair candidate seed IDs "
+            f"[{expected}], observed [{observed}]"
+        )
+    if len(candidate_seed_rows) != len(EXPECTED_BLOCKED_PAYMENT_SAFETY_REPAIR_CANDIDATE_IDS):
+        raise ValueError("expected exactly one row per reviewed blocked-payment repair candidate seed ID")
+
+    for row in candidate_seed_rows:
+        provenance_raw = row.get("provenance")
+        provenance = provenance_raw if isinstance(provenance_raw, dict) else {}
+        if row.get("split") != "train":
+            raise ValueError("blocked-payment repair candidate seeds must stay in train split")
+        if provenance.get("source_mode") != "blocked_payment_safety_repair_candidate_seed":
+            raise ValueError("blocked-payment repair candidate seeds must preserve source_mode provenance")
+        if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+            raise ValueError("blocked-payment repair candidate seeds must originate from standalone status")
+        if provenance.get("public_safe") is not True:
+            raise ValueError("blocked-payment repair candidate seeds must be public_safe")
+        target = as_contract(row["target_contract"])
+        if not (
+            target.task_type == "blocked"
+            and target.route == "deny"
+            and target.safety.get("allow") is False
+            and target.safety.get("reason") == "unsafe_payment"
+            and target.confirmation_required is False
+        ):
+            raise ValueError("blocked-payment repair candidate target must be blocked/deny unsafe_payment")
+        validate_public_record(row)
+
+
 def _form_fill_confirmation_marker_extension_preview_seed(
     row: dict[str, Any],
     candidate_seed_path: Path,
@@ -2269,6 +2489,134 @@ def _confirmation_marker_extension_materialization_summary(
             else "review_candidate_extension_before_any_formal_public_sample_merge"
         ),
     }
+
+
+def _blocked_payment_safety_repair_materialization_summary(
+    *,
+    candidate_seed_rows: list[dict[str, Any]],
+    candidate_sft_rows: list[SFTDatasetRow],
+    formal_public_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    formal_counts = formal_public_manifest["counts"]
+    formal_source_summary = formal_public_manifest.get("source_summary") or {}
+    return {
+        "candidate_family_count": len(_BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES),
+        "candidate_seed_rows": len(candidate_seed_rows),
+        "candidate_sft_rows": len(candidate_sft_rows),
+        "candidate_repair_families": [
+            str(row["provenance"]["repair_family"]) for row in candidate_seed_rows
+        ],
+        "formal_public_sample_seed_rows": formal_counts["seed_rows"],
+        "formal_public_sample_sft_rows": formal_counts["sft_rows"],
+        "formal_public_sample_dpo_pairs": formal_counts["dpo_pairs"],
+        "formal_public_sample_has_blocked_payment_safety_repair_candidates": bool(
+            formal_source_summary.get("blocked_payment_safety_repair_candidates_formal_public_sample")
+        ),
+        "formal_public_sample_modified": False,
+        "seed_traces_modified": False,
+        "recommended_next_step": "merge_reviewed_blocked_payment_repair_candidates_into_public_sample",
+    }
+
+
+def materialize_blocked_payment_safety_repair_candidates(
+    *,
+    candidate_design_path: Path,
+    seed_output_path: Path,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Write standalone candidates from the reviewed blocked-payment repair design."""
+
+    _reject_formal_public_sample_output_path(seed_output_path)
+    design = read_json(candidate_design_path)
+    formal_public_manifest = read_json(FORMAL_PUBLIC_MANIFEST_PATH)
+    source_design_ref = _safe_artifact_ref(candidate_design_path)
+    candidate_seed_rows = _blocked_payment_safety_repair_candidate_seed_rows(design, source_design_ref)
+    candidate_sft_rows = expand_sft_rows(candidate_seed_rows, public_safe=True)
+    for row in candidate_sft_rows:
+        validate_public_record(row.to_dict())
+
+    write_jsonl(seed_output_path, candidate_seed_rows)
+    materialization = {
+        "evidence_kind": "blocked_payment_safety_repair_materialization",
+        "materialization_status": "candidate_dataset_materialized",
+        "source_candidate_design": {
+            "path": source_design_ref,
+            "evidence_kind": design["evidence_kind"],
+            "design_mode": design["design_mode"],
+            "summary": design["summary"],
+        },
+        "summary": _blocked_payment_safety_repair_materialization_summary(
+            candidate_seed_rows=candidate_seed_rows,
+            candidate_sft_rows=candidate_sft_rows,
+            formal_public_manifest=formal_public_manifest,
+        ),
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_candidate_data_generated": True,
+            "formal_public_sample_modified": False,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "prompt_change": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_recovery_claim": False,
+            "held_out_generalization_recovered": False,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "candidate_repair_families": [
+            {
+                "candidate_seed_id": seed["id"],
+                "candidate_sft_row_ids": [
+                    row.id for row in candidate_sft_rows if row.provenance["source_id"] == seed["id"]
+                ],
+                "repair_family": seed["provenance"]["repair_family"],
+                "source_candidate_id": seed["provenance"]["source_candidate_id"],
+                "source_row_ids": seed["provenance"]["source_row_ids"],
+                "source_classification_counts": seed["provenance"]["source_classification_counts"],
+                "accepted_target_contract_sketch": seed["provenance"]["accepted_target_contract_sketch"],
+            }
+            for seed in candidate_seed_rows
+        ],
+        "artifact_files": {
+            "candidate_seed": _safe_artifact_ref(seed_output_path),
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization_json": "blocked_payment_safety_repair_materialization.json",
+            "materialization_markdown": "blocked_payment_safety_repair_materialization.md",
+            "manifest": "manifest.json",
+        },
+    }
+
+    from voice2task.reports import write_blocked_payment_safety_repair_materialization_report
+
+    paths = write_blocked_payment_safety_repair_materialization_report(
+        materialization,
+        output_dir=output_dir,
+        sft_rows=[row.to_dict() for row in candidate_sft_rows],
+    )
+    return {"seed": seed_output_path, **paths}
 
 
 def materialize_form_fill_confirmation_marker_extension_candidates(
@@ -2690,6 +3038,38 @@ def check_form_fill_confirmation_marker_extension_candidate_integration_preview(
     }
 
 
+def merge_blocked_payment_safety_repair_candidates_into_public_sample(
+    *,
+    candidate_seed_path: Path,
+    seed_path: Path,
+    output_dir: Path,
+) -> DatasetManifest:
+    """Merge reviewed blocked-payment repair candidate seeds into the formal public sample."""
+
+    seed_rows = _read_seed_rows(seed_path)
+    candidate_seed_rows = read_jsonl(candidate_seed_path)
+    _validate_reviewed_blocked_payment_safety_repair_candidate_seed_rows(candidate_seed_rows)
+    existing_ids = {str(row["id"]) for row in seed_rows}
+    duplicate_ids = sorted(str(row["id"]) for row in candidate_seed_rows if str(row["id"]) in existing_ids)
+    if duplicate_ids:
+        raise ValueError(
+            "blocked-payment repair candidate seed IDs already exist in public sample: "
+            f"{', '.join(duplicate_ids)}"
+        )
+
+    merged_candidates = [
+        _formal_blocked_payment_safety_repair_candidate_seed(row, candidate_seed_path=candidate_seed_path)
+        for row in candidate_seed_rows
+    ]
+    for row in merged_candidates:
+        as_contract(row["target_contract"])
+
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(seed_path, [*seed_rows, *merged_candidates])
+    return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+
 def merge_form_fill_remediation_candidates_into_public_sample(
     *,
     candidate_seed_path: Path,
@@ -2755,6 +3135,114 @@ def merge_form_fill_confirmation_marker_extension_candidates_into_public_sample(
     output_dir.mkdir(parents=True, exist_ok=True)
     write_jsonl(seed_path, [*seed_rows, *merged_candidates])
     return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+
+def blocked_payment_safety_repair_public_sample_merge_evidence(
+    *,
+    manifest: DatasetManifest,
+    candidate_seed_path: Path,
+    pre_merge_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    from voice2task.validation import validate_dataset_artifacts
+
+    source_summary = manifest.source_summary
+    candidate_seed_rows = int(source_summary.get("blocked_payment_safety_repair_candidate_seed_rows", 0))
+    candidate_sft_rows = int(source_summary.get("blocked_payment_safety_repair_candidate_sft_rows", 0))
+    pre_counts = dict(pre_merge_manifest.get("counts") or {})
+    pre_rejections = dict(pre_merge_manifest.get("dpo_rejection_counts") or {})
+    post_rejections = manifest.dpo_rejection_counts
+    rejection_deltas = {
+        key: int(post_rejections.get(key, 0)) - int(pre_rejections.get(key, 0))
+        for key in sorted(set(pre_rejections) | set(post_rejections))
+        if int(post_rejections.get(key, 0)) - int(pre_rejections.get(key, 0)) != 0
+    }
+    validation = validate_dataset_artifacts(
+        sft_path=Path(manifest.files["sft"]),
+        dpo_path=Path(manifest.files["dpo"]),
+        manifest_path=Path(manifest.files["manifest"]),
+        public=True,
+    )
+    return {
+        "evidence_kind": "blocked_payment_safety_repair_public_sample_merge",
+        "merge_status": "formal_public_sample_rebuilt" if validation.ok else "formal_public_sample_validation_failed",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "pre_merge_public_sample_counts": pre_counts,
+        "pre_merge_public_sample_dpo_rejection_counts": pre_rejections,
+        "formal_public_sample_counts": manifest.counts,
+        "formal_public_sample_split_counts": manifest.split_counts,
+        "formal_public_sample_dpo_rejection_counts": manifest.dpo_rejection_counts,
+        "source_summary": source_summary,
+        "candidate_source": {
+            "candidate_seed": _safe_artifact_ref(candidate_seed_path),
+            "candidate_seed_rows": candidate_seed_rows,
+            "candidate_sft_rows": candidate_sft_rows,
+            "candidate_dpo_pairs": manifest.counts["dpo_pairs"] - int(pre_counts.get("dpo_pairs", 0)),
+            "candidate_source_mode": "blocked_payment_safety_repair_candidate_seed",
+            "formal_source_mode": "blocked_payment_safety_repair_formal_public_seed",
+            "repair_families": source_summary.get("blocked_payment_safety_repair_families", []),
+            "seed_split_counts": source_summary.get(
+                "blocked_payment_safety_repair_seed_split_counts",
+                {"train": candidate_seed_rows, "dev": 0, "test": 0},
+            ),
+            "dpo_rejection_deltas": rejection_deltas,
+        },
+        "validation": {
+            "ok": validation.ok,
+            "failures": validation.failures,
+            "counts": validation.counts,
+        },
+        "metric_authority": {
+            "contract_evaluation_ladder": "authoritative",
+            "contract_exact_match": "authoritative_strict_metric",
+            "slot_f1": "authoritative_strict_metric",
+            "slot_f1_soft": "diagnostic_only_not_primary",
+        },
+        "execution_scope": {
+            "formal_public_sample_modified": True,
+            "seed_traces_modified": True,
+            "sft_artifacts_rebuilt": True,
+            "dpo_artifacts_rebuilt": True,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "prompt_change": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_recovery_claim": False,
+            "held_out_generalization_recovered": False,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "seed": manifest.files["seed"],
+            "sft": manifest.files["sft"],
+            "dpo": manifest.files["dpo"],
+            "manifest": manifest.files["manifest"],
+            "merge_json": "blocked_payment_safety_repair_public_sample_merge.json",
+            "merge_markdown": "blocked_payment_safety_repair_public_sample_merge.md",
+            "merge_manifest": "manifest.json",
+        },
+        "recommended_next_step": "run_prediction_only_eval_against_the_new_manifest_in_a_later_phase",
+    }
 
 
 def form_fill_remediation_public_sample_merge_evidence(
@@ -2943,6 +3431,7 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
     confirmation_marker_extension_seed_count = (
         _form_fill_confirmation_marker_extension_formal_seed_count(seed_rows)
     )
+    blocked_payment_repair_seed_count = _blocked_payment_safety_repair_formal_seed_count(seed_rows)
     source_summary: dict[str, Any] = {
         "seed_rows": len(seed_rows),
         "source": "sanitized_public_seed_fixture",
@@ -2990,6 +3479,22 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
                 ),
                 "form_fill_confirmation_marker_extension_seed_split_counts": (
                     _form_fill_confirmation_marker_extension_formal_seed_split_counts(seed_rows)
+                ),
+            }
+        )
+    if blocked_payment_repair_seed_count:
+        source_summary.update(
+            {
+                "blocked_payment_safety_repair_candidate_seed_rows": blocked_payment_repair_seed_count,
+                "blocked_payment_safety_repair_candidate_sft_rows": (
+                    _blocked_payment_safety_repair_formal_sft_count(rows)
+                ),
+                "blocked_payment_safety_repair_candidates_formal_public_sample": True,
+                "blocked_payment_safety_repair_families": (
+                    _blocked_payment_safety_repair_formal_families(seed_rows)
+                ),
+                "blocked_payment_safety_repair_seed_split_counts": (
+                    _blocked_payment_safety_repair_formal_seed_split_counts(seed_rows)
                 ),
             }
         )

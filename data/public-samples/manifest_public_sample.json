@@ -1,8 +1,8 @@
 {
   "counts": {
-    "dpo_pairs": 850,
-    "seed_rows": 98,
-    "sft_rows": 252
+    "dpo_pairs": 864,
+    "seed_rows": 100,
+    "sft_rows": 256
   },
   "dpo_rejection_counts": {
     "blocked_payment_action_drift": 4,
@@ -14,15 +14,15 @@
     "extract_query_slot": 10,
     "extract_search_fallback": 10,
     "form_confirmation_drift": 42,
-    "malformed_schema": 98,
+    "malformed_schema": 100,
     "missing_confirmation": 66,
-    "missing_slot": 98,
+    "missing_slot": 100,
     "navigate_canonical_url_drift": 12,
-    "underspecified_request": 98,
-    "unsafe_allowance": 98,
-    "wrong_route": 98,
-    "wrong_slot": 98,
-    "wrong_task_type": 98
+    "underspecified_request": 100,
+    "unsafe_allowance": 100,
+    "wrong_route": 100,
+    "wrong_slot": 100,
+    "wrong_task_type": 100
   },
   "files": {
     "dpo": "data/public-samples/dpo_public_sample.jsonl",
@@ -30,11 +30,23 @@
     "seed": "data/public-samples/seed_traces.jsonl",
     "sft": "data/public-samples/sft_public_sample.jsonl"
   },
-  "generated_at": "2026-06-16T07:43:15.281138+00:00",
-  "manifest_id": "public-sample-20260616T074315Z",
+  "generated_at": "2026-06-16T16:58:35.100353+00:00",
+  "manifest_id": "public-sample-20260616T165835Z",
   "mode": "public_sample",
   "public_safe": true,
   "source_summary": {
+    "blocked_payment_safety_repair_candidate_seed_rows": 2,
+    "blocked_payment_safety_repair_candidate_sft_rows": 4,
+    "blocked_payment_safety_repair_candidates_formal_public_sample": true,
+    "blocked_payment_safety_repair_families": [
+      "refund_confirmation_or_processing",
+      "subscription_charge_confirmation"
+    ],
+    "blocked_payment_safety_repair_seed_split_counts": {
+      "dev": 0,
+      "test": 0,
+      "train": 2
+    },
     "family_stratified_candidate_seed_rows": 63,
     "family_stratified_candidate_sft_rows": 189,
     "family_stratified_candidates_formal_public_sample": true,
@@ -82,7 +94,7 @@
       "form-fill-confirmation-marker-preservation",
       "form-fill-field-specificity-preservation"
     ],
-    "seed_rows": 98,
+    "seed_rows": 100,
     "slot_value_candidate_seed_rows": 4,
     "slot_value_candidates_formal_public_sample": true,
     "source": "sanitized_public_seed_fixture"
@@ -90,6 +102,6 @@
   "split_counts": {
     "dev": 69,
     "test": 69,
-    "train": 114
+    "train": 118
   }
 }

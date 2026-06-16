@@ -23,9 +23,12 @@ MERGE_EVIDENCE_DIR = (
 )
 
 EXPECTED_EXTENSION_IDS = {row["id"] for row in read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)}
-PRE_MERGE_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
-EXPECTED_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
-EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 114}
+PRE_MERGE_COUNTS = {"dpo_pairs": 756, "seed_rows": 88, "sft_rows": 244}
+EXPECTED_COUNTS = {"dpo_pairs": 864, "seed_rows": 100, "sft_rows": 256}
+EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 118}
+HISTORICAL_PRE_MERGE_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
+HISTORICAL_EXPECTED_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
+HISTORICAL_EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 114}
 EXPECTED_DPO_DELTAS = {
     "form_confirmation_drift": 12,
     "malformed_schema": 12,
@@ -106,9 +109,9 @@ def test_merge_form_fill_confirmation_marker_extension_candidates_rebuilds_forma
     assert manifest.counts == EXPECTED_COUNTS
     assert manifest.split_counts == EXPECTED_SPLITS
     _assert_manifest_has_extension_merge_summary(manifest_payload)
-    assert len(seed_rows) == 98
-    assert len(sft_rows) == 252
-    assert len(dpo_rows) == 850
+    assert len(seed_rows) == EXPECTED_COUNTS["seed_rows"]
+    assert len(sft_rows) == EXPECTED_COUNTS["sft_rows"]
+    assert len(dpo_rows) == EXPECTED_COUNTS["dpo_pairs"]
     _assert_extension_rows_are_formal(seed_rows, sft_rows, dpo_rows)
 
     validation = validate_dataset_artifacts(
@@ -292,13 +295,13 @@ def test_committed_form_fill_confirmation_marker_extension_merge_evidence_is_pub
     evidence_manifest = read_json(MERGE_EVIDENCE_DIR / "manifest.json")
 
     assert evidence["evidence_kind"] == "form_fill_confirmation_marker_extension_public_sample_merge"
-    assert evidence["pre_merge_public_sample_counts"] == PRE_MERGE_COUNTS
+    assert evidence["pre_merge_public_sample_counts"] == HISTORICAL_PRE_MERGE_COUNTS
     assert evidence["execution_scope"]["training_run"] is False
     assert evidence["execution_scope"]["prediction_run"] is False
     assert evidence["execution_scope"]["a100_execution"] is False
     assert evidence["candidate_source"]["candidate_dpo_pairs"] == 108
-    assert evidence_manifest["formal_public_sample_counts"] == EXPECTED_COUNTS
-    assert evidence_manifest["formal_public_sample_split_counts"] == EXPECTED_SPLITS
+    assert evidence_manifest["formal_public_sample_counts"] == HISTORICAL_EXPECTED_COUNTS
+    assert evidence_manifest["formal_public_sample_split_counts"] == HISTORICAL_EXPECTED_SPLITS
     assert evidence_manifest["claims"]["held_out_generalization_recovered"] is False
     assert evidence_manifest["claims"]["model_recovery_claim"] is False
     assert evidence_manifest["claims"]["adapter_release"] is False
