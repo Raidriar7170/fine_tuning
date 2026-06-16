@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task form_fill candidate integration preview</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f8fb; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { margin: 0 0 10px; font-size: 28px; }
+    h2 { margin: 24px 0 10px; font-size: 18px; }
+    p, li { line-height: 1.7; }
+    .summary { padding: 18px 20px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .metric { padding: 14px 16px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; }
+    .metric strong { display: block; font-size: 24px; margin-bottom: 4px; }
+    code { padding: 2px 5px; border-radius: 4px; background: #e9eef6; }
+    a { color: #2457a7; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task form_fill candidate integration preview</h1>
+  <p class="summary">结论：本阶段证明 9 条 <code>form_fill</code> remediation candidates 能被 public dataset builder 在报告目录中预览构建；正式 public sample 没有被修改，也没有训练或预测。</p>
+
+  <h2>当前状态</h2>
+  <div class="grid">
+    <div class="metric"><strong>preview-only</strong>阶段状态</div>
+    <div class="metric"><strong>86</strong>preview seed rows</div>
+    <div class="metric"><strong>240</strong>preview SFT rows</div>
+    <div class="metric"><strong>742</strong>preview DPO pairs</div>
+  </div>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>读取正式 public seed 和 standalone <code>form_fill</code> candidate seed。</li>
+    <li>在 <code>reports/public-sample/form-fill-remediation-candidate-integration-preview/public-sample-preview/</code> 中生成 preview seed/SFT/DPO/manifest。</li>
+    <li>验证 preview artifacts public-safe 且 counts 一致；candidate 贡献 9 个 SFT rows 和 81 个 preview DPO pairs。</li>
+  </ul>
+
+  <h2>关键产物</h2>
+  <ul>
+    <li><a href="../../reports/public-sample/form-fill-remediation-candidate-integration-preview/form_fill_remediation_candidate_integration_preview.md">integration preview Markdown</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-candidate-integration-preview/form_fill_remediation_candidate_integration_preview.json">integration preview JSON</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-candidate-integration-preview/manifest.json">manifest</a></li>
+    <li><a href="../../reports/public-sample/form-fill-remediation-candidate-integration-preview/public-sample-preview/manifest_public_sample.json">preview public manifest</a></li>
+    <li><a href="../../openspec/changes/archive/2026-06-16-check-form-fill-remediation-candidate-integration/proposal.md">Archived OpenSpec proposal</a></li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python3 -m pytest -q tests/test_form_fill_remediation_candidate_integration_preview.py</code>：5 passed。</li>
+    <li><code>voice2task-data validate --public</code> on preview artifacts：ok，240 SFT rows / 742 DPO pairs。</li>
+    <li><code>PYTHONPATH=src python3 -m pytest -q</code>：326 passed。</li>
+    <li><code>ruff check src tests scripts</code>：All checks passed。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：归档后 4 passed, 0 failed。</li>
+    <li><code>voice2task.leak_scan.scan_paths(...)</code>：ok，0 findings。</li>
+    <li><code>git diff --check</code>：通过，无 whitespace errors。</li>
+  </ul>
+
+  <h2>不要过度解读</h2>
+  <ul>
+    <li>Preview DPO pairs 是构建链证据，不是 DPO 训练证据。</li>
+    <li>正式 <code>data/public-samples/*</code> 没有被改写。</li>
+    <li>这不是 held-out recovery 或 model recovery 证明；<code>contract_exact_match</code> 仍是主指标。</li>
+  </ul>
+
+  <h2>项目阶段进度</h2>
+  <p>当前项目阶段目标未在仓库中显式定义。本阶段推进的是 evidence ladder 的 preview integration 层：候选数据已经能通过构建链，但仍未合并、未训练、未预测。</p>
+
+  <h2>推荐下一步</h2>
+  <p>下一个 bounded OpenSpec 阶段应决策：正式合并这些候选数据，还是保持 standalone 并做 no-merge probe。两者都应继续分离训练、预测和恢复声明。</p>
+</main>
+</body>
+</html>
