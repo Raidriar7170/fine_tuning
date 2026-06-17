@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task 扩样本候选集物料化简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; margin: 32px; color: #202124; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 1px 4px; border-radius: 4px; }
+    .claim { padding: 12px 14px; background: #eef6ff; border-left: 4px solid #2563eb; }
+    .warn { padding: 12px 14px; background: #fff7ed; border-left: 4px solid #f97316; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task 扩样本候选集物料化简报</h1>
+  <p class="claim">结论：已把 240-seed 设计落成 standalone candidate artifacts：新增 138 条 public-safe candidate seeds 和 414 条 SFT candidate rows；formal public sample 仍未改变。</p>
+
+  <h2>当前状态</h2>
+  <table>
+    <tr><th>项目</th><th>状态</th></tr>
+    <tr><td>OpenSpec change</td><td><code>archive/2026-06-17-materialize-scaled-public-sample-candidates</code></td></tr>
+    <tr><td>阶段类型</td><td>candidate materialization only；不 merge formal sample、不训练、不预测、不改 evaluator</td></tr>
+    <tr><td>当前 formal manifest</td><td><code>public-sample-20260617T045941Z</code>，仍是 102 seeds / 261 SFT / 881 DPO</td></tr>
+    <tr><td>本阶段 candidate seeds</td><td>138 = 118 core family deltas + 20 confirmation-boundary overlay</td></tr>
+    <tr><td>本阶段 SFT candidate rows</td><td>414；candidate seed split 和 SFT split 均为 train/dev/test = 46/46/46 与 138/138/138</td></tr>
+    <tr><td>本阶段证据</td><td><code>reports/public-sample/scaled-public-sample-candidate-materialization/</code></td></tr>
+    <tr><td>Candidate seed file</td><td><code>data/public-samples/scaled_public_sample_seed_candidates.jsonl</code></td></tr>
+  </table>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>新增 deterministic scaled candidate materializer 和 CLI。</li>
+    <li>按 archived design 的缺口生成 core family candidates：search 20、navigation 17、form_fill 3、extract 25、clarify 33、blocked_payment 20。</li>
+    <li>额外生成 20 条 confirmation-boundary overlay candidates，保持它们不计入 core family target。</li>
+    <li>生成 JSON / Markdown / manifest / SFT sidecar evidence。</li>
+    <li>更新 <code>CONTEXT.md</code> 和 <code>reports/final_status.md</code>，明确 formal public sample 边界未改变。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>src/voice2task/dataset.py</code>：scaled candidate templates、materializer、standalone boundary checks。</li>
+    <li><code>src/voice2task/cli/data.py</code>：新增 <code>materialize-scaled-public-sample-candidates</code>。</li>
+    <li><code>src/voice2task/reports.py</code>：新增 materialization evidence writer。</li>
+    <li><code>tests/test_scaled_public_sample_candidate_materialization.py</code>：focused coverage。</li>
+  </ul>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li><code>PYTHONPATH=src python3 -m pytest -q tests/test_scaled_public_sample_candidate_materialization.py tests/test_scaled_public_sample_and_tiered_eval_design.py</code>：8 passed</li>
+    <li><code>PYTHONPATH=src python3 -m pytest -q</code>：414 passed</li>
+    <li><code>ruff check src/ scripts/ tests/</code>：All checks passed</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：4 passed after archive</li>
+    <li><code>voice2task-data validate / dpo-check</code>：ok true，formal public sample 仍为 261 SFT rows / 881 DPO pairs</li>
+    <li><code>leak-scan</code>：ok true，结果已保存到本阶段 evidence pack；<code>git diff --check</code>：passed</li>
+  </ul>
+
+  <h2>剩余风险</h2>
+  <ul>
+    <li>这是 candidate-only evidence，不是新的 formal manifest boundary。</li>
+    <li>没有 DPO pairs、没有训练、没有 prediction，所以不能宣称模型效果改善。</li>
+    <li>模板化候选集可复现、易审阅，但语言多样性低于 LLM 扩写；后续 merge 前仍应 review。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>如果继续推进，应开一个 bounded formal merge/design phase，把 standalone candidates 审阅后合入新的 formal manifest boundary；之后再做 paired-adapter training 和 strict dev/test evaluation。</p>
+
+  <p class="warn">不要把本阶段说成模型恢复、生产可用、checkpoint/adapter 发布或 live-browser benchmark 提升。公开 headline 仍然是 strict <code>contract_exact_match</code> 和 strict <code>slot_f1</code>。</p>
+</main>
+</body>
+</html>

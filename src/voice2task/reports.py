@@ -4743,6 +4743,136 @@ def write_family_stratified_generalization_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
 
 
+def write_scaled_public_sample_candidate_materialization_report(
+    materialization: dict[str, Any],
+    output_dir: Path,
+    sft_rows: list[dict[str, Any]],
+    title: str = "Voice2Task scaled public-sample candidate materialization",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "scaled_public_sample_candidate_materialization.json"
+    markdown_path = output_dir / "scaled_public_sample_candidate_materialization.md"
+    manifest_path = output_dir / "manifest.json"
+    sft_path = output_dir / "sft_candidate_rows.jsonl"
+    safe_materialization = _sanitize_report_value(materialization)
+    safe_sft_rows = _sanitize_report_value(sft_rows)
+    write_json(json_path, safe_materialization)
+    write_jsonl(sft_path, safe_sft_rows)
+
+    summary = safe_materialization["summary"]
+    manifest = {
+        "evidence_kind": safe_materialization["evidence_kind"],
+        "materialization_status": safe_materialization["materialization_status"],
+        "generated_at": safe_materialization["generated_at"],
+        "summary": summary,
+        "execution_scope": safe_materialization["execution_scope"],
+        "claims": safe_materialization["claims"],
+        "artifact_policy": {
+            "candidate_data_only": True,
+            "standalone_only": True,
+            "formal_public_sample_files_modified": False,
+            "new_candidate_data_generated": True,
+            "public_sample_modified": False,
+            "formal_sample_merge": False,
+            "formal_sft_rebuilt": False,
+            "formal_dpo_rebuilt": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "prompt_change": False,
+            "slot_normalization": False,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+        },
+        "diagnostic_artifacts": {
+            "candidate_seed": safe_materialization["artifact_files"]["candidate_seed"],
+            "candidate_sft": _public_report_artifact_path(output_dir, "sft_candidate_rows.jsonl"),
+            "materialization": _public_report_artifact_path(
+                output_dir,
+                "scaled_public_sample_candidate_materialization.json",
+            ),
+            "markdown": _public_report_artifact_path(
+                output_dir,
+                "scaled_public_sample_candidate_materialization.md",
+            ),
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is candidate data only: it creates standalone public-safe scaled public-sample "
+            "candidate artifacts and does not merge the formal public sample."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.",
+        "- No formal public sample merge is performed.",
+        "- No DPO pairs, SFT training, prediction run, or A100 execution is performed.",
+        "- No prompt change, evaluator metric change, slot normalization, or prediction repair is introduced.",
+        "- strict `contract_exact_match` and strict `slot_f1` remain primary for later evaluation.",
+        "- This is not model recovery, held-out recovery, checkpoint, adapter, production, or live-browser evidence.",
+        "",
+        "## Summary",
+        "",
+        f"- Current formal counts: `{summary['current_formal_public_sample_counts']}`",
+        f"- Current formal seed split counts: `{summary['current_formal_public_sample_seed_split_counts']}`",
+        f"- Current formal SFT split counts: `{summary['current_formal_public_sample_sft_split_counts']}`",
+        f"- Target counts: `{summary['target_counts']}`",
+        f"- Core family deltas: `{summary['core_family_target_deltas']}`",
+        f"- Candidate seed rows: `{summary['candidate_seed_rows']}`",
+        f"- Candidate core seed rows: `{summary['candidate_core_seed_rows']}`",
+        f"- Candidate overlay seed rows: `{summary['candidate_overlay_seed_rows']}`",
+        f"- Candidate SFT rows: `{summary['candidate_sft_rows']}`",
+        f"- Seed split counts: `{summary['seed_split_counts']}`",
+        f"- SFT split counts: `{summary['sft_split_counts']}`",
+        f"- Formal public sample modified: `{summary['formal_public_sample_modified']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Core Family Counts",
+        "",
+        "| family | candidate seeds |",
+        "| --- | ---: |",
+    ]
+    for family, count in summary["core_family_candidate_counts"].items():
+        lines.append(f"| `{family}` | {count} |")
+    lines.extend(
+        [
+            "",
+            "## Overlay Counts",
+            "",
+            "| overlay | candidate seeds |",
+            "| --- | ---: |",
+        ]
+    )
+    for family, count in summary["overlay_candidate_counts"].items():
+        lines.append(f"| `{family}` | {count} |")
+    lines.extend(
+        [
+            "",
+            "## Recommended Next Step",
+            "",
+            (
+                "Review the standalone candidates before any later formal merge, DPO generation, or training. "
+                "A later bounded phase should create a new formal manifest boundary before comparing model metrics."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
+
+
 def write_family_stratified_public_sample_merge_report(
     evidence: dict[str, Any],
     output_dir: Path,

@@ -209,6 +209,19 @@ EXPECTED_CURRENT_RETRY_CONFIRMATION_PRESERVATION_CANDIDATE_IDS = frozenset(
 EXPECTED_BLOCKED_PAYMENT_SAFETY_REPAIR_CANDIDATE_IDS = frozenset(
     str(template["id"]) for template in _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES.values()
 )
+SCALED_PUBLIC_SAMPLE_CORE_DELTAS = {
+    "search": 20,
+    "navigation": 17,
+    "form_fill": 3,
+    "extract": 25,
+    "clarify": 33,
+    "blocked_payment": 20,
+}
+SCALED_PUBLIC_SAMPLE_TARGET_COUNTS = {
+    "core_seed_rows": 220,
+    "confirmation_boundary_overlay_seed_rows": 20,
+    "total_seed_rows_after_later_merge": 240,
+}
 FORM_FILL_REMEDIATION_DPO_REJECTION_CATEGORIES = (
     "form_confirmation_drift",
     "malformed_schema",
@@ -859,6 +872,249 @@ def _blocked_payment_contract(reason: str, action: str) -> dict[str, Any]:
         slots={"reason": reason, "action": action},
         normalized_command=f"拒绝代替用户{action}",
     )
+
+
+def _scaled_candidate_split(index: int) -> str:
+    return ("train", "dev", "test")[index % 3]
+
+
+def _scaled_candidate_augmentations(input_text: str) -> list[str]:
+    return [f"请{input_text}", f"帮我{input_text}"]
+
+
+def _scaled_core_candidate_contract(family_id: str, index: int) -> dict[str, Any]:
+    if family_id == "search":
+        return _search_contract(f"公开资料查询主题{index:02d}")
+    if family_id == "navigation":
+        return _navigation_contract(
+            f"https://example.com/public/navigation-{index:02d}",
+            f"打开公开页面{index:02d}",
+        )
+    if family_id == "form_fill":
+        return _field_contract(f"联系字段{index:02d}")
+    if family_id == "extract":
+        return _extract_contract(f"字段{index:02d}")
+    if family_id == "clarify":
+        return _clarify_contract(f"目标页面或操作缺少限定信息{index:02d}")
+    if family_id == "blocked_payment":
+        return _blocked_payment_contract(f"payment_control_{index:02d}", f"支付操作{index:02d}")
+    raise AssertionError(f"unhandled scaled candidate family: {family_id}")
+
+
+def _scaled_core_candidate_input(family_id: str, index: int) -> str:
+    if family_id == "search":
+        return f"搜索公开资料查询主题{index:02d}"
+    if family_id == "navigation":
+        return f"打开第{index:02d}个公开示例页面"
+    if family_id == "form_fill":
+        return f"把联系字段{index:02d}填进表单，提交前先确认"
+    if family_id == "extract":
+        return f"提取页面字段{index:02d}"
+    if family_id == "clarify":
+        return f"帮我处理那个页面事项{index:02d}"
+    if family_id == "blocked_payment":
+        return f"替我完成支付操作{index:02d}"
+    raise AssertionError(f"unhandled scaled candidate family: {family_id}")
+
+
+def _scaled_public_sample_candidate_seed_rows() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    sequence = 0
+    for family_id, count in SCALED_PUBLIC_SAMPLE_CORE_DELTAS.items():
+        for family_index in range(1, count + 1):
+            input_text = _scaled_core_candidate_input(family_id, family_index)
+            row = {
+                "id": f"scaled-public-sample-core-{family_id}-{family_index:03d}",
+                "split": _scaled_candidate_split(sequence),
+                "input_text": input_text,
+                "target_contract": _scaled_core_candidate_contract(family_id, family_index),
+                "augmentations": _scaled_candidate_augmentations(input_text),
+                "provenance": {
+                    "source_mode": "scaled_public_sample_candidate_seed",
+                    "public_safe": True,
+                    "candidate_status": "standalone_not_formal_public_sample",
+                    "scaled_candidate_group": "core_family_delta",
+                    "family_id": family_id,
+                    "family_delta_target": SCALED_PUBLIC_SAMPLE_CORE_DELTAS[family_id],
+                    "candidate_index": family_index,
+                    "split_role": _scaled_candidate_split(sequence),
+                },
+            }
+            validate_public_record(row)
+            rows.append(row)
+            sequence += 1
+
+    for overlay_index in range(1, 21):
+        input_text = f"填写确认边界字段{overlay_index:02d}，提交前必须先问我"
+        row = {
+            "id": f"scaled-public-sample-overlay-confirmation-boundary-{overlay_index:03d}",
+            "split": _scaled_candidate_split(sequence),
+            "input_text": input_text,
+            "target_contract": _field_contract(f"确认边界字段{overlay_index:02d}"),
+            "augmentations": _scaled_candidate_augmentations(input_text),
+            "provenance": {
+                "source_mode": "scaled_public_sample_candidate_seed",
+                "public_safe": True,
+                "candidate_status": "standalone_not_formal_public_sample",
+                "scaled_candidate_group": "confirmation_boundary_overlay",
+                "family_id": "confirmation_boundary",
+                "overlay_family_id": "confirmation_boundary",
+                "candidate_index": overlay_index,
+                "split_role": _scaled_candidate_split(sequence),
+            },
+        }
+        validate_public_record(row)
+        rows.append(row)
+        sequence += 1
+    return rows
+
+
+def _scaled_seed_split_counts(seed_rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = Counter(row["split"] for row in seed_rows)
+    return {split: counts.get(split, 0) for split in ("train", "dev", "test")}
+
+
+def _scaled_family_sft_counts(sft_rows: list[SFTDatasetRow]) -> dict[str, int]:
+    counts = Counter(row.provenance.get("family_id") for row in sft_rows)
+    return {family: counts.get(family, 0) for family in sorted(counts)}
+
+
+def _reject_scaled_public_sample_candidate_outputs(*, seed_output_path: Path, output_dir: Path) -> None:
+    candidate_paths = [
+        seed_output_path,
+        output_dir,
+        output_dir / "sft_candidate_rows.jsonl",
+        output_dir / "scaled_public_sample_candidate_materialization.json",
+        output_dir / "scaled_public_sample_candidate_materialization.md",
+        output_dir / "manifest.json",
+    ]
+    for path in candidate_paths:
+        _reject_formal_public_sample_output_path(path)
+
+
+def _scaled_public_sample_materialization_summary(
+    *,
+    candidate_seed_rows: list[dict[str, Any]],
+    candidate_sft_rows: list[SFTDatasetRow],
+    formal_public_manifest: dict[str, Any],
+    formal_public_seed_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    core_rows = [
+        row
+        for row in candidate_seed_rows
+        if row["provenance"]["scaled_candidate_group"] == "core_family_delta"
+    ]
+    overlay_rows = [
+        row
+        for row in candidate_seed_rows
+        if row["provenance"]["scaled_candidate_group"] == "confirmation_boundary_overlay"
+    ]
+    core_counts = Counter(row["provenance"]["family_id"] for row in core_rows)
+    overlay_counts = Counter(row["provenance"]["overlay_family_id"] for row in overlay_rows)
+    return {
+        "current_formal_public_sample_counts": formal_public_manifest["counts"],
+        "current_formal_public_sample_sft_split_counts": formal_public_manifest["split_counts"],
+        "current_formal_public_sample_seed_split_counts": _scaled_seed_split_counts(formal_public_seed_rows),
+        "target_counts": dict(SCALED_PUBLIC_SAMPLE_TARGET_COUNTS),
+        "core_family_target_deltas": dict(SCALED_PUBLIC_SAMPLE_CORE_DELTAS),
+        "candidate_seed_rows": len(candidate_seed_rows),
+        "candidate_core_seed_rows": len(core_rows),
+        "candidate_overlay_seed_rows": len(overlay_rows),
+        "candidate_sft_rows": len(candidate_sft_rows),
+        "seed_split_counts": _scaled_seed_split_counts(candidate_seed_rows),
+        "sft_split_counts": _split_counts(candidate_sft_rows),
+        "core_family_candidate_counts": {
+            family: core_counts.get(family, 0) for family in SCALED_PUBLIC_SAMPLE_CORE_DELTAS
+        },
+        "overlay_candidate_counts": dict(sorted(overlay_counts.items())),
+        "candidate_sft_counts_by_family": _scaled_family_sft_counts(candidate_sft_rows),
+        "augmentation_depth": {
+            "augmentations_per_seed": 2,
+            "sft_rows_per_seed": 3,
+            "expansion_function": "expand_sft_rows(public_safe=True)",
+        },
+        "formal_public_sample_modified": False,
+        "recommended_next_step": "review_standalone_candidates_before_any_formal_merge",
+    }
+
+
+def materialize_scaled_public_sample_candidates(
+    *,
+    seed_output_path: Path,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Write standalone scaled public-sample candidates without mutating the formal public sample."""
+
+    _reject_scaled_public_sample_candidate_outputs(seed_output_path=seed_output_path, output_dir=output_dir)
+    formal_public_manifest = read_json(FORMAL_PUBLIC_MANIFEST_PATH)
+    formal_public_seed_rows = _read_seed_rows(FORMAL_PUBLIC_SEED_PATH)
+    candidate_seed_rows = _scaled_public_sample_candidate_seed_rows()
+    candidate_sft_rows = expand_sft_rows(candidate_seed_rows, public_safe=True)
+    for row in candidate_sft_rows:
+        validate_public_record(row.to_dict())
+
+    write_jsonl(seed_output_path, candidate_seed_rows)
+    materialization = {
+        "evidence_kind": "scaled_public_sample_candidate_materialization",
+        "materialization_status": "candidate_dataset_materialized",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "summary": _scaled_public_sample_materialization_summary(
+            candidate_seed_rows=candidate_seed_rows,
+            candidate_sft_rows=candidate_sft_rows,
+            formal_public_manifest=formal_public_manifest,
+            formal_public_seed_rows=formal_public_seed_rows,
+        ),
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_candidate_data_generated": True,
+            "formal_public_sample_modified": False,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "formal_sft_rebuilt": False,
+            "formal_dpo_rebuilt": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "slot_normalization": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_generalization_recovered": False,
+            "model_recovery_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "candidate_seed": _safe_artifact_ref(seed_output_path),
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization_json": "scaled_public_sample_candidate_materialization.json",
+            "materialization_markdown": "scaled_public_sample_candidate_materialization.md",
+            "manifest": "manifest.json",
+        },
+    }
+
+    from voice2task.reports import write_scaled_public_sample_candidate_materialization_report
+
+    paths = write_scaled_public_sample_candidate_materialization_report(
+        materialization,
+        output_dir=output_dir,
+        sft_rows=[row.to_dict() for row in candidate_sft_rows],
+    )
+    return {"seed": seed_output_path, **paths}
 
 
 def _family_stratified_case_specs() -> list[dict[str, Any]]:
