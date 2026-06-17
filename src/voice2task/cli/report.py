@@ -5,12 +5,13 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from voice2task.io import read_json
+from voice2task.io import read_json, read_jsonl
 from voice2task.leak_scan import scan_paths
 from voice2task.reports import (
     write_a100_merged_slot_value_adapter_restore_report,
     write_current_train_split_sft_retry_readiness_report,
     write_current_train_split_sft_retry_report,
+    write_current_train_split_sft_retry_tradeoff_diagnosis_report,
     write_form_fill_remediation_sft_v3_readiness_report,
     write_hardened_canonical_policy_rerun_report,
     write_merged_slot_value_heldout_eval_report,
@@ -110,6 +111,12 @@ def build_parser() -> argparse.ArgumentParser:
     current_retry_run.add_argument("--dev-prediction-metadata", type=Path, required=True)
     current_retry_run.add_argument("--test-prediction-metadata", type=Path, required=True)
     current_retry_run.add_argument("--output", type=Path, required=True)
+
+    current_retry_tradeoff = subcommands.add_parser("current-train-split-sft-retry-tradeoff-diagnosis")
+    current_retry_tradeoff.add_argument("--public-manifest", type=Path, required=True)
+    current_retry_tradeoff.add_argument("--current-baseline-root", type=Path, required=True)
+    current_retry_tradeoff.add_argument("--retry-root", type=Path, required=True)
+    current_retry_tradeoff.add_argument("--output", type=Path, required=True)
 
     merged_eval = subcommands.add_parser("merged-slot-value-heldout-eval")
     merged_eval.add_argument("--public-manifest", type=Path, required=True)
@@ -373,6 +380,53 @@ def main(argv: list[str] | None = None) -> int:
                         "overall_interpretation": evidence.get("overall_interpretation"),
                         "split_results": evidence.get("split_results", {}),
                     },
+                },
+                indent=2,
+            )
+        )
+        return 0
+    if args.command == "current-train-split-sft-retry-tradeoff-diagnosis":
+        baseline_root = args.current_baseline_root
+        retry_root = args.retry_root
+        report_paths = write_current_train_split_sft_retry_tradeoff_diagnosis_report(
+            public_manifest=read_json(args.public_manifest),
+            baseline_evidence=read_json(baseline_root / "formal_public_heldout_prediction.json"),
+            retry_evidence=read_json(retry_root / "current_train_split_sft_retry.json"),
+            baseline_gold_by_split={
+                split: read_jsonl(baseline_root / split / f"{split}_gold.jsonl")
+                for split in ("dev", "test")
+            },
+            retry_gold_by_split={
+                split: read_jsonl(retry_root / split / f"{split}_gold.jsonl")
+                for split in ("dev", "test")
+            },
+            baseline_predictions_by_split={
+                split: read_jsonl(baseline_root / split / "predictions.jsonl")
+                for split in ("dev", "test")
+            },
+            retry_predictions_by_split={
+                split: read_jsonl(retry_root / split / "predictions.jsonl")
+                for split in ("dev", "test")
+            },
+            baseline_metrics_by_split={
+                split: read_json(baseline_root / split / "metrics.json")
+                for split in ("dev", "test")
+            },
+            retry_metrics_by_split={
+                split: read_json(retry_root / split / "metrics.json")
+                for split in ("dev", "test")
+            },
+            baseline_root=baseline_root,
+            retry_root=retry_root,
+            output_dir=args.output,
+        )
+        evidence = read_json(report_paths["json"])
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "paths": {key: value.as_posix() for key, value in report_paths.items()},
+                    "summary": evidence.get("summary", {}),
                 },
                 indent=2,
             )

@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-17T04:05:24.787745+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis",
+    "CONTEXT.md",
+    "reports/final_status.md",
+    "docs/human-briefs/2026-06-17-diagnose-current-train-split-sft-retry-tradeoffs.html",
+    "openspec/changes/diagnose-current-train-split-sft-retry-tradeoffs"
+  ]
+}

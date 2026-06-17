@@ -12,6 +12,7 @@
 | --- | --- |
 | Latest data evidence pack | `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/` |
 | Latest model evidence pack | `reports/public-sample/a100-current-train-split-sft-retry/` |
+| Latest diagnosis evidence pack | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
 | Baseline evidence pack | `reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery/` |
 | Current data manifest | `public-sample-20260616T165835Z` |
 | Current public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
@@ -20,6 +21,7 @@
 | Latest evaluated public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
 | Latest run type | private SFT retry on current 118-row train split, then dev/test strict eval |
 | Latest interpretation | `current_train_split_sft_retry_partial_signal` |
+| Latest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
 | Prior SFT v3 retry evidence | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
 
 最新模型证据现在绑定 `public-sample-20260616T165835Z`。它在 A100 上训练了一个新的 private adapter，使用当前 118-row train split，然后做 dev/test prediction-only strict evaluation。没有修 prediction、没有 normalize slot、没有改 prompt、没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
@@ -42,6 +44,8 @@
 主指标是 `contract_exact_match` 和 strict `slot_f1`。`slot_f1_soft` 只能说明 slot value 存在表述相近但 exact 不一致的现象，不能替代 strict 指标。
 
 相对 current-manifest prediction-only baseline：dev safety_recall 从 `0.5556` 回到 `1.0000`，dev/test strict slot_f1 均提升，test exact 从 `0.3478` 提升到 `0.4058`。但 dev exact 从 `0.4638` 降到 `0.4348`，dev confirmation accuracy 从 `0.9710` 降到 `0.8986`，test route/confirmation 也有回退。因此这次 retry 是 mixed partial signal，不是 held-out recovery。
+
+随后完成的 trade-off diagnosis 进一步确认：dev safety recovered `4` rows / safety regressed `0` rows，但 confirmation regressed `5` dev rows 和 `2` test rows；dev exact 是 `2` recovered / `4` regressed，test exact 是 `7` recovered / `3` regressed。当前 dominant trade-off 是 `confirmation_regression_after_safety_recovery`，下一阶段应先设计 confirmation-preservation candidates，而不是直接继续训练或调整 evaluator。
 
 ## 已完成的项目价值
 
@@ -162,11 +166,22 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - 导入 public-safe metrics / predictions / sidecars / manifest / report；
 - 未发布 adapter、checkpoint、raw log、private override、远端缓存或私有路径。
 
-当前结果是 mixed partial signal：安全 false negative 被修复，但 dev exact 与 confirmation 出现回退。下一步如果继续，应打开 bounded residual/trade-off diagnosis phase，优先解释 confirmation 回退、dev exact 回退、test route 回退与剩余 slot residual，而不是直接继续训练、改 evaluator 或引入 DPO。
+随后已完成 current-train-split SFT retry trade-off diagnosis：
+
+- evidence: `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/current_train_split_sft_retry_tradeoff_diagnosis.md`
+- 该阶段只读取 current-manifest baseline 与 current-train-split retry 的 gold / predictions / metrics；
+- 没有训练、没有生成新 prediction、没有改数据、没有改 prompt/evaluator、没有发布 adapter/checkpoint；
+- dev safety recovered `4` rows 且 safety regressions 为 `0`；
+- confirmation regressed `5` dev rows 和 `2` test rows；
+- exact movement mixed：dev `2` recovered / `4` regressed，test `7` recovered / `3` regressed；
+- dominant trade-off: `confirmation_regression_after_safety_recovery`。
+
+当前结果仍是 mixed partial signal：安全 false negative 被修复，但 confirmation 与 exact/route 仍有 trade-off。下一步如果继续，应打开 bounded `design-current-retry-confirmation-preservation-candidates` phase，先设计可审阅的 confirmation-preservation seed / target sketches，而不是直接继续训练、改 evaluator 或引入 DPO。
 
 ## 主要证据链接
 
 - Latest evidence report: `reports/public-sample/a100-current-train-split-sft-retry/report.md`
+- Latest trade-off diagnosis: `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/current_train_split_sft_retry_tradeoff_diagnosis.md`
 - Latest Dev metrics: `reports/public-sample/a100-current-train-split-sft-retry/dev/metrics.md`
 - Latest Test metrics: `reports/public-sample/a100-current-train-split-sft-retry/test/metrics.md`
 - Current-manifest prediction-only baseline: `reports/public-sample/a100-current-manifest-sft-v3-prediction-baseline/report.md`
@@ -195,7 +210,8 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - Human brief (current-manifest SFT v3 prediction baseline): `docs/human-briefs/2026-06-17-run-current-manifest-sft-v3-prediction-baseline.html`
 - Human brief (current train split SFT retry readiness): `docs/human-briefs/2026-06-17-assess-current-train-split-sft-retry-readiness.html`
 - Human brief (current train split SFT retry): `docs/human-briefs/2026-06-17-run-a100-current-train-split-sft-retry.html`
+- Human brief (current train split SFT retry trade-off diagnosis): `docs/human-briefs/2026-06-17-diagnose-current-train-split-sft-retry-tradeoffs.html`
 
 ## 当前交付状态
 
-可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、blocked-payment repair candidate design、blocked-payment repair materialization、current-manifest SFT v3 prediction-only baseline、current-train-split SFT retry readiness、current-train-split SFT retry、Human Brief、最终状态说明都已经对齐到明确边界。下一步如果继续，应启动 bounded residual/trade-off diagnosis，而不是把 mixed partial signal 包装成模型恢复。
+可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、blocked-payment repair candidate design、blocked-payment repair materialization、current-manifest SFT v3 prediction-only baseline、current-train-split SFT retry readiness、current-train-split SFT retry、current-train-split retry trade-off diagnosis、Human Brief、最终状态说明都已经对齐到明确边界。下一步如果继续，应启动 bounded confirmation-preservation candidate design，而不是把 mixed partial signal 包装成模型恢复。

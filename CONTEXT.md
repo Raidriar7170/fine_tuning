@@ -6,13 +6,15 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-17, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has three current layers:
+The public-facing truth surface has four current layers:
 
-1. the current-train-split SFT retry under
+1. the current-train-split SFT retry trade-off diagnosis under
+   `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/`;
+2. the current-train-split SFT retry under
    `reports/public-sample/a100-current-train-split-sft-retry/`;
-2. the current-manifest SFT v3 prediction-only baseline under
+3. the current-manifest SFT v3 prediction-only baseline under
    `reports/public-sample/a100-current-manifest-sft-v3-prediction-baseline/`;
-3. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
+4. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
    source, under
    `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/`.
 
@@ -26,6 +28,8 @@ Current formal public sample data boundary:
 | latest evaluated manifest | `public-sample-20260616T165835Z` |
 | latest model run type | private SFT retry on current 118-row train split, then dev/test strict eval |
 | latest model interpretation | `current_train_split_sft_retry_partial_signal` |
+| latest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
+| latest diagnosis evidence | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
 | prior SFT v3 retry manifest | `public-sample-20260616T074315Z` |
 | prior SFT v3 retry interpretation | `form_fill_sft_v3_partial_improvement_with_safety_regression_risk` |
 
@@ -149,9 +153,22 @@ strict contract ladder. The result is a mixed partial signal: dev
 `safety_recall` recovered from `0.5556` to `1.0000`, dev/test strict slot F1
 improved, and test exact improved from `0.3478` to `0.4058`; however dev exact
 regressed from `0.4638` to `0.4348`, dev confirmation accuracy dropped from
-`0.9710` to `0.8986`, and test route/confirmation also slipped. The next
-bounded phase should diagnose the current retry residuals and trade-offs before
-any additional training, DPO, evaluator change, public release, or production
+`0.9710` to `0.8986`, and test route/confirmation also slipped.
+
+The current-train-split SFT retry trade-off diagnosis is now complete under
+`reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/`. It
+is diagnosis-only evidence: no training, prediction generation, dataset
+mutation, prompt change, evaluator change, adapter/checkpoint release, safety
+improvement claim, model recovery claim, or production-readiness claim. The
+diagnosis compared the current-manifest prediction-only baseline with the retry
+row by row on the same `public-sample-20260616T165835Z` dev/test boundary. It
+found that dev safety recovered `4` rows with `0` safety regressions, while
+confirmation regressed `5` dev rows and `2` test rows. Exact-match movement is
+mixed: dev has `2` exact recoveries and `4` exact regressions, while test has
+`7` exact recoveries and `3` exact regressions. The dominant trade-off is
+`confirmation_regression_after_safety_recovery`; the next bounded phase should
+design `current-retry` confirmation-preservation candidates before any
+additional training, DPO, evaluator change, public release, or production
 claim.
 
 ## Language

@@ -2,9 +2,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from voice2task.cli import report as report_cli
-from voice2task.io import read_json
+from voice2task.io import read_json, read_jsonl
 from voice2task.leak_scan import scan_paths
+from voice2task.reports import write_current_train_split_sft_retry_tradeoff_diagnosis_report
 from voice2task.training import run_sft
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +23,7 @@ CURRENT_BASELINE_EVIDENCE = (
     / "a100-current-manifest-sft-v3-prediction-baseline"
     / "formal_public_heldout_prediction.json"
 )
+CURRENT_BASELINE_DIR = CURRENT_BASELINE_EVIDENCE.parent
 PUBLIC_MERGE_EVIDENCE = (
     REPO_ROOT
     / "reports"
@@ -29,6 +33,9 @@ PUBLIC_MERGE_EVIDENCE = (
 )
 READINESS_DIR = REPO_ROOT / "reports" / "public-sample" / "current-train-split-sft-retry-readiness"
 RETRY_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "a100-current-train-split-sft-retry"
+TRADEOFF_DIAGNOSIS_DIR = (
+    REPO_ROOT / "reports" / "public-sample" / "current-train-split-sft-retry-tradeoff-diagnosis"
+)
 
 
 def _current_manifest() -> dict[str, Any]:
@@ -362,3 +369,131 @@ def test_committed_current_train_split_retry_evidence_records_observed_partial_s
     assert "minghongsun" not in combined_public_text
     assert "/mnt/data/" not in combined_public_text
     assert scan_paths([RETRY_EVIDENCE_DIR]).ok is True
+
+
+def test_current_train_split_retry_tradeoff_cli_writes_diagnosis_only_evidence(
+    tmp_path: Path,
+    capsys: Any,
+) -> None:
+    output_dir = tmp_path / "tradeoff-diagnosis"
+
+    assert (
+        report_cli.main(
+            [
+                "current-train-split-sft-retry-tradeoff-diagnosis",
+                "--public-manifest",
+                PUBLIC_SAMPLE_MANIFEST.as_posix(),
+                "--current-baseline-root",
+                CURRENT_BASELINE_DIR.as_posix(),
+                "--retry-root",
+                RETRY_EVIDENCE_DIR.as_posix(),
+                "--output",
+                output_dir.as_posix(),
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    evidence = read_json(output_dir / "current_train_split_sft_retry_tradeoff_diagnosis.json")
+    manifest = read_json(output_dir / "manifest.json")
+    markdown = (output_dir / "current_train_split_sft_retry_tradeoff_diagnosis.md").read_text(encoding="utf-8")
+
+    assert payload["ok"] is True
+    assert evidence["evidence_kind"] == "current_train_split_sft_retry_tradeoff_diagnosis"
+    assert evidence["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["summary"]["overall_interpretation"] == (
+        "current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery"
+    )
+    assert evidence["summary"]["recommended_next_change"] == (
+        "design-current-retry-confirmation-preservation-candidates"
+    )
+    dev_counts = evidence["split_summaries"]["dev"]["outcome_counts"]
+    test_counts = evidence["split_summaries"]["test"]["outcome_counts"]
+    assert dev_counts["safety"]["recovered"] == 4
+    assert dev_counts["confirmation"]["regressed"] == 5
+    assert dev_counts["exact"]["recovered"] == 2
+    assert dev_counts["exact"]["regressed"] == 4
+    assert test_counts["exact"]["recovered"] == 7
+    assert test_counts["exact"]["regressed"] == 3
+    assert test_counts["route"]["regressed"] == 2
+    assert evidence["execution_scope"]["training_run"] is False
+    assert evidence["execution_scope"]["prediction_generation"] is False
+    assert evidence["execution_scope"]["dataset_mutation"] is False
+    assert evidence["claims"]["model_recovery_claim"] is False
+    assert evidence["claims"]["held_out_recovery_claim"] is False
+    assert evidence["claims"]["soft_slot_f1_primary_metric"] is False
+    assert manifest["diagnostic_artifacts"]["evidence"].endswith(
+        "current_train_split_sft_retry_tradeoff_diagnosis.json"
+    )
+    assert "diagnosis-only" in markdown
+    assert "confirmation" in markdown
+    assert scan_paths([output_dir]).ok is True
+
+
+def test_current_train_split_retry_tradeoff_diagnosis_rejects_incomplete_inputs(tmp_path: Path) -> None:
+    baseline_predictions = {
+        split: read_jsonl(CURRENT_BASELINE_DIR / split / "predictions.jsonl")
+        for split in ("dev", "test")
+    }
+    retry_predictions = {
+        split: read_jsonl(RETRY_EVIDENCE_DIR / split / "predictions.jsonl")
+        for split in ("dev", "test")
+    }
+    retry_predictions["dev"] = retry_predictions["dev"][:-1]
+
+    with pytest.raises(ValueError, match="incomplete dev trade-off inputs"):
+        write_current_train_split_sft_retry_tradeoff_diagnosis_report(
+            public_manifest=_current_manifest(),
+            baseline_evidence=read_json(CURRENT_BASELINE_EVIDENCE),
+            retry_evidence=read_json(RETRY_EVIDENCE_DIR / "current_train_split_sft_retry.json"),
+            baseline_gold_by_split={
+                split: read_jsonl(CURRENT_BASELINE_DIR / split / f"{split}_gold.jsonl")
+                for split in ("dev", "test")
+            },
+            retry_gold_by_split={
+                split: read_jsonl(RETRY_EVIDENCE_DIR / split / f"{split}_gold.jsonl")
+                for split in ("dev", "test")
+            },
+            baseline_predictions_by_split=baseline_predictions,
+            retry_predictions_by_split=retry_predictions,
+            baseline_metrics_by_split={
+                split: read_json(CURRENT_BASELINE_DIR / split / "metrics.json")
+                for split in ("dev", "test")
+            },
+            retry_metrics_by_split={
+                split: read_json(RETRY_EVIDENCE_DIR / split / "metrics.json")
+                for split in ("dev", "test")
+            },
+            baseline_root=CURRENT_BASELINE_DIR,
+            retry_root=RETRY_EVIDENCE_DIR,
+            output_dir=tmp_path / "tradeoff-diagnosis",
+        )
+
+
+def test_committed_current_train_split_retry_tradeoff_diagnosis_preserves_boundaries() -> None:
+    evidence = read_json(TRADEOFF_DIAGNOSIS_DIR / "current_train_split_sft_retry_tradeoff_diagnosis.json")
+    report = (TRADEOFF_DIAGNOSIS_DIR / "current_train_split_sft_retry_tradeoff_diagnosis.md").read_text(
+        encoding="utf-8"
+    )
+    manifest = read_json(TRADEOFF_DIAGNOSIS_DIR / "manifest.json")
+
+    assert evidence["evidence_kind"] == "current_train_split_sft_retry_tradeoff_diagnosis"
+    assert evidence["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["summary"]["overall_interpretation"] == (
+        "current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery"
+    )
+    assert evidence["summary"]["dominant_tradeoff"] == "confirmation_regression_after_safety_recovery"
+    assert evidence["split_summaries"]["dev"]["outcome_counts"]["safety"]["recovered"] == 4
+    assert evidence["split_summaries"]["dev"]["outcome_counts"]["confirmation"]["regressed"] == 5
+    assert evidence["split_summaries"]["test"]["outcome_counts"]["route"]["regressed"] == 2
+    assert evidence["claims"]["model_recovery_claim"] is False
+    assert evidence["claims"]["production_readiness_claim"] is False
+    assert evidence["claims"]["adapter_release"] is False
+    assert evidence["claims"]["checkpoint_release"] is False
+    assert evidence["claims"]["soft_slot_f1_primary_metric"] is False
+    assert manifest["diagnostic_artifacts"]["report"].endswith(
+        "current_train_split_sft_retry_tradeoff_diagnosis.md"
+    )
+    assert "diagnosis-only" in report
+    assert scan_paths([TRADEOFF_DIAGNOSIS_DIR]).ok is True

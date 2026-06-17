@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -5567,6 +5568,479 @@ def write_current_train_split_sft_retry_report(
             "- Predictions are not repaired, replaced, normalized, or re-scored.",
             "- This report does not release a checkpoint or adapter and does not claim production readiness, "
             "private-corpus generalization, public full-corpus release, or live-browser benchmark improvement.",
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
+_TRADEOFF_OUTCOMES = ("exact", "task_type", "route", "safety", "confirmation", "slot")
+_TRADEOFF_CLASSES = ("unchanged_success", "recovered", "regressed", "persistent_failure")
+
+
+def _public_row_family(row_id: str) -> str:
+    if row_id.startswith("family-"):
+        parts = row_id.split("-")
+        return "-".join(parts[:2]) if len(parts) >= 2 else row_id
+    if row_id.startswith("candidate-"):
+        parts = row_id.split("-")
+        return "-".join(parts[:4]) if len(parts) >= 4 else row_id
+    if row_id.startswith("seed-"):
+        return "seed"
+    return row_id.split("-", 1)[0]
+
+
+def _contract_safety_stop(contract: dict[str, Any]) -> bool:
+    safety = contract.get("safety")
+    if not isinstance(safety, dict):
+        return False
+    return not bool(safety.get("allow", True))
+
+
+def _tradeoff_outcomes(gold: dict[str, Any], prediction: Any) -> dict[str, bool]:
+    if not isinstance(prediction, dict):
+        return {name: False for name in _TRADEOFF_OUTCOMES}
+    return {
+        "exact": prediction == gold,
+        "task_type": prediction.get("task_type") == gold.get("task_type"),
+        "route": prediction.get("route") == gold.get("route"),
+        "safety": _contract_safety_stop(prediction) == _contract_safety_stop(gold),
+        "confirmation": prediction.get("confirmation_required") == gold.get("confirmation_required"),
+        "slot": prediction.get("slots") == gold.get("slots"),
+    }
+
+
+def _tradeoff_classification(baseline_match: bool, retry_match: bool) -> str:
+    if baseline_match and retry_match:
+        return "unchanged_success"
+    if not baseline_match and retry_match:
+        return "recovered"
+    if baseline_match and not retry_match:
+        return "regressed"
+    return "persistent_failure"
+
+
+def _public_prediction_summary(contract: Any) -> dict[str, Any]:
+    if not isinstance(contract, dict):
+        return {"schema_valid": False}
+    safety = contract.get("safety")
+    return {
+        "schema_valid": True,
+        "task_type": contract.get("task_type"),
+        "route": contract.get("route"),
+        "confirmation_required": contract.get("confirmation_required"),
+        "safety_allow": safety.get("allow") if isinstance(safety, dict) else None,
+        "safety_reason": safety.get("reason") if isinstance(safety, dict) else None,
+        "slots": contract.get("slots", {}),
+    }
+
+
+def _rows_by_id(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {str(row["id"]): row for row in rows if "id" in row}
+
+
+def _prediction_by_id(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    return {str(row["id"]): row.get("prediction") for row in rows if "id" in row}
+
+
+def _validate_tradeoff_row_ids(
+    *,
+    split: str,
+    expected_row_count: int | None,
+    baseline_gold: dict[str, dict[str, Any]],
+    retry_gold: dict[str, dict[str, Any]],
+    baseline_predictions: dict[str, Any],
+    retry_predictions: dict[str, Any],
+) -> list[str]:
+    row_sets = {
+        "baseline_gold": set(baseline_gold),
+        "retry_gold": set(retry_gold),
+        "baseline_predictions": set(baseline_predictions),
+        "retry_predictions": set(retry_predictions),
+    }
+    reference = row_sets["baseline_gold"]
+    mismatches = {
+        name: sorted(reference.symmetric_difference(row_ids))[:10]
+        for name, row_ids in row_sets.items()
+        if row_ids != reference
+    }
+    if mismatches:
+        raise ValueError(f"incomplete {split} trade-off inputs: row id sets differ {mismatches}")
+    if expected_row_count is not None and len(reference) != expected_row_count:
+        raise ValueError(
+            f"incomplete {split} trade-off inputs: expected {expected_row_count} rows, found {len(reference)}"
+        )
+    return sorted(reference)
+
+
+def _metric_summary_from_payload(payload: dict[str, Any]) -> dict[str, float]:
+    return {
+        name: _metric_value(payload, name)
+        for name in (
+            "contract_exact_match",
+            "slot_f1",
+            "slot_f1_soft",
+            "task_type_accuracy",
+            "route_accuracy",
+            "safety_precision",
+            "safety_recall",
+            "confirmation_accuracy",
+            "json_valid_rate",
+        )
+    }
+
+
+def _metric_delta_summary(
+    baseline_metrics: dict[str, float],
+    retry_metrics: dict[str, float],
+) -> dict[str, float]:
+    return {
+        name: retry_metrics.get(name, 0.0) - baseline_metrics.get(name, 0.0)
+        for name in sorted(set(baseline_metrics) | set(retry_metrics))
+    }
+
+
+def _compare_tradeoff_split(
+    *,
+    split: str,
+    baseline_gold_rows: list[dict[str, Any]],
+    retry_gold_rows: list[dict[str, Any]],
+    baseline_prediction_rows: list[dict[str, Any]],
+    retry_prediction_rows: list[dict[str, Any]],
+    baseline_metrics_payload: dict[str, Any],
+    retry_metrics_payload: dict[str, Any],
+    expected_row_count: int | None = None,
+    max_examples: int = 25,
+) -> dict[str, Any]:
+    baseline_gold = _rows_by_id(baseline_gold_rows)
+    retry_gold = _rows_by_id(retry_gold_rows)
+    baseline_predictions = _prediction_by_id(baseline_prediction_rows)
+    retry_predictions = _prediction_by_id(retry_prediction_rows)
+    row_ids = _validate_tradeoff_row_ids(
+        split=split,
+        expected_row_count=expected_row_count,
+        baseline_gold=baseline_gold,
+        retry_gold=retry_gold,
+        baseline_predictions=baseline_predictions,
+        retry_predictions=retry_predictions,
+    )
+
+    counts: dict[str, dict[str, int]] = {
+        outcome: {classification: 0 for classification in _TRADEOFF_CLASSES}
+        for outcome in _TRADEOFF_OUTCOMES
+    }
+    regression_family_counts: dict[str, Counter[str]] = {outcome: Counter() for outcome in _TRADEOFF_OUTCOMES}
+    recovery_family_counts: dict[str, Counter[str]] = {outcome: Counter() for outcome in _TRADEOFF_OUTCOMES}
+    examples: list[dict[str, Any]] = []
+    gold_mismatch_count = 0
+    row_change_count = 0
+
+    for row_id in row_ids:
+        baseline_contract = baseline_gold[row_id].get("target_contract")
+        retry_contract = retry_gold[row_id].get("target_contract")
+        if baseline_contract != retry_contract:
+            gold_mismatch_count += 1
+        gold = retry_contract if isinstance(retry_contract, dict) else {}
+        baseline_prediction = baseline_predictions.get(row_id)
+        retry_prediction = retry_predictions.get(row_id)
+        baseline_outcomes = _tradeoff_outcomes(gold, baseline_prediction)
+        retry_outcomes = _tradeoff_outcomes(gold, retry_prediction)
+        classifications = {
+            outcome: _tradeoff_classification(baseline_outcomes[outcome], retry_outcomes[outcome])
+            for outcome in _TRADEOFF_OUTCOMES
+        }
+        family = _public_row_family(row_id)
+        changed = False
+        for outcome, classification in classifications.items():
+            counts[outcome][classification] += 1
+            if classification == "regressed":
+                regression_family_counts[outcome][family] += 1
+                changed = True
+            elif classification == "recovered":
+                recovery_family_counts[outcome][family] += 1
+                changed = True
+            elif classification == "persistent_failure":
+                changed = True
+        if changed:
+            row_change_count += 1
+        if changed and len(examples) < max_examples:
+            examples.append(
+                {
+                    "row_id": row_id,
+                    "split": split,
+                    "family": family,
+                    "classifications": {
+                        outcome: classification
+                        for outcome, classification in classifications.items()
+                        if classification != "unchanged_success"
+                    },
+                    "gold": _public_prediction_summary(gold),
+                    "baseline_prediction": _public_prediction_summary(baseline_prediction),
+                    "retry_prediction": _public_prediction_summary(retry_prediction),
+                }
+            )
+
+    baseline_metrics = _metric_summary_from_payload(baseline_metrics_payload)
+    retry_metrics = _metric_summary_from_payload(retry_metrics_payload)
+    return {
+        "split": split,
+        "row_count": len(row_ids),
+        "gold_mismatch_count": gold_mismatch_count,
+        "row_change_count": row_change_count,
+        "metrics": {
+            "baseline": baseline_metrics,
+            "retry": retry_metrics,
+            "delta": _metric_delta_summary(baseline_metrics, retry_metrics),
+        },
+        "outcome_counts": counts,
+        "regression_family_counts": {
+            outcome: dict(counter.most_common()) for outcome, counter in regression_family_counts.items()
+        },
+        "recovery_family_counts": {
+            outcome: dict(counter.most_common()) for outcome, counter in recovery_family_counts.items()
+        },
+        "examples": examples,
+    }
+
+
+def _tradeoff_interpretation(split_summaries: dict[str, dict[str, Any]]) -> tuple[str, str, str]:
+    dev = split_summaries.get("dev", {})
+    test = split_summaries.get("test", {})
+    dev_counts = dev.get("outcome_counts", {}) if isinstance(dev, dict) else {}
+    test_counts = test.get("outcome_counts", {}) if isinstance(test, dict) else {}
+    safety_dev = (dev_counts.get("safety") or {}).get("recovered", 0)
+    confirmation_dev = (dev_counts.get("confirmation") or {}).get("regressed", 0)
+    confirmation_test = (test_counts.get("confirmation") or {}).get("regressed", 0)
+    if safety_dev > 0 and confirmation_dev > 0:
+        return (
+            "current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery",
+            "confirmation_regression_after_safety_recovery",
+            "design-current-retry-confirmation-preservation-candidates",
+        )
+    if confirmation_dev or confirmation_test:
+        return (
+            "current_sft_retry_tradeoff_diagnosis_confirmation_regression",
+            "confirmation_regression",
+            "design-current-retry-confirmation-preservation-candidates",
+        )
+    return (
+        "current_sft_retry_tradeoff_diagnosis_residual_slot_and_route_failures",
+        "slot_and_route_residuals",
+        "diagnose-current-retry-slot-route-residuals",
+    )
+
+
+def write_current_train_split_sft_retry_tradeoff_diagnosis_report(
+    *,
+    public_manifest: dict[str, Any],
+    baseline_evidence: dict[str, Any],
+    retry_evidence: dict[str, Any],
+    baseline_gold_by_split: dict[str, list[dict[str, Any]]],
+    retry_gold_by_split: dict[str, list[dict[str, Any]]],
+    baseline_predictions_by_split: dict[str, list[dict[str, Any]]],
+    retry_predictions_by_split: dict[str, list[dict[str, Any]]],
+    baseline_metrics_by_split: dict[str, dict[str, Any]],
+    retry_metrics_by_split: dict[str, dict[str, Any]],
+    baseline_root: Path,
+    retry_root: Path,
+    output_dir: Path,
+    title: str = "Voice2Task current SFT retry trade-off diagnosis",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "current_train_split_sft_retry_tradeoff_diagnosis.json"
+    markdown_path = output_dir / "current_train_split_sft_retry_tradeoff_diagnosis.md"
+    manifest_path = output_dir / "manifest.json"
+
+    safe_baseline = _sanitize_report_value(baseline_evidence)
+    safe_retry = _sanitize_report_value(retry_evidence)
+    if not isinstance(safe_baseline, dict) or not isinstance(safe_retry, dict):
+        raise AssertionError("baseline and retry evidence must be mappings")
+    manifest_id = str(public_manifest.get("manifest_id", "unknown"))
+    baseline_manifest_id = str(safe_baseline.get("dataset_manifest_id", "unknown"))
+    retry_manifest_id = str(safe_retry.get("dataset_manifest_id", "unknown"))
+    if baseline_manifest_id != manifest_id or retry_manifest_id != manifest_id:
+        raise ValueError(
+            "baseline/retry manifest mismatch: "
+            f"{baseline_manifest_id!r}, {retry_manifest_id!r} != {manifest_id!r}"
+        )
+
+    split_counts = public_manifest.get("split_counts", {})
+    split_summaries = {
+        split: _compare_tradeoff_split(
+            split=split,
+            baseline_gold_rows=baseline_gold_by_split[split],
+            retry_gold_rows=retry_gold_by_split[split],
+            baseline_prediction_rows=baseline_predictions_by_split[split],
+            retry_prediction_rows=retry_predictions_by_split[split],
+            baseline_metrics_payload=baseline_metrics_by_split[split],
+            retry_metrics_payload=retry_metrics_by_split[split],
+            expected_row_count=split_counts.get(split) if isinstance(split_counts.get(split), int) else None,
+        )
+        for split in ("dev", "test")
+    }
+    interpretation, dominant_tradeoff, recommended_next_change = _tradeoff_interpretation(split_summaries)
+    evidence = {
+        "evidence_kind": "current_train_split_sft_retry_tradeoff_diagnosis",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dataset_manifest_id": manifest_id,
+        "formal_public_sample_counts": public_manifest.get("counts", {}),
+        "formal_public_sample_split_counts": public_manifest.get("split_counts", {}),
+        "source_evidence": {
+            "current_baseline": {
+                "evidence_kind": safe_baseline.get("evidence_kind"),
+                "overall_interpretation": safe_baseline.get("overall_interpretation"),
+                "source_adapter_runtime": safe_baseline.get("source_adapter_runtime"),
+                "path": _public_report_artifact_path(baseline_root, "formal_public_heldout_prediction.json"),
+            },
+            "current_retry": {
+                "evidence_kind": safe_retry.get("evidence_kind"),
+                "overall_interpretation": safe_retry.get("overall_interpretation"),
+                "source_adapter_runtime": safe_retry.get("source_adapter_runtime"),
+                "path": _public_report_artifact_path(retry_root, "current_train_split_sft_retry.json"),
+            },
+        },
+        "summary": {
+            "overall_interpretation": interpretation,
+            "dominant_tradeoff": dominant_tradeoff,
+            "recommended_next_change": recommended_next_change,
+            "direct_comparison_valid": baseline_manifest_id == retry_manifest_id == manifest_id,
+            "diagnosis_scope": "diagnosis-only",
+        },
+        "split_summaries": split_summaries,
+        "execution_scope": {
+            "training_run": False,
+            "prediction_generation": False,
+            "dataset_mutation": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "prediction_repair_or_replacement": False,
+            "semantic_equivalence_scoring": False,
+            "slot_normalization": False,
+        },
+        "claims": {
+            "model_recovery_claim": False,
+            "held_out_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "private_corpus_generalization_claim": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+            "semantic_equivalence_primary_metric": False,
+            "soft_slot_f1_primary_metric": False,
+            "evaluator_relaxation": False,
+            "prediction_repair_or_replacement": False,
+        },
+        "artifact_policy": {
+            "diagnosis_only": True,
+            "baseline_predictions_read_as_input": True,
+            "retry_predictions_read_as_input": True,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "remote_caches_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "private_corpus_rows_omitted": True,
+        },
+    }
+    safe_evidence = _sanitize_report_value(evidence)
+    if not isinstance(safe_evidence, dict):
+        raise AssertionError("tradeoff diagnosis evidence must be a mapping")
+    write_json(json_path, safe_evidence)
+
+    manifest = {
+        "evidence_kind": safe_evidence["evidence_kind"],
+        "generated_at": safe_evidence["generated_at"],
+        "dataset_manifest_id": safe_evidence["dataset_manifest_id"],
+        "formal_public_sample_counts": safe_evidence["formal_public_sample_counts"],
+        "formal_public_sample_split_counts": safe_evidence["formal_public_sample_split_counts"],
+        "summary": safe_evidence["summary"],
+        "source_evidence": safe_evidence["source_evidence"],
+        "execution_scope": safe_evidence["execution_scope"],
+        "claims": safe_evidence["claims"],
+        "artifact_policy": safe_evidence["artifact_policy"],
+        "diagnostic_artifacts": {
+            "evidence": _public_report_artifact_path(
+                output_dir,
+                "current_train_split_sft_retry_tradeoff_diagnosis.json",
+            ),
+            "report": _public_report_artifact_path(
+                output_dir,
+                "current_train_split_sft_retry_tradeoff_diagnosis.md",
+            ),
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
+        },
+    }
+    write_json(manifest_path, _sanitize_report_value(manifest))
+
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is diagnosis-only evidence comparing the current-manifest prediction-only baseline "
+            "with the current-train-split SFT retry. It does not train, generate predictions, repair outputs, "
+            "change data, change prompts, or relax evaluator metrics."
+        ),
+        "",
+        "## Summary",
+        "",
+        f"- Manifest: `{safe_evidence['dataset_manifest_id']}`",
+        f"- Overall interpretation: `{safe_evidence['summary']['overall_interpretation']}`",
+        f"- Dominant trade-off: `{safe_evidence['summary']['dominant_tradeoff']}`",
+        f"- Recommended next change: `{safe_evidence['summary']['recommended_next_change']}`",
+        "",
+        "## Split Trade-offs",
+        "",
+    ]
+    for split in ("dev", "test"):
+        split_summary = safe_evidence["split_summaries"][split]
+        lines.extend(
+            [
+                f"### `{split}`",
+                "",
+                f"- Rows compared: `{split_summary['row_count']}`",
+                f"- Gold mismatch count: `{split_summary['gold_mismatch_count']}`",
+                f"- Row change count: `{split_summary['row_change_count']}`",
+                f"- Metric deltas: `{split_summary['metrics']['delta']}`",
+                f"- Outcome counts: `{split_summary['outcome_counts']}`",
+                f"- Regression family counts: `{split_summary['regression_family_counts']}`",
+                f"- Recovery family counts: `{split_summary['recovery_family_counts']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Example Changed Rows",
+            "",
+        ]
+    )
+    for split in ("dev", "test"):
+        lines.append(f"### `{split}`")
+        lines.append("")
+        examples = safe_evidence["split_summaries"][split]["examples"]
+        if examples:
+            for row in examples[:12]:
+                lines.append(
+                    f"- `{row['row_id']}` `{row['family']}`: `{row['classifications']}`; "
+                    f"baseline `{row['baseline_prediction']}`; retry `{row['retry_prediction']}`"
+                )
+        else:
+            lines.append("- none")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Boundary",
+            "",
+            "- Strict `contract_exact_match` and strict `slot_f1` remain primary.",
+            "- `slot_f1_soft` is diagnostic only.",
+            "- No training, prediction generation, DPO, GRPO, prompt change, data mutation, evaluator change, "
+            "prediction repair, checkpoint release, adapter release, live-browser benchmark, held-out recovery claim, "
+            "or production-readiness claim occurred in this phase.",
         ]
     )
     markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

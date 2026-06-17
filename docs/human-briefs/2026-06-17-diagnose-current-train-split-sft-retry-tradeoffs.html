@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task Current SFT Retry Trade-off Diagnosis 简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.6; color: #17202a; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #d8dee4; padding-bottom: 4px; }
+    code { background: #f6f8fa; padding: 2px 5px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #d8dee4; padding: 8px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #fff7ed; color: #9a3412; font-weight: 600; }
+    .good { color: #166534; font-weight: 600; }
+    .warn { color: #9a3412; font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task Current SFT Retry Trade-off Diagnosis 简报</h1>
+  <p><span class="status">diagnosis-only, no model change</span></p>
+  <p><strong>一句话结论：</strong>当前 118-row SFT retry 的收益主要是 dev safety recovered 4 rows；代价是 confirmation 回退，dominant trade-off 是 <code>confirmation_regression_after_safety_recovery</code>。</p>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>对比 current-manifest prediction-only baseline 与 current-train-split SFT retry。</li>
+    <li>只读取已提交的 public-safe gold / predictions / metrics / evidence。</li>
+    <li>按 dev/test 和 outcome family 汇总 recovered、regressed、persistent failure、unchanged success。</li>
+    <li>更新 <code>CONTEXT.md</code> 和 <code>reports/final_status.md</code> 的当前事实面。</li>
+  </ul>
+
+  <h2>关键诊断</h2>
+  <table>
+    <thead>
+      <tr><th>split / outcome</th><th>recovered</th><th>regressed</th><th>persistent failure</th><th>unchanged success</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>dev safety</td><td class="good">4</td><td class="good">0</td><td>0</td><td>65</td></tr>
+      <tr><td>dev confirmation</td><td>0</td><td class="warn">5</td><td>2</td><td>62</td></tr>
+      <tr><td>dev exact</td><td>2</td><td class="warn">4</td><td>35</td><td>28</td></tr>
+      <tr><td>test confirmation</td><td>0</td><td class="warn">2</td><td>1</td><td>66</td></tr>
+      <tr><td>test exact</td><td class="good">7</td><td>3</td><td>38</td><td>21</td></tr>
+      <tr><td>test route</td><td>0</td><td class="warn">2</td><td>5</td><td>62</td></tr>
+    </tbody>
+  </table>
+
+  <h2>边界</h2>
+  <ul>
+    <li>没有训练、没有生成新 prediction、没有改数据、没有改 prompt/evaluator。</li>
+    <li>没有发布 adapter、checkpoint、raw log、private override、远端缓存或私有路径。</li>
+    <li><code>contract_exact_match</code> 和 strict <code>slot_f1</code> 仍是主指标；<code>slot_f1_soft</code> 仍是 diagnostic only。</li>
+    <li>不能把本阶段表述为 held-out recovery、production readiness 或 live-browser benchmark improvement。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/current_train_split_sft_retry_tradeoff_diagnosis.md</code></li>
+    <li><code>reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/current_train_split_sft_retry_tradeoff_diagnosis.json</code></li>
+    <li><code>CONTEXT.md</code></li>
+    <li><code>reports/final_status.md</code></li>
+    <li><code>openspec/changes/diagnose-current-train-split-sft-retry-tradeoffs/</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li>Focused tests: <code>PYTHONPATH=src python3 -m pytest tests/test_current_train_split_sft_retry_readiness.py -q</code> → 9 passed.</li>
+    <li>Full tests: <code>PYTHONPATH=src python3 -m pytest -q</code> → 400 passed.</li>
+    <li>Lint: <code>ruff check src/ scripts/ tests/</code> → all checks passed.</li>
+    <li>OpenSpec: <code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code> → 5 passed.</li>
+    <li>Leak scan: <code>reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/leak_scan_result.json</code> → ok=true.</li>
+    <li>Whitespace: <code>git diff --check</code> → passed.</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>进入 bounded <code>design-current-retry-confirmation-preservation-candidates</code> phase：先设计可审阅的 confirmation-preservation seed / target sketches，避免下一次训练继续用 safety recovery 换 confirmation 回退。</p>
+</main>
+</body>
+</html>
