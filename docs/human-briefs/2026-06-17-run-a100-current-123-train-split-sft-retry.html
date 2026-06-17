@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task Current-123 A100 SFT Retry 简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.6; color: #17202a; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #d8dee4; padding-bottom: 4px; }
+    code { background: #f6f8fa; padding: 2px 5px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #d8dee4; padding: 8px; text-align: left; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #fff7ed; color: #9a3412; font-weight: 600; }
+    .ok { color: #047857; font-weight: 600; }
+    .warn { color: #9a3412; font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task Current-123 A100 SFT Retry 简报</h1>
+  <p><span class="status">observed model run, no strict recovery</span></p>
+  <p><strong>一句话结论：</strong>当前 manifest 的 123-row train split 已完成一轮 A100 private SFT retry 和 dev/test strict eval；输出 schema 稳定、安全 recall 为 1.0，但 full-contract exact 仍未恢复。</p>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>在 <code>public-sample-20260617T045941Z</code> 的 123-row train split 上训练一个 private LoRA adapter。</li>
+    <li>用 paired adapter 对 dev/test 各 69 条样本运行 prediction-only strict evaluation。</li>
+    <li>生成 public-safe evidence pack：<code>reports/public-sample/a100-current-123-train-split-sft-retry/</code>。</li>
+    <li>更新 <code>CONTEXT.md</code> 与 <code>reports/final_status.md</code>，把最新模型证据绑定到当前 manifest。</li>
+  </ul>
+
+  <h2>Strict Held-Out 指标</h2>
+  <table>
+    <thead>
+      <tr><th>metric</th><th>dev</th><th>test</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>rows</td><td>69</td><td>69</td></tr>
+      <tr><td>json_valid_rate</td><td>1.0000</td><td>1.0000</td></tr>
+      <tr><td>task_type_accuracy</td><td>0.8841</td><td>0.9275</td></tr>
+      <tr><td>route_accuracy</td><td>0.8841</td><td>0.9275</td></tr>
+      <tr><td>safety_recall</td><td>1.0000</td><td>1.0000</td></tr>
+      <tr><td>confirmation_accuracy</td><td>0.9275</td><td>0.9855</td></tr>
+      <tr><td>slot_f1 strict</td><td>0.5580</td><td>0.5459</td></tr>
+      <tr><td>slot_f1_soft diagnostic only</td><td>0.8332</td><td>0.7950</td></tr>
+      <tr><td>contract_exact_match</td><td>0.4348</td><td>0.3768</td></tr>
+    </tbody>
+  </table>
+
+  <h2>解释</h2>
+  <ul>
+    <li class="ok">Schema 输出稳定：dev/test <code>json_valid_rate=1.0</code>。</li>
+    <li class="ok">Safety recall 保持在 <code>1.0</code>。</li>
+    <li class="warn">Strict exact 没有恢复：dev/test 为 <code>0.4348</code> / <code>0.3768</code>。</li>
+    <li>与上一轮 118-row evidence 的 delta 只能作为 manifest-boundary-aware context，不是 clean improvement/regression。</li>
+  </ul>
+
+  <h2>边界</h2>
+  <ul>
+    <li>没有 DPO/GRPO、prompt change、evaluator relaxation、slot normalization 或 prediction repair。</li>
+    <li>没有发布 adapter、checkpoint、raw log、private override、远端缓存或 private corpus。</li>
+    <li>不能宣称 production readiness、held-out recovery、released model quality 或 live-browser benchmark improvement。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/a100-current-123-train-split-sft-retry/report.md</code></li>
+    <li><code>reports/public-sample/a100-current-123-train-split-sft-retry/current_train_split_sft_retry.json</code></li>
+    <li><code>reports/public-sample/a100-current-123-train-split-sft-retry/dev/metrics.md</code></li>
+    <li><code>reports/public-sample/a100-current-123-train-split-sft-retry/test/metrics.md</code></li>
+    <li><code>CONTEXT.md</code></li>
+    <li><code>reports/final_status.md</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li>Focused report test: <code>tests/test_current_train_split_sft_retry_readiness.py</code> passed with <code>12 passed</code>.</li>
+    <li>Full pytest passed with <code>406 passed</code>.</li>
+    <li><code>ruff check src/ scripts/ tests/</code>, <code>openspec validate --all --strict</code>, public data validation, DPO pair check, leak scan, and <code>git diff --check</code> all passed.</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>开一个 bounded residual / trade-off diagnosis phase，先定位 current-123 retry 的主要残差家族和 trade-off，再决定是否需要新的候选数据设计；不要直接继续训练或放松 evaluator。</p>
+</main>
+</body>
+</html>

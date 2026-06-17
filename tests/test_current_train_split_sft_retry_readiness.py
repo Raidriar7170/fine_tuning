@@ -33,6 +33,9 @@ PUBLIC_MERGE_EVIDENCE = (
 )
 READINESS_DIR = REPO_ROOT / "reports" / "public-sample" / "current-train-split-sft-retry-readiness"
 RETRY_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "a100-current-train-split-sft-retry"
+CURRENT_123_RETRY_EVIDENCE_DIR = (
+    REPO_ROOT / "reports" / "public-sample" / "a100-current-123-train-split-sft-retry"
+)
 TRADEOFF_DIAGNOSIS_DIR = (
     REPO_ROOT / "reports" / "public-sample" / "current-train-split-sft-retry-tradeoff-diagnosis"
 )
@@ -303,6 +306,8 @@ def test_current_train_split_retry_cli_writes_training_retry_evidence_without_re
     assert evidence["comparison_to_current_baseline"]["strict_exact_delta"]["dev"] > 0
     assert evidence["comparison_to_current_baseline"]["strict_exact_delta"]["test"] > 0
     assert evidence["comparison_to_current_baseline"]["direct_comparison_valid"] is False
+    assert "Baseline manifest: `public-sample-20260616T165835Z`" in markdown
+    assert "Delta values are context only" in markdown
     assert evidence["claims"]["training_performed"] is True
     assert evidence["claims"]["held_out_generalization_recovered"] is False
     assert evidence["claims"]["model_recovery_claim"] is False
@@ -394,6 +399,84 @@ def test_committed_current_train_split_retry_evidence_records_observed_partial_s
     assert "minghongsun" not in combined_public_text
     assert "/mnt/data/" not in combined_public_text
     assert scan_paths([RETRY_EVIDENCE_DIR]).ok is True
+
+
+def test_committed_current_123_train_split_retry_evidence_records_no_strict_recovery_boundary() -> None:
+    evidence = read_json(CURRENT_123_RETRY_EVIDENCE_DIR / "current_train_split_sft_retry.json")
+    manifest = read_json(CURRENT_123_RETRY_EVIDENCE_DIR / "manifest.json")
+    leak_scan = read_json(CURRENT_123_RETRY_EVIDENCE_DIR / "leak_scan_result.json")
+    report = (CURRENT_123_RETRY_EVIDENCE_DIR / "report.md").read_text(encoding="utf-8")
+
+    assert evidence["evidence_kind"] == "a100_current_train_split_sft_retry"
+    assert evidence["run_status"] == "observed"
+    assert evidence["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["dataset_manifest_id"] == "public-sample-20260617T045941Z"
+    assert evidence["formal_public_sample_counts"] == {
+        "seed_rows": 102,
+        "sft_rows": 261,
+        "dpo_pairs": 881,
+    }
+    assert evidence["formal_public_sample_split_counts"] == {
+        "train": 123,
+        "dev": 69,
+        "test": 69,
+    }
+    assert evidence["training_status"] == "training_completed"
+    assert evidence["training_rows_used"] == 123
+    assert evidence["overall_interpretation"] == "current_train_split_sft_retry_no_strict_exact_recovery"
+
+    dev = evidence["split_results"]["dev"]
+    test = evidence["split_results"]["test"]
+    assert dev["prediction_count"] == 69
+    assert test["prediction_count"] == 69
+    assert dev["contract_exact_match"] == 0.43478260869565216
+    assert dev["slot_f1"] == 0.5579710144927537
+    assert dev["slot_f1_soft"] == 0.8332347431726314
+    assert dev["task_type_accuracy"] == 0.8840579710144928
+    assert dev["route_accuracy"] == 0.8840579710144928
+    assert dev["safety_precision"] == 1.0
+    assert dev["safety_recall"] == 1.0
+    assert dev["confirmation_accuracy"] == 0.927536231884058
+    assert dev["json_valid_rate"] == 1.0
+    assert test["contract_exact_match"] == 0.37681159420289856
+    assert test["slot_f1"] == 0.5458937198067634
+    assert test["slot_f1_soft"] == 0.7949706841735827
+    assert test["task_type_accuracy"] == 0.927536231884058
+    assert test["route_accuracy"] == 0.927536231884058
+    assert test["safety_precision"] == 0.9230769230769231
+    assert test["safety_recall"] == 1.0
+    assert test["confirmation_accuracy"] == 0.9855072463768116
+    assert test["json_valid_rate"] == 1.0
+
+    comparison = evidence["comparison_to_current_baseline"]
+    assert comparison["direct_comparison_valid"] is False
+    assert comparison["baseline_dataset_manifest_id"] == CURRENT_RETRY_SOURCE_MANIFEST_ID
+    assert comparison["strict_exact_delta"] == {
+        "dev": 0.0,
+        "test": -0.02898550724637683,
+    }
+    assert comparison["strict_slot_f1_delta"] == {
+        "dev": -0.021739130434782594,
+        "test": 0.007246376811594235,
+    }
+    assert "Baseline manifest: `public-sample-20260616T165835Z`" in report
+    assert "Delta values are context only" in report
+    assert "not a clean improvement/regression comparison" in report
+
+    assert evidence["execution_scope"]["training_run"] is True
+    assert evidence["execution_scope"]["prediction_run"] is True
+    assert evidence["execution_scope"]["dataset_mutation"] is False
+    assert evidence["claims"]["training_performed"] is True
+    assert evidence["claims"]["held_out_generalization_recovered"] is False
+    assert evidence["claims"]["model_recovery_claim"] is False
+    assert evidence["claims"]["adapter_release"] is False
+    assert evidence["claims"]["checkpoint_release"] is False
+    assert evidence["claims"]["production_readiness_claim"] is False
+    assert evidence["claims"]["soft_slot_f1_primary_metric"] is False
+    assert manifest["diagnostic_artifacts"]["training_metadata"] == "<private_path>"
+    assert manifest["artifact_policy"]["private_paths_omitted"] is True
+    assert leak_scan["ok"] is True
+    assert scan_paths([CURRENT_123_RETRY_EVIDENCE_DIR]).ok is True
 
 
 def test_current_train_split_retry_tradeoff_cli_writes_diagnosis_only_evidence(

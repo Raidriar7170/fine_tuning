@@ -5872,9 +5872,15 @@ def write_current_train_split_sft_retry_report(
             "## Current Baseline Comparison",
             "",
             f"- Direct comparison valid: `{comparison['direct_comparison_valid']}`",
+            f"- Baseline manifest: `{comparison['baseline_dataset_manifest_id']}`",
+            f"- Baseline source adapter runtime: `{comparison['baseline_source_adapter_runtime']}`",
             f"- Strict exact delta: `{comparison['strict_exact_delta']}`",
             f"- Strict slot F1 delta: `{comparison['strict_slot_f1_delta']}`",
             f"- Safety recall delta: `{comparison['safety_recall_delta']}`",
+            (
+                "- Delta values are context only, not a clean improvement/regression comparison, "
+                "when direct comparison is `False`."
+            ),
             "",
             "## Boundary",
             "",

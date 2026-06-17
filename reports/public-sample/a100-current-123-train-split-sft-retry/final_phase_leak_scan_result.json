@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-17T09:03:11.248686+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "CONTEXT.md",
+    "reports/final_status.md",
+    "reports/public-sample/a100-current-123-train-split-sft-retry",
+    "docs/human-briefs/2026-06-17-run-a100-current-123-train-split-sft-retry.html",
+    "data/public-samples",
+    "openspec/changes/archive/2026-06-17-run-a100-current-123-train-split-sft-retry",
+    "openspec/specs"
+  ]
+}

@@ -12,40 +12,40 @@
 | --- | --- |
 | Latest data evidence pack | `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/` |
 | Latest readiness evidence pack | `reports/public-sample/current-123-train-split-sft-retry-readiness/` |
-| Latest model evidence pack | `reports/public-sample/a100-current-train-split-sft-retry/` |
+| Latest model evidence pack | `reports/public-sample/a100-current-123-train-split-sft-retry/` |
 | Latest candidate-design evidence pack | `reports/public-sample/current-retry-confirmation-preservation-candidate-design/` |
 | Latest diagnosis evidence pack | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
 | Baseline evidence pack | `reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery/` |
 | Current data manifest | `public-sample-20260617T045941Z` |
 | Current public sample | 102 seeds / 261 SFT rows / 881 DPO pairs |
 | Current split | train 123 / dev 69 / test 69 |
-| Latest evaluated manifest | `public-sample-20260616T165835Z` |
-| Latest evaluated public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
-| Latest run type | private SFT retry on the prior 118-row train split, then dev/test strict eval |
-| Latest interpretation | `current_train_split_sft_retry_partial_signal` |
+| Latest evaluated manifest | `public-sample-20260617T045941Z` |
+| Latest evaluated public sample | 102 seeds / 261 SFT rows / 881 DPO pairs |
+| Latest run type | private SFT retry on the current 123-row train split, then dev/test strict eval |
+| Latest interpretation | `current_train_split_sft_retry_no_strict_exact_recovery` |
 | Latest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
 | Prior SFT v3 retry evidence | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
 
-最新模型证据仍绑定 `public-sample-20260616T165835Z`。它在 A100 上训练了一个新的 private adapter，使用当时的 118-row train split，然后做 dev/test prediction-only strict evaluation。当前数据边界已通过 confirmation-preservation materialization 前进到 `public-sample-20260617T045941Z`，但还没有模型在这个新边界上训练或评估。没有修 prediction、没有 normalize slot、没有改 prompt、没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
+最新模型证据绑定 `public-sample-20260617T045941Z`。它在 A100 上训练了一个新的 private adapter，使用当前 123-row train split，然后做 dev/test prediction-only strict evaluation。没有修 prediction、没有 normalize slot、没有改 prompt、没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
 
-## Formal Public Held-Out 指标（绑定 `public-sample-20260616T165835Z`）
+## Formal Public Held-Out 指标（绑定 `public-sample-20260617T045941Z`）
 
 | 指标 | Dev | Test |
 | --- | ---: | ---: |
 | rows | 69 | 69 |
 | json_valid_rate | 1.0000 | 1.0000 |
-| task_type_accuracy | 0.9130 | 0.8986 |
-| route_accuracy | 0.9130 | 0.8986 |
+| task_type_accuracy | 0.8841 | 0.9275 |
+| route_accuracy | 0.8841 | 0.9275 |
 | safety_precision | 1.0000 | 0.9231 |
 | safety_recall | 1.0000 | 1.0000 |
-| confirmation_accuracy | 0.8986 | 0.9565 |
-| slot_f1 (strict) | 0.5797 | 0.5386 |
-| slot_f1_soft (diagnostic only) | 0.8671 | 0.7682 |
-| contract_exact_match | 0.4348 | 0.4058 |
+| confirmation_accuracy | 0.9275 | 0.9855 |
+| slot_f1 (strict) | 0.5580 | 0.5459 |
+| slot_f1_soft (diagnostic only) | 0.8332 | 0.7950 |
+| contract_exact_match | 0.4348 | 0.3768 |
 
 主指标是 `contract_exact_match` 和 strict `slot_f1`。`slot_f1_soft` 只能说明 slot value 存在表述相近但 exact 不一致的现象，不能替代 strict 指标。
 
-相对 current-manifest prediction-only baseline：dev safety_recall 从 `0.5556` 回到 `1.0000`，dev/test strict slot_f1 均提升，test exact 从 `0.3478` 提升到 `0.4058`。但 dev exact 从 `0.4638` 降到 `0.4348`，dev confirmation accuracy 从 `0.9710` 降到 `0.8986`，test route/confirmation 也有回退。因此这次 retry 是 mixed partial signal，不是 held-out recovery。
+本轮 123-row retry 是当前 manifest 下的第一份 paired-adapter model evidence。与上一轮 118-row evidence 只能做 manifest-boundary-aware context comparison，不能当作 clean improvement/regression。当前结论是 no strict exact recovery：dev/test exact 分别是 `0.4348` / `0.3768`，schema 稳定、安全 recall 为 `1.0000`，但 full-contract exact 仍未恢复。
 
 随后完成的 trade-off diagnosis 进一步确认：dev safety recovered `4` rows / safety regressed `0` rows，但 confirmation regressed `5` dev rows 和 `2` test rows；dev exact 是 `2` recovered / `4` regressed，test exact 是 `7` recovered / `3` regressed。当前 dominant trade-off 是 `confirmation_regression_after_safety_recovery`，下一阶段应先设计 confirmation-preservation candidates，而不是直接继续训练或调整 evaluator。
 
@@ -60,10 +60,10 @@
 
 ## 仍然存在的风险
 
-1. Full-contract exact match 仍未恢复：dev/test 为 0.4348 / 0.4058，离 strict recovery 很远。
-2. Confirmation 出现明显 trade-off：dev 从 0.9710 降到 0.8986，test 从 0.9855 降到 0.9565。
-3. Route/task_type 仍有边界问题：dev 变好但 test 从 0.9275 降到 0.8986。
-4. Slot exactness 仍是残差来源：dev slot failure 29 条，test slot failure 34 条；soft 指标只能辅助定位，不能对外过度表达。
+1. Full-contract exact match 仍未恢复：dev/test 为 0.4348 / 0.3768，离 strict recovery 很远。
+2. Route/task_type 仍有边界问题：dev/test 为 0.8841 / 0.9275。
+3. Slot exactness 仍是残差来源：dev slot failure 31 条，test slot failure 34 条；soft 指标只能辅助定位，不能对外过度表达。
+4. 仍需要 residual / trade-off diagnosis 才能判断下一次数据设计目标，不能直接从本轮 retry 推出继续训练方向。
 
 ## 不应过度宣称
 
@@ -213,15 +213,29 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - readiness status: `ready_for_bounded_a100_sft_retry_phase`；
 - prediction configs 被明确标注为需要 paired adapter trained for `public-sample-20260617T045941Z`，不能直接拿 prior adapter 结果当作 current-manifest model evidence。
 
-下一步如果继续，应开 bounded A100 SFT retry phase：在 123-row train split 上训练新的 private adapter，然后做 strict dev/test prediction evaluation；仍然不发布 adapter/checkpoint/raw log/private override。
+随后已完成 current-123-row train-split A100 SFT retry：
+
+- evidence: `reports/public-sample/a100-current-123-train-split-sft-retry/report.md`
+- fresh A100 preflight 后选择空闲 GPU；
+- 创建 repo-external private override；
+- 训练 private adapter，使用当前 public train split 的 123 条 rows；
+- dev/test 各生成 69 条 prediction，并用 strict evaluator 评估；
+- 导入 public-safe metrics / predictions / sidecars / manifest / report；
+- 未发布 adapter、checkpoint、raw log、private override、远端缓存或私有路径。
+
+当前结果不是 strict recovery：dev/test exact 为 `0.4348` / `0.3768`，
+strict slot F1 为 `0.5580` / `0.5459`，safety recall 均为 `1.0000`。
+下一步如果继续，应开 bounded residual / trade-off diagnosis phase，先定位
+current-123 retry 的主要残差家族和 trade-off，再决定是否设计新的候选数据；
+不应直接继续训练、改 evaluator、引入 DPO 或宣称模型恢复。
 
 ## 主要证据链接
 
-- Latest evidence report: `reports/public-sample/a100-current-train-split-sft-retry/report.md`
+- Latest evidence report: `reports/public-sample/a100-current-123-train-split-sft-retry/report.md`
 - Latest confirmation-preservation candidate design: `reports/public-sample/current-retry-confirmation-preservation-candidate-design/current_retry_confirmation_preservation_candidate_design.md`
 - Latest trade-off diagnosis: `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/current_train_split_sft_retry_tradeoff_diagnosis.md`
-- Latest Dev metrics: `reports/public-sample/a100-current-train-split-sft-retry/dev/metrics.md`
-- Latest Test metrics: `reports/public-sample/a100-current-train-split-sft-retry/test/metrics.md`
+- Latest Dev metrics: `reports/public-sample/a100-current-123-train-split-sft-retry/dev/metrics.md`
+- Latest Test metrics: `reports/public-sample/a100-current-123-train-split-sft-retry/test/metrics.md`
 - Current-manifest prediction-only baseline: `reports/public-sample/a100-current-manifest-sft-v3-prediction-baseline/report.md`
 - Prior SFT v3 retry after SSH recovery: `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/report.md`
 - Baseline evidence report: `reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery/report.md`
