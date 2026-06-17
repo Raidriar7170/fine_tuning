@@ -1,0 +1,122 @@
+{
+  "artifact_policy": {
+    "a100_execution": false,
+    "candidate_rows_generated": true,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "evaluator_metric_change": false,
+    "formal_public_sample_files_modified": false,
+    "host_details_omitted": true,
+    "prediction_repair_or_replacement": false,
+    "prediction_run": false,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "public_sample_modified": false,
+    "raw_logs_copied_to_git": false,
+    "seed_traces_modified": false,
+    "slot_normalization": false,
+    "ssh_details_omitted": true,
+    "training_run": false
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_recovered": false,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_quality_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "safety_improvement_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false,
+    "strict_contract_exact_match_primary_metric": true,
+    "strict_slot_f1_primary_metric": true
+  },
+  "diagnostic_artifacts": {
+    "candidate_seed": "data/public-samples/current_retry_confirmation_preservation_seed_candidates.jsonl",
+    "candidate_sft": "sft_candidate_rows.jsonl",
+    "manifest": "manifest.json",
+    "markdown": "current_retry_confirmation_preservation_materialization.md",
+    "materialization": "current_retry_confirmation_preservation_materialization.json"
+  },
+  "evidence_kind": "current_retry_confirmation_preservation_materialization",
+  "execution_scope": {
+    "a100_execution": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "evaluator_relaxation": false,
+    "formal_public_sample_modified": false,
+    "grpo_run": false,
+    "live_browser_benchmark": false,
+    "local_public_sample_only": true,
+    "new_candidate_data_generated": true,
+    "prediction_repair": false,
+    "prediction_replacement": false,
+    "prediction_run": false,
+    "private_corpus_publication": false,
+    "prompt_change": false,
+    "public_sample_modified": false,
+    "seed_traces_modified": false,
+    "semantic_equivalence_scoring": false,
+    "sft_run": false,
+    "slot_normalization": false,
+    "training_run": false
+  },
+  "generated_at": "2026-06-17T04:59:40.235156+00:00",
+  "materialization_status": "candidate_dataset_materialized",
+  "source_candidate_design": {
+    "dataset_manifest_id": "public-sample-20260616T165835Z",
+    "design_mode": "public_safe_design_only_no_materialization",
+    "evidence_kind": "current_retry_confirmation_preservation_candidate_design",
+    "path": "reports/public-sample/current-retry-confirmation-preservation-candidate-design/current_retry_confirmation_preservation_candidate_design.json",
+    "source_diagnosis": {
+      "dominant_tradeoff": "confirmation_regression_after_safety_recovery",
+      "evidence_kind": "current_train_split_sft_retry_tradeoff_diagnosis",
+      "overall_interpretation": "current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery",
+      "path": "reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/current_train_split_sft_retry_tradeoff_diagnosis.json",
+      "selection_consistency": {
+        "diagnosis_confirmation_regressed_count": 7,
+        "selected_source_count_matches_diagnosis_confirmation_regressions": true,
+        "selected_source_row_count": 7
+      },
+      "selection_method": "recomputed_from_public_baseline_retry_inputs_with_tradeoff_diagnosis_provenance"
+    },
+    "summary": {
+      "candidate_count": 2,
+      "candidate_seed_rows_materialized": false,
+      "dpo_pairs_generated": false,
+      "formal_public_sample_modified": false,
+      "recommended_next_step": "materialize_current_retry_confirmation_preservation_candidates_after_review",
+      "source_row_count": 7,
+      "source_row_ids": [
+        "family-blocked_payment-dev-1",
+        "family-blocked_payment-dev-1-aug-1",
+        "family-blocked_payment-dev-1-aug-2",
+        "family-blocked_payment-dev-2-aug-2",
+        "family-blocked_payment-dev-3",
+        "family-navigation-test-1",
+        "family-navigation-test-3-aug-1"
+      ]
+    }
+  },
+  "summary": {
+    "candidate_families": [
+      "public_navigation_non_confirmation_preservation",
+      "unsafe_payment_confirmation_preservation"
+    ],
+    "candidate_family_count": 2,
+    "candidate_seed_rows": 2,
+    "candidate_sft_rows": 5,
+    "formal_public_sample_dpo_pairs": 864,
+    "formal_public_sample_has_current_retry_confirmation_preservation_candidates": false,
+    "formal_public_sample_modified": false,
+    "formal_public_sample_seed_rows": 100,
+    "formal_public_sample_sft_rows": 256,
+    "recommended_next_step": "merge_current_retry_confirmation_preservation_candidates_into_public_sample",
+    "seed_traces_modified": false
+  }
+}

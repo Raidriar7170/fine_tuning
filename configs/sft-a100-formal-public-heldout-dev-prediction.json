@@ -2,7 +2,7 @@
   "adapter_path": "<a100_project_root>/runs/a100-merged-slot-value-heldout-eval/adapter",
   "allow_private_prediction": true,
   "base_model": "Qwen/Qwen2.5-7B-Instruct",
-  "dataset_manifest_id": "public-sample-20260616T165835Z",
+  "dataset_manifest_id": "public-sample-20260617T045941Z",
   "evidence_output_dir": "<a100_project_root>/evidence/a100-formal-public-heldout-prediction-after-confirmation-marker-merge/dev",
   "formal_public_sample_heldout_prediction": true,
   "generalization_claim": false,
@@ -15,6 +15,8 @@
   "prediction_artifact_policy": "commit_only_sanitized_public_sample_predictions_sidecars_metrics_manifest_and_report",
   "prediction_split": "dev",
   "private_override_required": true,
+  "source_adapter_dataset_manifest_id": "public-sample-20260615T040231Z",
+  "target_dataset_manifest_id": "public-sample-20260617T045941Z",
   "private_override_requirements": [
     "Create a private override outside git before remote execution.",
     "Resolve <a100_project_root> to the approved private A100 project directory.",

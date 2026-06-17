@@ -6,17 +6,20 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-17, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has five current layers:
+The public-facing truth surface has six current layers:
 
-1. the current-retry confirmation-preservation candidate design under
+1. the current-retry confirmation-preservation materialization and public merge
+   under
+   `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/`;
+2. the current-retry confirmation-preservation candidate design under
    `reports/public-sample/current-retry-confirmation-preservation-candidate-design/`;
-2. the current-train-split SFT retry trade-off diagnosis under
+3. the current-train-split SFT retry trade-off diagnosis under
    `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/`;
-3. the current-train-split SFT retry under
+4. the current-train-split SFT retry under
    `reports/public-sample/a100-current-train-split-sft-retry/`;
-4. the current-manifest SFT v3 prediction-only baseline under
+5. the current-manifest SFT v3 prediction-only baseline under
    `reports/public-sample/a100-current-manifest-sft-v3-prediction-baseline/`;
-5. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
+6. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
    source, under
    `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/`.
 
@@ -24,24 +27,27 @@ Current formal public sample data boundary:
 
 | item | value |
 | --- | --- |
-| manifest | `public-sample-20260616T165835Z` |
-| public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
-| split counts | train 118 / dev 69 / test 69 |
+| manifest | `public-sample-20260617T045941Z` |
+| public sample | 102 seeds / 261 SFT rows / 881 DPO pairs |
+| split counts | train 123 / dev 69 / test 69 |
 | latest evaluated manifest | `public-sample-20260616T165835Z` |
-| latest model run type | private SFT retry on current 118-row train split, then dev/test strict eval |
+| latest model run type | private SFT retry on the prior 118-row train split, then dev/test strict eval |
 | latest model interpretation | `current_train_split_sft_retry_partial_signal` |
 | latest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
 | latest diagnosis evidence | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
 | latest candidate-design evidence | `reports/public-sample/current-retry-confirmation-preservation-candidate-design/` |
+| latest data-materialization evidence | `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/` |
 | prior SFT v3 retry manifest | `public-sample-20260616T074315Z` |
 | prior SFT v3 retry interpretation | `form_fill_sft_v3_partial_improvement_with_safety_regression_risk` |
 
-The metric table below is the current model evidence bound to
-`public-sample-20260616T165835Z`. It trained one private adapter on the current
+The metric table below remains the latest model evidence, bound to
+`public-sample-20260616T165835Z`. It trained one private adapter on that
 118-row train split, including the merged form-fill and blocked-payment repair
 rows, then performed dev/test prediction-only strict evaluation with the
-existing evaluator. It did not mutate data, repair predictions, normalize slots,
-change prompts, relax metrics, or publish a checkpoint/adapter.
+existing evaluator. The current formal public sample has since advanced to
+`public-sample-20260617T045941Z` through data materialization only. The latest
+model evidence did not repair predictions, normalize slots, change prompts,
+relax metrics, or publish a checkpoint/adapter.
 
 Current-train-split SFT retry formal held-out metrics:
 
@@ -58,7 +64,12 @@ means the output shape is stable; it is not enough to claim contract recovery.
 Claim boundaries:
 
 - The latest current-manifest model evidence includes one private SFT retry on
-  the current 118-row train split plus dev/test prediction-only strict eval.
+  the `public-sample-20260616T165835Z` 118-row train split plus dev/test
+  prediction-only strict eval.
+- The current public sample has since advanced to
+  `public-sample-20260617T045941Z` through confirmation-preservation candidate
+  materialization only; no model has been trained or evaluated on this new data
+  boundary yet.
 - The prior bounded SFT v3 retry did train a private A100 adapter on the
   previous public train split (`114` rows, including `21` form-fill remediation /
   confirmation-marker rows), but it is not released.
@@ -70,14 +81,16 @@ Claim boundaries:
   public-safe evidence surface; it does not prove production reliability,
   held-out recovery, or safety readiness.
 
-The residual-family diagnosis, target-selection refresh, and `form_fill` SFT v3
-readiness check are now complete for the current manifest. The selected bounded
-target remains `form_fill` residuals, especially the `normalized_command` /
-confirmation-marker cluster; `clarify` route confusion and `blocked_payment`
-safety recall remain secondary risks. The readiness report selects the current
-public train split (`114` rows, including `21` merged form-fill remediation /
-confirmation-marker rows) and recommends a separate
-`run-a100-form-fill-remediation-sft-v3` phase.
+Earlier residual-family diagnosis, target-selection refresh, and `form_fill`
+SFT v3 readiness checks were completed for the prior form-fill remediation
+manifest boundary, before blocked-payment and current-retry materialization
+advanced the public sample again. That phase selected `form_fill` residuals,
+especially the `normalized_command` / confirmation-marker cluster, and selected
+the then-current public train split (`114` rows, including `21` merged
+form-fill remediation / confirmation-marker rows) for a separate
+`run-a100-form-fill-remediation-sft-v3` phase. It is historical setup evidence
+now, not evidence that the current `public-sample-20260617T045941Z` boundary has
+already been trained or evaluated.
 
 An initial `run-a100-form-fill-remediation-sft-v3` execution attempt was opened
 on 2026-06-16 but blocked before GPU inspection because the configured A100 SSH
@@ -185,10 +198,27 @@ source rows: `unsafe_payment_confirmation_preservation` covers `5` dev
 `safety.reason="unsafe_payment"`, and `confirmation_required=true`;
 `public_navigation_non_confirmation_preservation` covers `2` test navigation
 rows where the accepted target remains `navigate/open_url`,
-`safety.reason="public_readonly"`, and `confirmation_required=false`. The next
-bounded phase may materialize these reviewed candidate sketches into
-candidate-only public-safe rows, but no model-quality claim is allowed until a
-later strict held-out evaluation exists.
+`safety.reason="public_readonly"`, and `confirmation_required=false`. This
+design was later materialized by the bounded materialization phase below; by
+itself it remains design-only evidence and no model-quality claim is allowed
+until a later strict held-out evaluation exists.
+
+The bounded current-retry confirmation-preservation materialization is now
+complete. It added `2` formal train seed rows and rebuilt the public sample to
+`public-sample-20260617T045941Z` with 102 seeds / 261 SFT rows / 881 DPO pairs.
+The evidence lives under
+`reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/`
+and records `candidate_seed_rows=2`, `candidate_sft_rows=5`, and
+`candidate_dpo_pairs=17`. The two formal families preserve the reviewed target
+shapes: `unsafe_payment_confirmation_preservation` keeps `blocked/deny`,
+`safety.reason="unsafe_payment"`, and `confirmation_required=true`;
+`public_navigation_non_confirmation_preservation` keeps `navigate/open_url`,
+`safety.reason="public_readonly"`, and `confirmation_required=false`. This is
+data evidence only: no training, prediction, evaluator change, slot
+normalization, safety improvement claim, model-quality claim, checkpoint or
+adapter release, production-readiness claim, or live-browser benchmark claim.
+The recommended next bounded phase is a prediction-only or training-readiness
+step against the new manifest before any further SFT retry.
 
 ## Language
 

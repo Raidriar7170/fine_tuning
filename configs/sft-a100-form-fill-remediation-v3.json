@@ -3,8 +3,11 @@
   "adapter_output_dir": "<a100_project_root>/runs/a100-form-fill-remediation-sft-v3/adapter",
   "allow_heavy_training": true,
   "base_model": "Qwen/Qwen2.5-7B-Instruct",
-  "dataset_manifest_id": "public-sample-20260616T165835Z",
+  "dataset_manifest_id": "public-sample-20260617T045941Z",
   "dataset_split": "train",
+  "fresh_run_required_for_target_manifest": true,
+  "prior_evaluated_dataset_manifest_id": "public-sample-20260616T165835Z",
+  "target_dataset_manifest_id": "public-sample-20260617T045941Z",
   "evidence_output_dir": "<a100_project_root>/evidence/a100-form-fill-remediation-sft-v3/train",
   "form_fill_remediation_sft_v3": true,
   "generalization_claim": false,
@@ -33,7 +36,7 @@
   "private_override_requirements": [
     "Create a private override outside git before remote execution.",
     "Resolve <a100_project_root> to the approved private A100 project directory.",
-    "Train on the current formal public train split for manifest public-sample-20260616T165835Z.",
+    "Train on the current formal public train split for manifest public-sample-20260617T045941Z.",
     "Keep raw logs, checkpoints, adapters, caches, host details, SSH details, tokens, and private corpus rows out of committed artifacts."
   ],
   "public_sample_manifest": "data/public-samples/manifest_public_sample.json",

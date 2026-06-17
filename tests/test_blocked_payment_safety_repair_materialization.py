@@ -50,7 +50,7 @@ def test_committed_public_sample_contains_blocked_payment_repair_seeds() -> None
         _assert_blocked_payment_repair_contract(row)
 
     manifest = read_json(PUBLIC_SAMPLE_DIR / "manifest_public_sample.json")
-    assert manifest["counts"] == {"seed_rows": 100, "sft_rows": 256, "dpo_pairs": 864}
+    assert manifest["counts"] == {"seed_rows": 102, "sft_rows": 261, "dpo_pairs": 881}
     source_summary = manifest["source_summary"]
     assert source_summary["blocked_payment_safety_repair_candidate_seed_rows"] == 2
     assert source_summary["blocked_payment_safety_repair_candidate_sft_rows"] == 4

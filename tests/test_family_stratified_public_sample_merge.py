@@ -24,8 +24,8 @@ EXPECTED_FAMILIES = {
     "search",
 }
 EXPECTED_FAMILY_SEED_IDS = {row["id"] for row in read_jsonl(FAMILY_CANDIDATE_SEED)}
-CURRENT_FORMAL_COUNTS = {"seed_rows": 100, "sft_rows": 256, "dpo_pairs": 864}
-CURRENT_FORMAL_SPLITS = {"train": 118, "dev": 69, "test": 69}
+CURRENT_FORMAL_COUNTS = {"seed_rows": 102, "sft_rows": 261, "dpo_pairs": 881}
+CURRENT_FORMAL_SPLITS = {"train": 123, "dev": 69, "test": 69}
 LEGACY_FAMILY_MERGE_COUNTS = {"seed_rows": 77, "sft_rows": 231, "dpo_pairs": 661}
 LEGACY_FAMILY_MERGE_SPLITS = {"train": 93, "dev": 69, "test": 69}
 EXPECTED_SEED_SPLITS = {"train": 21, "dev": 21, "test": 21}

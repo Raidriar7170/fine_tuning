@@ -2501,6 +2501,260 @@ def write_blocked_payment_safety_repair_public_sample_merge_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_current_retry_confirmation_preservation_materialization_report(
+    materialization: dict[str, Any],
+    output_dir: Path,
+    sft_rows: list[dict[str, Any]],
+    title: str = "Voice2Task current-retry confirmation-preservation materialization",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "current_retry_confirmation_preservation_materialization.json"
+    markdown_path = output_dir / "current_retry_confirmation_preservation_materialization.md"
+    manifest_path = output_dir / "manifest.json"
+    sft_path = output_dir / "sft_candidate_rows.jsonl"
+    safe_materialization = _sanitize_report_value(materialization)
+    write_jsonl(sft_path, [_sanitize_report_value(row) for row in sft_rows])
+    write_json(json_path, safe_materialization)
+
+    scope = safe_materialization.get("execution_scope", {})
+    claims = safe_materialization.get("claims", {})
+    allowed_true_scope = {"local_public_sample_only", "new_candidate_data_generated"}
+    allowed_true_claims = {"strict_contract_exact_match_primary_metric", "strict_slot_f1_primary_metric"}
+    bad_scope = [key for key, value in scope.items() if value is True and key not in allowed_true_scope]
+    bad_claims = [key for key, value in claims.items() if value is True and key not in allowed_true_claims]
+    if bad_scope or bad_claims:
+        raise ValueError(
+            "current-retry confirmation-preservation materialization report cannot claim unsupported scope "
+            f"or recovery signals: scope={bad_scope}, claims={bad_claims}"
+        )
+
+    manifest = {
+        "evidence_kind": safe_materialization["evidence_kind"],
+        "materialization_status": safe_materialization["materialization_status"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_candidate_design": safe_materialization["source_candidate_design"],
+        "summary": safe_materialization["summary"],
+        "execution_scope": safe_materialization["execution_scope"],
+        "claims": safe_materialization["claims"],
+        "artifact_policy": {
+            "candidate_rows_generated": True,
+            "formal_public_sample_files_modified": False,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "training_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+            "slot_normalization": False,
+        },
+        "diagnostic_artifacts": {
+            "candidate_seed": safe_materialization["artifact_files"]["candidate_seed"],
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization": "current_retry_confirmation_preservation_materialization.json",
+            "markdown": "current_retry_confirmation_preservation_materialization.md",
+            "manifest": "manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_materialization["summary"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This report records standalone public-safe candidate seed materialization. "
+            "It does not modify the formal public sample, train a model, generate predictions, "
+            "repair predictions, normalize slots, or change evaluator metrics."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Formal public sample modified: `False`.",
+        "- Seed traces modified: `False`.",
+        (
+            "- No SFT/DPO/GRPO training, prediction run, A100 execution, prompt change, "
+            "slot normalization, or evaluator relaxation."
+        ),
+        (
+            "- This is not model recovery, safety improvement, production readiness, "
+            "held-out recovery, or live-browser evidence."
+        ),
+        "",
+        "## Summary",
+        "",
+        f"- Source manifest: `{safe_materialization['source_candidate_design']['dataset_manifest_id']}`",
+        f"- Candidate families: `{summary['candidate_families']}`",
+        f"- Candidate seed rows: `{summary['candidate_seed_rows']}`",
+        f"- Candidate SFT rows: `{summary['candidate_sft_rows']}`",
+        f"- Formal public sample seed rows at materialization time: `{summary['formal_public_sample_seed_rows']}`",
+        f"- Formal public sample SFT rows at materialization time: `{summary['formal_public_sample_sft_rows']}`",
+        f"- Formal public sample DPO pairs at materialization time: `{summary['formal_public_sample_dpo_pairs']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Candidate Families",
+        "",
+    ]
+    for family in safe_materialization.get("candidate_families", []):
+        lines.extend(
+            [
+                f"### `{family['candidate_seed_id']}`",
+                "",
+                f"- Candidate family: `{family['candidate_family']}`",
+                f"- Candidate SFT row ids: `{family['candidate_sft_row_ids']}`",
+                f"- Source candidate id: `{family['source_candidate_id']}`",
+                f"- Source rows: `{family['source_row_ids']}`",
+                f"- Accepted target sketch: `{family['accepted_target_contract_sketch']}`",
+                f"- Rejected drift sketches: `{family['rejected_drift_sketches']}`",
+                "",
+            ]
+        )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {
+        "json": json_path,
+        "markdown": markdown_path,
+        "manifest": manifest_path,
+        "sft": sft_path,
+    }
+
+
+def write_current_retry_confirmation_preservation_public_sample_merge_report(
+    evidence: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task current-retry confirmation-preservation public sample merge",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "current_retry_confirmation_preservation_public_sample_merge.json"
+    markdown_path = output_dir / "current_retry_confirmation_preservation_public_sample_merge.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_evidence = _sanitize_report_value(evidence)
+    scope = safe_evidence.get("execution_scope", {})
+    claims = safe_evidence.get("claims", {})
+    allowed_true_scope = {
+        "dpo_artifacts_rebuilt",
+        "formal_public_sample_modified",
+        "seed_traces_modified",
+        "sft_artifacts_rebuilt",
+    }
+    allowed_true_claims = {"strict_contract_exact_match_primary_metric", "strict_slot_f1_primary_metric"}
+    bad_scope = [key for key, value in scope.items() if value is True and key not in allowed_true_scope]
+    bad_claims = [key for key, value in claims.items() if value is True and key not in allowed_true_claims]
+    if bad_scope or bad_claims:
+        raise ValueError(
+            "current-retry confirmation-preservation public-sample merge report cannot claim unsupported scope "
+            f"or recovery signals: scope={bad_scope}, claims={bad_claims}"
+        )
+    write_json(json_path, safe_evidence)
+
+    manifest = {
+        "evidence_kind": safe_evidence["evidence_kind"],
+        "merge_status": safe_evidence["merge_status"],
+        "generated_at": safe_evidence["generated_at"],
+        "pre_merge_public_sample_counts": safe_evidence["pre_merge_public_sample_counts"],
+        "formal_public_sample_counts": safe_evidence["formal_public_sample_counts"],
+        "formal_public_sample_split_counts": safe_evidence["formal_public_sample_split_counts"],
+        "candidate_source": safe_evidence["candidate_source"],
+        "validation": safe_evidence["validation"],
+        "metric_authority": safe_evidence["metric_authority"],
+        "execution_scope": safe_evidence["execution_scope"],
+        "claims": safe_evidence["claims"],
+        "artifact_policy": {
+            "public_sample_modified": True,
+            "candidate_rows_promoted_to_formal_sample": True,
+            "sft_artifacts_rebuilt": True,
+            "dpo_artifacts_rebuilt": True,
+            "training_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+            "slot_normalization": False,
+        },
+        "diagnostic_artifacts": {
+            "merge": "current_retry_confirmation_preservation_public_sample_merge.json",
+            "markdown": "current_retry_confirmation_preservation_public_sample_merge.md",
+            "manifest": "manifest.json",
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    counts = safe_evidence["formal_public_sample_counts"]
+    pre_counts = safe_evidence["pre_merge_public_sample_counts"]
+    splits = safe_evidence["formal_public_sample_split_counts"]
+    candidate = safe_evidence["candidate_source"]
+    validation = safe_evidence["validation"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This report records a formal data merge into the public sample. "
+            "It does not prove held-out recovery, model recovery, safety improvement, adapter release, "
+            "checkpoint release, production readiness, public full-corpus release, or live-browser improvement."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Formal public sample seed, SFT, DPO, and manifest files were rebuilt.",
+        "- The new DPO pairs are data-construction artifacts, not DPO training evidence.",
+        (
+            "- No SFT/DPO/GRPO training, prediction run, A100 execution, prompt change, "
+            "slot normalization, or evaluator relaxation."
+        ),
+        "- strict `contract_exact_match` and strict `slot_f1` remain authoritative future metrics.",
+        "- `slot_f1_soft` and semantic equivalence remain diagnostic-only.",
+        "",
+        "## Summary",
+        "",
+        f"- Pre-merge counts: `{pre_counts}`",
+        f"- Post-merge seed rows: `{counts['seed_rows']}`",
+        f"- Post-merge SFT rows: `{counts['sft_rows']}`",
+        f"- Post-merge DPO pairs: `{counts['dpo_pairs']}`",
+        f"- SFT split counts: `{splits}`",
+        f"- Merged candidate seed rows: `{candidate['candidate_seed_rows']}`",
+        f"- Merged candidate SFT rows: `{candidate['candidate_sft_rows']}`",
+        f"- Candidate DPO pair contribution: `{candidate['candidate_dpo_pairs']}`",
+        f"- Candidate families: `{candidate['candidate_families']}`",
+        f"- Candidate seed split counts: `{candidate['seed_split_counts']}`",
+        "",
+        "## Validation",
+        "",
+        f"- Public artifact validation ok: `{validation['ok']}`",
+        f"- Validation counts: `{validation['counts']}`",
+        f"- Validation failures: `{validation['failures']}`",
+        "",
+        "## DPO Rejection Deltas",
+        "",
+    ]
+    for category, count in sorted(candidate.get("dpo_rejection_deltas", {}).items()):
+        lines.append(f"- `{category}`: `{count}`")
+    lines.extend(
+        [
+            "",
+            "## Recommended Next Step",
+            "",
+            (
+                "Use the new manifest ID for a later bounded prediction-only or training-readiness phase. "
+                "Do not compare new results to prior held-out metrics without noting that the formal public "
+                "sample boundary changed."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_formal_heldout_residual_cluster_inspection_report(
     inspection: dict[str, Any],
     output_dir: Path,

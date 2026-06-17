@@ -3,7 +3,7 @@
   "allow_private_prediction": true,
   "base_model": "Qwen/Qwen2.5-7B-Instruct",
   "current_train_split_sft_retry_prediction": true,
-  "dataset_manifest_id": "public-sample-20260616T165835Z",
+  "dataset_manifest_id": "public-sample-20260617T045941Z",
   "evidence_output_dir": "<a100_project_root>/evidence/a100-current-train-split-sft-retry-heldout/dev",
   "formal_public_sample_heldout_prediction": true,
   "generalization_claim": false,
@@ -16,6 +16,9 @@
   "prediction_artifact_policy": "commit_only_sanitized_public_sample_predictions_sidecars_metrics_manifest_and_report",
   "prediction_split": "dev",
   "private_override_required": true,
+  "requires_paired_training_manifest_id": "public-sample-20260617T045941Z",
+  "source_adapter_dataset_manifest_id": "public-sample-20260617T045941Z",
+  "target_dataset_manifest_id": "public-sample-20260617T045941Z",
   "private_override_requirements": [
     "Create a private override outside git before remote execution.",
     "Resolve <a100_project_root> to the approved private A100 project directory.",

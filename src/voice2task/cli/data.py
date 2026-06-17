@@ -10,15 +10,18 @@ from voice2task.dataset import (
     build_public_sample_dataset,
     check_form_fill_confirmation_marker_extension_candidate_integration_preview,
     check_form_fill_remediation_candidate_integration_preview,
+    current_retry_confirmation_preservation_public_sample_merge_evidence,
     family_stratified_public_sample_merge_evidence,
     form_fill_confirmation_marker_extension_public_sample_merge_evidence,
     form_fill_remediation_public_sample_merge_evidence,
     materialize_blocked_payment_safety_repair_candidates,
+    materialize_current_retry_confirmation_preservation_candidates,
     materialize_family_stratified_generalization_candidates,
     materialize_form_fill_confirmation_marker_extension_candidates,
     materialize_form_fill_remediation_candidates,
     materialize_slot_value_generalization_candidates,
     merge_blocked_payment_safety_repair_candidates_into_public_sample,
+    merge_current_retry_confirmation_preservation_candidates_into_public_sample,
     merge_family_stratified_candidates_into_public_sample,
     merge_form_fill_confirmation_marker_extension_candidates_into_public_sample,
     merge_form_fill_remediation_candidates_into_public_sample,
@@ -27,6 +30,7 @@ from voice2task.dataset import (
 from voice2task.dpo import summarize_dpo_slices, validate_dpo_pairs_file
 from voice2task.reports import (
     write_blocked_payment_safety_repair_public_sample_merge_report,
+    write_current_retry_confirmation_preservation_public_sample_merge_report,
     write_family_stratified_public_sample_merge_report,
     write_form_fill_confirmation_marker_extension_public_sample_merge_report,
     write_form_fill_remediation_public_sample_merge_report,
@@ -78,6 +82,13 @@ def build_parser() -> argparse.ArgumentParser:
     blocked_payment_repair_parser.add_argument("--candidate-design", type=Path, required=True)
     blocked_payment_repair_parser.add_argument("--seed-output", type=Path, required=True)
     blocked_payment_repair_parser.add_argument("--output", type=Path, required=True)
+
+    current_retry_confirmation_parser = subcommands.add_parser(
+        "materialize-current-retry-confirmation-preservation-candidates"
+    )
+    current_retry_confirmation_parser.add_argument("--candidate-design", type=Path, required=True)
+    current_retry_confirmation_parser.add_argument("--seed-output", type=Path, required=True)
+    current_retry_confirmation_parser.add_argument("--output", type=Path, required=True)
 
     check_form_fill_parser = subcommands.add_parser(
         "check-form-fill-remediation-candidate-integration",
@@ -131,6 +142,14 @@ def build_parser() -> argparse.ArgumentParser:
     merge_blocked_payment_repair_parser.add_argument("--seed", type=Path, required=True)
     merge_blocked_payment_repair_parser.add_argument("--output", type=Path, required=True)
     merge_blocked_payment_repair_parser.add_argument("--evidence-output", type=Path, required=True)
+
+    merge_current_retry_confirmation_parser = subcommands.add_parser(
+        "merge-current-retry-confirmation-preservation-candidates"
+    )
+    merge_current_retry_confirmation_parser.add_argument("--candidate-seed", type=Path, required=True)
+    merge_current_retry_confirmation_parser.add_argument("--seed", type=Path, required=True)
+    merge_current_retry_confirmation_parser.add_argument("--output", type=Path, required=True)
+    merge_current_retry_confirmation_parser.add_argument("--evidence-output", type=Path, required=True)
     return parser
 
 
@@ -205,6 +224,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "materialize-blocked-payment-safety-repair-candidates":
         paths = materialize_blocked_payment_safety_repair_candidates(
+            candidate_design_path=args.candidate_design,
+            seed_output_path=args.seed_output,
+            output_dir=args.output,
+        )
+        manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+        payload = {
+            "ok": True,
+            "paths": {name: path.as_posix() for name, path in paths.items()},
+            "summary": manifest["summary"],
+            "execution_scope": manifest["execution_scope"],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "materialize-current-retry-confirmation-preservation-candidates":
+        paths = materialize_current_retry_confirmation_preservation_candidates(
             candidate_design_path=args.candidate_design,
             seed_output_path=args.seed_output,
             output_dir=args.output,
@@ -375,6 +409,33 @@ def main(argv: list[str] | None = None) -> int:
             pre_merge_manifest=pre_merge_manifest,
         )
         evidence_paths = write_blocked_payment_safety_repair_public_sample_merge_report(
+            evidence,
+            output_dir=args.evidence_output,
+        )
+        ok = bool((evidence.get("validation") or {}).get("ok", False))
+        payload = {
+            "ok": ok,
+            "counts": manifest.counts,
+            "split_counts": manifest.split_counts,
+            "source_summary": manifest.source_summary,
+            "paths": manifest.files,
+            "evidence_paths": {name: path.as_posix() for name, path in evidence_paths.items()},
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if ok else 1
+    if args.command == "merge-current-retry-confirmation-preservation-candidates":
+        pre_merge_manifest = json.loads((args.output / "manifest_public_sample.json").read_text(encoding="utf-8"))
+        manifest = merge_current_retry_confirmation_preservation_candidates_into_public_sample(
+            candidate_seed_path=args.candidate_seed,
+            seed_path=args.seed,
+            output_dir=args.output,
+        )
+        evidence = current_retry_confirmation_preservation_public_sample_merge_evidence(
+            manifest=manifest,
+            candidate_seed_path=args.candidate_seed,
+            pre_merge_manifest=pre_merge_manifest,
+        )
+        evidence_paths = write_current_retry_confirmation_preservation_public_sample_merge_report(
             evidence,
             output_dir=args.evidence_output,
         )

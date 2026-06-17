@@ -10,22 +10,22 @@
 
 | 项目 | 值 |
 | --- | --- |
-| Latest data evidence pack | `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/` |
+| Latest data evidence pack | `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/` |
 | Latest model evidence pack | `reports/public-sample/a100-current-train-split-sft-retry/` |
 | Latest candidate-design evidence pack | `reports/public-sample/current-retry-confirmation-preservation-candidate-design/` |
 | Latest diagnosis evidence pack | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
 | Baseline evidence pack | `reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery/` |
-| Current data manifest | `public-sample-20260616T165835Z` |
-| Current public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
-| Current split | train 118 / dev 69 / test 69 |
+| Current data manifest | `public-sample-20260617T045941Z` |
+| Current public sample | 102 seeds / 261 SFT rows / 881 DPO pairs |
+| Current split | train 123 / dev 69 / test 69 |
 | Latest evaluated manifest | `public-sample-20260616T165835Z` |
 | Latest evaluated public sample | 100 seeds / 256 SFT rows / 864 DPO pairs |
-| Latest run type | private SFT retry on current 118-row train split, then dev/test strict eval |
+| Latest run type | private SFT retry on the prior 118-row train split, then dev/test strict eval |
 | Latest interpretation | `current_train_split_sft_retry_partial_signal` |
 | Latest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
 | Prior SFT v3 retry evidence | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
 
-最新模型证据现在绑定 `public-sample-20260616T165835Z`。它在 A100 上训练了一个新的 private adapter，使用当前 118-row train split，然后做 dev/test prediction-only strict evaluation。没有修 prediction、没有 normalize slot、没有改 prompt、没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
+最新模型证据仍绑定 `public-sample-20260616T165835Z`。它在 A100 上训练了一个新的 private adapter，使用当时的 118-row train split，然后做 dev/test prediction-only strict evaluation。当前数据边界已通过 confirmation-preservation materialization 前进到 `public-sample-20260617T045941Z`，但还没有模型在这个新边界上训练或评估。没有修 prediction、没有 normalize slot、没有改 prompt、没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
 
 ## Formal Public Held-Out 指标（绑定 `public-sample-20260616T165835Z`）
 
@@ -134,7 +134,7 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 
 - materialization evidence: `reports/public-sample/blocked-payment-safety-repair-materialization/blocked_payment_safety_repair_materialization.md`
 - public merge evidence: `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/blocked_payment_safety_repair_public_sample_merge.md`
-- 当前 public sample 已更新为 `public-sample-20260616T165835Z`；
+- 当时的 public sample boundary 更新为 `public-sample-20260616T165835Z`；
 - counts 从 98 seeds / 252 SFT rows / 850 DPO pairs 变为 100 seeds / 256 SFT rows / 864 DPO pairs；
 - 新增 2 条 train seed rows，对应 `refund_confirmation_or_processing` 和 `subscription_charge_confirmation`；
 - 新增 4 条 SFT rows 和 14 条 DPO construction pairs；
@@ -190,7 +190,17 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - `unsafe_payment_confirmation_preservation` 覆盖 5 个 dev `blocked_payment` rows，accepted target 保留 `blocked/deny`、`unsafe_payment`、`confirmation_required=true`；
 - `public_navigation_non_confirmation_preservation` 覆盖 2 个 test navigation rows，accepted target 保留 `navigate/open_url`、`public_readonly`、`confirmation_required=false`。
 
-下一步如果继续，应打开 bounded `materialize-current-retry-confirmation-preservation-candidates` phase，把这 2 个 reviewed candidate families 转为 candidate-only public-safe seed/SFT rows；仍然不能从 candidate design 本身宣称 model recovery、safety improvement 或 production readiness。
+随后已完成 current-retry confirmation-preservation materialization：
+
+- materialization evidence: `reports/public-sample/current-retry-confirmation-preservation-materialization/current_retry_confirmation_preservation_materialization.md`
+- public merge evidence: `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/current_retry_confirmation_preservation_public_sample_merge.md`
+- 当前 public sample 已更新为 `public-sample-20260617T045941Z`；
+- counts 从 100 seeds / 256 SFT rows / 864 DPO pairs 变为 102 seeds / 261 SFT rows / 881 DPO pairs；
+- 新增 2 条 train seed rows，对应 `unsafe_payment_confirmation_preservation` 和 `public_navigation_non_confirmation_preservation`；
+- 新增 5 条 SFT rows 和 17 条 DPO construction pairs；
+- 该阶段没有训练、没有 prediction、没有改 prompt/evaluator、没有 slot normalization、没有 claim safety improvement 或 model recovery。
+
+下一步如果继续，应先在新 manifest 边界下做 bounded prediction-only baseline 或 training-readiness，不应把这次 data materialization 直接包装成模型效果改善。
 
 ## 主要证据链接
 
@@ -213,6 +223,8 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - Blocked-payment repair candidate design: `reports/public-sample/blocked-payment-safety-repair-candidate-design/blocked_payment_safety_repair_candidate_design.md`
 - Blocked-payment repair materialization: `reports/public-sample/blocked-payment-safety-repair-materialization/blocked_payment_safety_repair_materialization.md`
 - Blocked-payment repair public merge: `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/blocked_payment_safety_repair_public_sample_merge.md`
+- Current-retry confirmation-preservation materialization: `reports/public-sample/current-retry-confirmation-preservation-materialization/current_retry_confirmation_preservation_materialization.md`
+- Current-retry confirmation-preservation public merge: `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/current_retry_confirmation_preservation_public_sample_merge.md`
 - Current train split SFT retry readiness: `reports/public-sample/current-train-split-sft-retry-readiness/current_train_split_sft_retry_readiness.md`
 - Context contract: `CONTEXT.md`
 - Human brief: `docs/human-briefs/2026-06-16-refresh-current-formal-heldout-residual-diagnosis.html`
@@ -227,7 +239,8 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - Human brief (current train split SFT retry): `docs/human-briefs/2026-06-17-run-a100-current-train-split-sft-retry.html`
 - Human brief (current train split SFT retry trade-off diagnosis): `docs/human-briefs/2026-06-17-diagnose-current-train-split-sft-retry-tradeoffs.html`
 - Human brief (current retry confirmation-preservation candidate design): `docs/human-briefs/2026-06-17-design-current-retry-confirmation-preservation-candidates.html`
+- Human brief (current retry confirmation-preservation materialization): `docs/human-briefs/2026-06-17-materialize-current-retry-confirmation-preservation-candidates.html`
 
 ## 当前交付状态
 
-可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、blocked-payment repair candidate design、blocked-payment repair materialization、current-manifest SFT v3 prediction-only baseline、current-train-split SFT retry readiness、current-train-split SFT retry、current-train-split retry trade-off diagnosis、current-retry confirmation-preservation candidate design、Human Brief、最终状态说明都已经对齐到明确边界。下一步如果继续，应启动 bounded candidate materialization，而不是把 candidate design 包装成模型恢复。
+可以作为阶段性交付收束：代码、public sample、OpenSpec archives、A100 prediction-only baseline、residual diagnosis / target selection、SFT v3 readiness、SFT v3 blocked preflight evidence、SFT v3 retry evidence、SFT v3 safety regression diagnosis、blocked-payment repair candidate design、blocked-payment repair materialization、current-manifest SFT v3 prediction-only baseline、current-train-split SFT retry readiness、current-train-split SFT retry、current-train-split retry trade-off diagnosis、current-retry confirmation-preservation candidate design、current-retry confirmation-preservation materialization、Human Brief、最终状态说明都已经对齐到明确边界。下一步如果继续，应启动新 manifest 的 prediction-only baseline 或 training-readiness，而不是把 data materialization 包装成模型恢复。

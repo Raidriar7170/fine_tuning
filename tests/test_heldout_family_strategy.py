@@ -55,10 +55,10 @@ def test_heldout_family_strategy_diagnostic_separates_tiny_subset_from_dataset_c
         "seed-form-email",
         "seed-open-example",
     }.issubset(residuals)
-    assert residuals["seed-open-example"]["train_analog_row_count"] == 15
+    assert residuals["seed-open-example"]["train_analog_row_count"] == 17
     assert residuals["seed-open-example"]["tiny_subset_row_count"] == 0
     assert residuals["seed-open-example"]["train_analog_family_id"] == (
-        "candidate-navigate-open-url-canonical-command"
+        "candidate-current-retry-public-navigation-non-confirmation-preservation"
     )
     assert residuals["seed-open-example"]["contract_family_key"] == (
         "navigate|open_url|public_readonly|confirm:false|slots:url"

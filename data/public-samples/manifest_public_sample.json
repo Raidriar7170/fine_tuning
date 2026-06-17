@@ -1,11 +1,11 @@
 {
   "counts": {
-    "dpo_pairs": 864,
-    "seed_rows": 100,
-    "sft_rows": 256
+    "dpo_pairs": 881,
+    "seed_rows": 102,
+    "sft_rows": 261
   },
   "dpo_rejection_counts": {
-    "blocked_payment_action_drift": 4,
+    "blocked_payment_action_drift": 5,
     "clarify_action_drift": 12,
     "decomposed_search_slots": 2,
     "extract_extra_particle_wording": 2,
@@ -14,15 +14,15 @@
     "extract_query_slot": 10,
     "extract_search_fallback": 10,
     "form_confirmation_drift": 42,
-    "malformed_schema": 100,
-    "missing_confirmation": 66,
-    "missing_slot": 100,
-    "navigate_canonical_url_drift": 12,
-    "underspecified_request": 100,
-    "unsafe_allowance": 100,
-    "wrong_route": 100,
-    "wrong_slot": 100,
-    "wrong_task_type": 100
+    "malformed_schema": 102,
+    "missing_confirmation": 67,
+    "missing_slot": 102,
+    "navigate_canonical_url_drift": 13,
+    "underspecified_request": 102,
+    "unsafe_allowance": 102,
+    "wrong_route": 102,
+    "wrong_slot": 102,
+    "wrong_task_type": 102
   },
   "files": {
     "dpo": "data/public-samples/dpo_public_sample.jsonl",
@@ -30,8 +30,8 @@
     "seed": "data/public-samples/seed_traces.jsonl",
     "sft": "data/public-samples/sft_public_sample.jsonl"
   },
-  "generated_at": "2026-06-16T16:58:35.100353+00:00",
-  "manifest_id": "public-sample-20260616T165835Z",
+  "generated_at": "2026-06-17T04:59:41.339142+00:00",
+  "manifest_id": "public-sample-20260617T045941Z",
   "mode": "public_sample",
   "public_safe": true,
   "source_summary": {
@@ -43,6 +43,18 @@
       "subscription_charge_confirmation"
     ],
     "blocked_payment_safety_repair_seed_split_counts": {
+      "dev": 0,
+      "test": 0,
+      "train": 2
+    },
+    "current_retry_confirmation_preservation_candidate_seed_rows": 2,
+    "current_retry_confirmation_preservation_candidate_sft_rows": 5,
+    "current_retry_confirmation_preservation_candidates_formal_public_sample": true,
+    "current_retry_confirmation_preservation_families": [
+      "public_navigation_non_confirmation_preservation",
+      "unsafe_payment_confirmation_preservation"
+    ],
+    "current_retry_confirmation_preservation_seed_split_counts": {
       "dev": 0,
       "test": 0,
       "train": 2
@@ -94,7 +106,7 @@
       "form-fill-confirmation-marker-preservation",
       "form-fill-field-specificity-preservation"
     ],
-    "seed_rows": 100,
+    "seed_rows": 102,
     "slot_value_candidate_seed_rows": 4,
     "slot_value_candidates_formal_public_sample": true,
     "source": "sanitized_public_seed_fixture"
@@ -102,6 +114,6 @@
   "split_counts": {
     "dev": 69,
     "test": 69,
-    "train": 118
+    "train": 123
   }
 }

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task Confirmation Preservation Materialization 简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.6; color: #17202a; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #d8dee4; padding-bottom: 4px; }
+    code { background: #f6f8fa; padding: 2px 5px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #d8dee4; padding: 8px; text-align: left; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #ecfdf5; color: #047857; font-weight: 600; }
+    .warn { color: #9a3412; font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task Confirmation Preservation Materialization 简报</h1>
+  <p><span class="status">materialized public data, no model run</span></p>
+  <p><strong>一句话结论：</strong>2 个 reviewed confirmation-preservation candidate families 已转成正式 public train seed rows，并重建 public sample；这是数据边界更新，不是模型效果改善。</p>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>从 <code>current_retry_confirmation_preservation_candidate_design.json</code> 读取并校验 exactly 2 个 reviewed families。</li>
+    <li>生成 standalone candidate seed artifact 和 candidate SFT rows。</li>
+    <li>把 2 条 candidate seed rows 合入 formal public sample 的 train split。</li>
+    <li>重建 <code>seed_traces.jsonl</code>、<code>sft_public_sample.jsonl</code>、<code>dpo_public_sample.jsonl</code> 和 <code>manifest_public_sample.json</code>。</li>
+    <li>刷新 <code>CONTEXT.md</code> 和 <code>reports/final_status.md</code>，明确新数据边界和旧模型评估边界不同。</li>
+  </ul>
+
+  <h2>数据变化</h2>
+  <table>
+    <thead>
+      <tr><th>item</th><th>before</th><th>after</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>manifest</td><td><code>public-sample-20260616T165835Z</code></td><td><code>public-sample-20260617T045941Z</code></td></tr>
+      <tr><td>public sample</td><td>100 seeds / 256 SFT / 864 DPO</td><td>102 seeds / 261 SFT / 881 DPO</td></tr>
+      <tr><td>split counts</td><td>train 118 / dev 69 / test 69</td><td>train 123 / dev 69 / test 69</td></tr>
+      <tr><td>candidate contribution</td><td>-</td><td>2 seed rows / 5 SFT rows / 17 DPO pairs</td></tr>
+    </tbody>
+  </table>
+
+  <h2>新增 families</h2>
+  <table>
+    <thead>
+      <tr><th>family</th><th>accepted target preserved</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>unsafe_payment_confirmation_preservation</code></td>
+        <td><code>blocked/deny</code>, <code>unsafe_payment</code>, <code>confirmation_required=true</code></td>
+      </tr>
+      <tr>
+        <td><code>public_navigation_non_confirmation_preservation</code></td>
+        <td><code>navigate/open_url</code>, <code>public_readonly</code>, <code>confirmation_required=false</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>边界</h2>
+  <ul>
+    <li>没有训练、没有 prediction、没有 A100 job、没有改 prompt/evaluator、没有 slot normalization。</li>
+    <li>没有发布 adapter/checkpoint/private corpus，也没有复制远端 raw logs。</li>
+    <li class="warn">不能宣称 model recovery、safety improvement、production readiness 或 live-browser benchmark improvement。</li>
+    <li>最新模型评估仍绑定 <code>public-sample-20260616T165835Z</code>；新 manifest 还没有模型评估。</li>
+  </ul>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>data/public-samples/current_retry_confirmation_preservation_seed_candidates.jsonl</code></li>
+    <li><code>data/public-samples/manifest_public_sample.json</code></li>
+    <li><code>reports/public-sample/current-retry-confirmation-preservation-materialization/current_retry_confirmation_preservation_materialization.md</code></li>
+    <li><code>reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/current_retry_confirmation_preservation_public_sample_merge.md</code></li>
+    <li><code>CONTEXT.md</code></li>
+    <li><code>reports/final_status.md</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li>Focused tests: <code>PYTHONPATH=src python3 -m pytest tests/test_current_retry_confirmation_preservation_materialization.py -q</code> → 3 passed.</li>
+    <li>Related regression tests: <code>74 passed</code>.</li>
+    <li>Full tests: <code>PYTHONPATH=src python3 -m pytest -q</code> → <code>405 passed</code>.</li>
+    <li>Lint/spec/data checks: <code>ruff check src/ scripts/ tests/</code>, <code>openspec validate --all --strict</code>, public data validate, DPO check, leak scan, and <code>git diff --check</code> passed.</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>进入新 manifest 边界下的 bounded prediction-only baseline 或 training-readiness phase。不要把本阶段 data materialization 当成模型效果提升。</p>
+</main>
+</body>
+</html>

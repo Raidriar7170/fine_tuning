@@ -42,10 +42,18 @@ CONFIRMATION_DESIGN_DIR = (
     / "public-sample"
     / "current-retry-confirmation-preservation-candidate-design"
 )
+CURRENT_RETRY_SOURCE_MANIFEST_ID = "public-sample-20260616T165835Z"
 
 
 def _current_manifest() -> dict[str, Any]:
     return read_json(PUBLIC_SAMPLE_MANIFEST)
+
+
+def _source_manifest_path(tmp_path: Path) -> Path:
+    return _write_json(
+        tmp_path / "source_manifest_public_sample.json",
+        {"manifest_id": CURRENT_RETRY_SOURCE_MANIFEST_ID},
+    )
 
 
 def test_current_train_split_retry_configs_are_public_safe_templates() -> None:
@@ -97,8 +105,8 @@ def test_current_train_split_retry_dry_run_selects_repair_rows(tmp_path: Path) -
     assert metadata["training_status"] == "dry_run"
     assert metadata["dataset_manifest_id"] == current_manifest["manifest_id"]
     assert metadata["training_split"] == "train"
-    assert metadata["training_rows_used"] == current_manifest["split_counts"]["train"] == 118
-    assert metadata["training_rows_before_source_filter"] == 118
+    assert metadata["training_rows_used"] == current_manifest["split_counts"]["train"] == 123
+    assert metadata["training_rows_before_source_filter"] == 123
     assert metadata["heavy_training_gate"]["will_run_heavy_training"] is False
 
     row_ids = set(metadata["training_row_ids"])
@@ -147,7 +155,7 @@ def test_current_train_split_retry_readiness_cli_writes_public_safe_non_claiming
     assert payload["ok"] is True
     assert evidence["evidence_kind"] == "current_train_split_sft_retry_readiness"
     assert evidence["summary"]["dataset_manifest_id"] == _current_manifest()["manifest_id"]
-    assert evidence["summary"]["training_rows_used"] == 118
+    assert evidence["summary"]["training_rows_used"] == 123
     assert evidence["summary"]["form_fill_repair_train_rows"] == 21
     assert evidence["summary"]["blocked_payment_repair_train_rows"] == 4
     assert evidence["summary"]["readiness_status"] == "ready_for_bounded_a100_sft_retry_phase"
@@ -216,7 +224,7 @@ def test_current_train_split_retry_cli_writes_training_retry_evidence_without_re
         {
             "dataset_manifest_id": _current_manifest()["manifest_id"],
             "training_status": "training_completed",
-            "training_rows_used": 118,
+            "training_rows_used": 123,
             "adapter_path": "/mnt/data/minghongsun/private/adapter",
             "base_model": "/mnt/data/minghongsun/models/qwen2.5-7b-instruct",
             "base_model_public_id": "Qwen/Qwen2.5-7B-Instruct",
@@ -275,7 +283,7 @@ def test_current_train_split_retry_cli_writes_training_retry_evidence_without_re
     assert evidence["run_status"] == "observed"
     assert evidence["dataset_manifest_id"] == _current_manifest()["manifest_id"]
     assert evidence["training_status"] == "training_completed"
-    assert evidence["training_rows_used"] == 118
+    assert evidence["training_rows_used"] == 123
     assert evidence["execution_scope"]["training_run"] is True
     assert evidence["execution_scope"]["prediction_run"] is True
     assert evidence["execution_scope"]["dataset_mutation"] is False
@@ -283,7 +291,7 @@ def test_current_train_split_retry_cli_writes_training_retry_evidence_without_re
     assert evidence["split_results"]["dev"]["contract_exact_match"] == 0.50
     assert evidence["comparison_to_current_baseline"]["strict_exact_delta"]["dev"] > 0
     assert evidence["comparison_to_current_baseline"]["strict_exact_delta"]["test"] > 0
-    assert evidence["comparison_to_current_baseline"]["direct_comparison_valid"] is True
+    assert evidence["comparison_to_current_baseline"]["direct_comparison_valid"] is False
     assert evidence["claims"]["training_performed"] is True
     assert evidence["claims"]["held_out_generalization_recovered"] is False
     assert evidence["claims"]["model_recovery_claim"] is False
@@ -302,7 +310,7 @@ def test_committed_current_train_split_retry_readiness_evidence_is_current_and_n
     manifest = read_json(READINESS_DIR / "manifest.json")
     dry_run = read_json(READINESS_DIR / "sft-dry-run" / "adapter_metadata.json")
 
-    assert evidence["summary"]["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["summary"]["dataset_manifest_id"] == CURRENT_RETRY_SOURCE_MANIFEST_ID
     assert evidence["summary"]["training_rows_used"] == 118
     assert evidence["summary"]["blocked_payment_repair_train_rows"] == 4
     assert evidence["summary"]["form_fill_repair_train_rows"] == 21
@@ -332,7 +340,7 @@ def test_committed_current_train_split_retry_evidence_records_observed_partial_s
 
     assert evidence["evidence_kind"] == "a100_current_train_split_sft_retry"
     assert evidence["run_status"] == "observed"
-    assert evidence["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["dataset_manifest_id"] == CURRENT_RETRY_SOURCE_MANIFEST_ID
     assert evidence["training_status"] == "training_completed"
     assert evidence["training_rows_used"] == 118
     assert evidence["overall_interpretation"] == "current_train_split_sft_retry_partial_signal"
@@ -388,7 +396,7 @@ def test_current_train_split_retry_tradeoff_cli_writes_diagnosis_only_evidence(
             [
                 "current-train-split-sft-retry-tradeoff-diagnosis",
                 "--public-manifest",
-                PUBLIC_SAMPLE_MANIFEST.as_posix(),
+                    _source_manifest_path(tmp_path).as_posix(),
                 "--current-baseline-root",
                 CURRENT_BASELINE_DIR.as_posix(),
                 "--retry-root",
@@ -407,7 +415,7 @@ def test_current_train_split_retry_tradeoff_cli_writes_diagnosis_only_evidence(
 
     assert payload["ok"] is True
     assert evidence["evidence_kind"] == "current_train_split_sft_retry_tradeoff_diagnosis"
-    assert evidence["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["dataset_manifest_id"] == CURRENT_RETRY_SOURCE_MANIFEST_ID
     assert evidence["summary"]["overall_interpretation"] == (
         "current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery"
     )
@@ -450,7 +458,7 @@ def test_current_train_split_retry_tradeoff_diagnosis_rejects_incomplete_inputs(
 
     with pytest.raises(ValueError, match="incomplete dev trade-off inputs"):
         write_current_train_split_sft_retry_tradeoff_diagnosis_report(
-            public_manifest=_current_manifest(),
+                public_manifest={"manifest_id": CURRENT_RETRY_SOURCE_MANIFEST_ID},
             baseline_evidence=read_json(CURRENT_BASELINE_EVIDENCE),
             retry_evidence=read_json(RETRY_EVIDENCE_DIR / "current_train_split_sft_retry.json"),
             baseline_gold_by_split={
@@ -485,7 +493,7 @@ def test_committed_current_train_split_retry_tradeoff_diagnosis_preserves_bounda
     manifest = read_json(TRADEOFF_DIAGNOSIS_DIR / "manifest.json")
 
     assert evidence["evidence_kind"] == "current_train_split_sft_retry_tradeoff_diagnosis"
-    assert evidence["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["dataset_manifest_id"] == CURRENT_RETRY_SOURCE_MANIFEST_ID
     assert evidence["summary"]["overall_interpretation"] == (
         "current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery"
     )
@@ -516,7 +524,7 @@ def test_current_retry_confirmation_preservation_candidate_design_cli_writes_des
             [
                 "current-retry-confirmation-preservation-candidate-design",
                 "--public-manifest",
-                PUBLIC_SAMPLE_MANIFEST.as_posix(),
+                    _source_manifest_path(tmp_path).as_posix(),
                 "--tradeoff-diagnosis",
                 (
                     TRADEOFF_DIAGNOSIS_DIR
@@ -542,7 +550,7 @@ def test_current_retry_confirmation_preservation_candidate_design_cli_writes_des
 
     assert payload["ok"] is True
     assert design["evidence_kind"] == "current_retry_confirmation_preservation_candidate_design"
-    assert design["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert design["dataset_manifest_id"] == CURRENT_RETRY_SOURCE_MANIFEST_ID
     assert design["summary"]["candidate_count"] == 2
     assert design["summary"]["source_row_count"] == 7
     assert design["source_diagnosis"]["selection_method"] == (
@@ -613,7 +621,7 @@ def test_committed_current_retry_confirmation_preservation_candidate_design_pres
     ).read_text(encoding="utf-8")
 
     assert design["evidence_kind"] == "current_retry_confirmation_preservation_candidate_design"
-    assert design["dataset_manifest_id"] == _current_manifest()["manifest_id"]
+    assert design["dataset_manifest_id"] == CURRENT_RETRY_SOURCE_MANIFEST_ID
     assert design["summary"]["candidate_count"] == 2
     assert design["summary"]["source_row_count"] == 7
     assert design["source_diagnosis"]["selection_consistency"] == {

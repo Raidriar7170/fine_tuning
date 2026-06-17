@@ -30,10 +30,10 @@ COMMITTED_REPORT_DIR = (
     / "public-sample"
     / "form-fill-confirmation-marker-extension-candidate-integration-preview"
 )
-PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 756, "seed_rows": 88, "sft_rows": 244}
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 864, "seed_rows": 100, "sft_rows": 256}
-EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 864, "seed_rows": 100, "sft_rows": 256}
-EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 118}
+PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 773, "seed_rows": 90, "sft_rows": 249}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 881, "seed_rows": 102, "sft_rows": 261}
+EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 881, "seed_rows": 102, "sft_rows": 261}
+EXPECTED_PREVIEW_SPLITS = {"dev": 69, "test": 69, "train": 123}
 HISTORICAL_PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
 HISTORICAL_PREVIEW_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 EXPECTED_CANDIDATE_IDS = {row["id"] for row in read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)}

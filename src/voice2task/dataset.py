@@ -184,6 +184,28 @@ _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES: dict[str, dict[str, Any]] = {
         "normalized_command": "拒绝订阅扣款确认",
     },
 }
+CURRENT_RETRY_CONFIRMATION_PRESERVATION_SOURCE_MANIFEST_ID = "public-sample-20260616T165835Z"
+_CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES: dict[str, dict[str, Any]] = {
+    "public_navigation_non_confirmation_preservation": {
+        "id": "candidate-current-retry-public-navigation-non-confirmation-preservation",
+        "split": "train",
+        "input_text": "打开公开课程页面",
+        "augmentations": ["进入活动介绍页"],
+        "url": "https://learn.example.com",
+        "normalized_command": "打开公开课程页面",
+    },
+    "unsafe_payment_confirmation_preservation": {
+        "id": "candidate-current-retry-unsafe-payment-confirmation-preservation",
+        "split": "train",
+        "input_text": "帮我确认这笔退款，但不要替我执行付款操作",
+        "augmentations": ["这笔订阅扣款需要我确认，先拦住不要自动处理", "捐款操作需要用户确认，不能直接提交"],
+        "reason": "payment_requires_user_control",
+        "normalized_command": "拒绝支付",
+    },
+}
+EXPECTED_CURRENT_RETRY_CONFIRMATION_PRESERVATION_CANDIDATE_IDS = frozenset(
+    str(spec["id"]) for spec in _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES.values()
+)
 EXPECTED_BLOCKED_PAYMENT_SAFETY_REPAIR_CANDIDATE_IDS = frozenset(
     str(template["id"]) for template in _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES.values()
 )
@@ -1399,6 +1421,51 @@ def _blocked_payment_safety_repair_formal_sft_count(rows: list[SFTDatasetRow]) -
     )
 
 
+def _is_formal_current_retry_confirmation_preservation_seed(row: dict[str, Any]) -> bool:
+    provenance = row.get("provenance") or {}
+    return (
+        provenance.get("source_mode") == "current_retry_confirmation_preservation_formal_public_seed"
+        and provenance.get("candidate_status") == "formal_public_sample"
+    )
+
+
+def _current_retry_confirmation_preservation_formal_seed_count(seed_rows: list[dict[str, Any]]) -> int:
+    return sum(1 for row in seed_rows if _is_formal_current_retry_confirmation_preservation_seed(row))
+
+
+def _current_retry_confirmation_preservation_formal_seed_split_counts(
+    seed_rows: list[dict[str, Any]],
+) -> dict[str, int]:
+    counts = Counter(
+        row["split"] for row in seed_rows if _is_formal_current_retry_confirmation_preservation_seed(row)
+    )
+    return {split: counts.get(split, 0) for split in ("train", "dev", "test")}
+
+
+def _current_retry_confirmation_preservation_formal_families(seed_rows: list[dict[str, Any]]) -> list[str]:
+    return sorted(
+        {
+            str((row.get("provenance") or {}).get("candidate_family"))
+            for row in seed_rows
+            if _is_formal_current_retry_confirmation_preservation_seed(row)
+        }
+    )
+
+
+def _current_retry_confirmation_preservation_formal_sft_count(rows: list[SFTDatasetRow]) -> int:
+    return sum(
+        1
+        for row in rows
+        if row.provenance.get("source_mode")
+        in {
+            "current_retry_confirmation_preservation_formal_public_seed",
+            "schema_preserving_augmentation",
+        }
+        and row.provenance.get("candidate_status") == "formal_public_sample"
+        and row.provenance.get("candidate_family") in _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES
+    )
+
+
 def _formal_family_stratified_candidate_seed(row: dict[str, Any], candidate_seed_path: Path) -> dict[str, Any]:
     provenance = dict(row.get("provenance") or {})
     if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
@@ -1469,6 +1536,29 @@ def _formal_blocked_payment_safety_repair_candidate_seed(
     merged["provenance"] = {
         **provenance,
         "source_mode": "blocked_payment_safety_repair_formal_public_seed",
+        "public_safe": True,
+        "candidate_status": "formal_public_sample",
+        "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
+    }
+    validate_public_record(merged)
+    return merged
+
+
+def _formal_current_retry_confirmation_preservation_candidate_seed(
+    row: dict[str, Any],
+    candidate_seed_path: Path,
+) -> dict[str, Any]:
+    provenance = dict(row.get("provenance") or {})
+    if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+        raise ValueError(
+            "current-retry confirmation-preservation candidate seed already has unsupported status: "
+            f"{row.get('id')}"
+        )
+    merged = dict(row)
+    merged["split"] = "train"
+    merged["provenance"] = {
+        **provenance,
+        "source_mode": "current_retry_confirmation_preservation_formal_public_seed",
         "public_safe": True,
         "candidate_status": "formal_public_sample",
         "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
@@ -2425,6 +2515,274 @@ def _validate_reviewed_blocked_payment_safety_repair_candidate_seed_rows(
         validate_public_record(row)
 
 
+def _require_reviewed_current_retry_confirmation_preservation_candidates(
+    design: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if design.get("evidence_kind") != "current_retry_confirmation_preservation_candidate_design":
+        raise ValueError("design must be current_retry_confirmation_preservation_candidate_design evidence")
+    if design.get("design_mode") != "public_safe_design_only_no_materialization":
+        raise ValueError("current-retry confirmation-preservation design must be design-only before materialization")
+    if design.get("dataset_manifest_id") != CURRENT_RETRY_CONFIRMATION_PRESERVATION_SOURCE_MANIFEST_ID:
+        raise ValueError(
+            "current-retry confirmation-preservation design must be bound to "
+            f"{CURRENT_RETRY_CONFIRMATION_PRESERVATION_SOURCE_MANIFEST_ID}"
+        )
+    summary = design.get("summary")
+    if not isinstance(summary, dict) or summary.get("candidate_count") != 2:
+        raise ValueError("current-retry confirmation-preservation materialization expects exactly two candidates")
+    if summary.get("candidate_seed_rows_materialized") is not False:
+        raise ValueError("current-retry confirmation-preservation design must not already be materialized")
+    if summary.get("dpo_pairs_generated") is not False:
+        raise ValueError("current-retry confirmation-preservation design must not already generate DPO pairs")
+    if summary.get("formal_public_sample_modified") is not False:
+        raise ValueError("current-retry confirmation-preservation design must not modify the formal public sample")
+
+    source_diagnosis = design.get("source_diagnosis")
+    if not isinstance(source_diagnosis, dict):
+        raise ValueError("current-retry confirmation-preservation design must preserve source diagnosis")
+    consistency = source_diagnosis.get("selection_consistency")
+    if not isinstance(consistency, dict) or consistency.get(
+        "selected_source_count_matches_diagnosis_confirmation_regressions"
+    ) is not True:
+        raise ValueError("current-retry confirmation-preservation source diagnosis must pass selection consistency")
+
+    candidates = design.get("candidates")
+    if not isinstance(candidates, list) or len(candidates) != 2:
+        raise ValueError("current-retry confirmation-preservation design must contain exactly two candidate records")
+    by_family: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            raise ValueError("current-retry confirmation-preservation candidate records must be objects")
+        candidate_family = str(candidate.get("candidate_family"))
+        if candidate_family not in _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES:
+            raise ValueError(f"unsupported current-retry confirmation-preservation family: {candidate_family}")
+        if candidate_family in by_family:
+            raise ValueError(f"duplicate current-retry confirmation-preservation family: {candidate_family}")
+        expected_candidate_id = f"current-retry-{candidate_family.replace('_', '-')}"
+        if str(candidate.get("candidate_id")) != expected_candidate_id:
+            raise ValueError(f"current-retry confirmation-preservation candidate {candidate_family} has wrong id")
+
+        target = candidate.get("accepted_target_contract_sketch")
+        if not isinstance(target, dict):
+            raise ValueError(
+                f"current-retry confirmation-preservation candidate {candidate_family} is missing target sketch"
+            )
+        safety = target.get("safety")
+        if not isinstance(safety, dict):
+            raise ValueError(
+                f"current-retry confirmation-preservation candidate {candidate_family} is missing safety sketch"
+            )
+        if candidate_family == "unsafe_payment_confirmation_preservation":
+            expected = {
+                "task_type": "blocked",
+                "route": "deny",
+                "confirmation_required": True,
+            }
+            for key, value in expected.items():
+                if target.get(key) != value:
+                    raise ValueError(
+                        f"current-retry confirmation-preservation candidate {candidate_family} has incompatible {key}"
+                    )
+            if safety.get("allow") is not False or safety.get("reason") != "unsafe_payment":
+                raise ValueError(
+                    f"current-retry confirmation-preservation candidate {candidate_family} must deny unsafe_payment"
+                )
+        if candidate_family == "public_navigation_non_confirmation_preservation":
+            expected = {
+                "task_type": "navigate",
+                "route": "open_url",
+                "confirmation_required": False,
+            }
+            for key, value in expected.items():
+                if target.get(key) != value:
+                    raise ValueError(
+                        f"current-retry confirmation-preservation candidate {candidate_family} has incompatible {key}"
+                    )
+            if safety.get("allow") is not True or safety.get("reason") != "public_readonly":
+                raise ValueError(
+                    f"current-retry confirmation-preservation candidate {candidate_family} must be public_readonly"
+                )
+
+        source_rows = candidate.get("source_row_ids")
+        if not isinstance(source_rows, list) or not source_rows:
+            raise ValueError(
+                f"current-retry confirmation-preservation candidate {candidate_family} must preserve source rows"
+            )
+        rejected_drifts = candidate.get("rejected_drift_sketches")
+        if not isinstance(rejected_drifts, list) or not rejected_drifts:
+            raise ValueError(
+                f"current-retry confirmation-preservation candidate {candidate_family} must preserve rejected drifts"
+            )
+        template = _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES[candidate_family]
+        suggested_templates = list(candidate.get("suggested_public_utterance_templates") or [])
+        expected_templates = [template["input_text"], *template["augmentations"]]
+        if sorted(str(item) for item in suggested_templates) != sorted(str(item) for item in expected_templates):
+            raise ValueError(
+                f"current-retry confirmation-preservation candidate {candidate_family} has unexpected templates"
+            )
+        by_family[candidate_family] = candidate
+
+    missing = sorted(set(_CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES) - set(by_family))
+    if missing:
+        raise ValueError(f"missing current-retry confirmation-preservation families: {', '.join(missing)}")
+    return [by_family[family] for family in _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES]
+
+
+def _current_retry_confirmation_preservation_target_contract(
+    candidate_family: str,
+    template: dict[str, Any],
+) -> dict[str, Any]:
+    if candidate_family == "unsafe_payment_confirmation_preservation":
+        return _contract(
+            task_type="blocked",
+            route="deny",
+            safety_reason="unsafe_payment",
+            allow=False,
+            confirmation_required=True,
+            slots={"reason": str(template["reason"])},
+            normalized_command=str(template["normalized_command"]),
+        )
+    if candidate_family == "public_navigation_non_confirmation_preservation":
+        return _contract(
+            task_type="navigate",
+            route="open_url",
+            safety_reason="public_readonly",
+            allow=True,
+            confirmation_required=False,
+            slots={"url": str(template["url"])},
+            normalized_command=str(template["normalized_command"]),
+        )
+    raise ValueError(f"unsupported current-retry confirmation-preservation family: {candidate_family}")
+
+
+def _current_retry_confirmation_preservation_candidate_seed_rows(
+    design: dict[str, Any],
+    source_design_ref: str,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for candidate in _require_reviewed_current_retry_confirmation_preservation_candidates(design):
+        candidate_family = str(candidate["candidate_family"])
+        template = _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES[candidate_family]
+        row = {
+            "id": template["id"],
+            "split": template["split"],
+            "input_text": template["input_text"],
+            "target_contract": _current_retry_confirmation_preservation_target_contract(
+                candidate_family,
+                template,
+            ),
+            "augmentations": list(template["augmentations"]),
+            "provenance": {
+                "source_mode": "current_retry_confirmation_preservation_candidate_seed",
+                "public_safe": True,
+                "candidate_status": "standalone_not_formal_public_sample",
+                "source_design": source_design_ref,
+                "source_design_evidence_kind": design["evidence_kind"],
+                "dataset_manifest_id": design["dataset_manifest_id"],
+                "source_candidate_id": str(candidate["candidate_id"]),
+                "candidate_family": candidate_family,
+                "source_row_ids": list(candidate["source_row_ids"]),
+                "source_splits": dict(candidate["source_splits"]),
+                "source_task_families": dict(candidate["source_task_families"]),
+                "source_diagnosis": dict(design["source_diagnosis"]),
+                "accepted_target_contract_sketch": dict(candidate["accepted_target_contract_sketch"]),
+                "rejected_drift_sketches": list(candidate["rejected_drift_sketches"]),
+            },
+        }
+        validate_public_record(row)
+        rows.append(row)
+    return rows
+
+
+def _validate_reviewed_current_retry_confirmation_preservation_candidate_seed_rows(
+    candidate_seed_rows: list[dict[str, Any]],
+) -> None:
+    observed_ids = {str(row.get("id")) for row in candidate_seed_rows}
+    if observed_ids != EXPECTED_CURRENT_RETRY_CONFIRMATION_PRESERVATION_CANDIDATE_IDS:
+        expected = ", ".join(sorted(EXPECTED_CURRENT_RETRY_CONFIRMATION_PRESERVATION_CANDIDATE_IDS))
+        observed = ", ".join(sorted(observed_ids))
+        raise ValueError(
+            "expected reviewed current-retry confirmation-preservation candidate seed IDs "
+            f"[{expected}], observed [{observed}]"
+        )
+    if len(candidate_seed_rows) != len(EXPECTED_CURRENT_RETRY_CONFIRMATION_PRESERVATION_CANDIDATE_IDS):
+        raise ValueError(
+            "expected exactly one row per reviewed current-retry confirmation-preservation candidate seed ID"
+        )
+
+    for row in candidate_seed_rows:
+        provenance_raw = row.get("provenance")
+        provenance = provenance_raw if isinstance(provenance_raw, dict) else {}
+        if row.get("split") != "train":
+            raise ValueError("current-retry confirmation-preservation candidate seeds must stay in train split")
+        if provenance.get("source_mode") != "current_retry_confirmation_preservation_candidate_seed":
+            raise ValueError(
+                "current-retry confirmation-preservation candidate seeds must preserve source_mode provenance"
+            )
+        if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+            raise ValueError(
+                "current-retry confirmation-preservation candidate seeds must originate from standalone status"
+            )
+        if provenance.get("public_safe") is not True:
+            raise ValueError("current-retry confirmation-preservation candidate seeds must be public_safe")
+        target = as_contract(row["target_contract"])
+        if provenance.get("candidate_family") == "unsafe_payment_confirmation_preservation":
+            if not (
+                target.task_type == "blocked"
+                and target.route == "deny"
+                and target.safety.get("allow") is False
+                and target.safety.get("reason") == "unsafe_payment"
+                and target.confirmation_required is True
+                and target.slots.get("reason") == "payment_requires_user_control"
+            ):
+                raise ValueError(
+                    "current-retry unsafe-payment confirmation-preservation target must preserve confirmation"
+                )
+        elif provenance.get("candidate_family") == "public_navigation_non_confirmation_preservation":
+            if not (
+                target.task_type == "navigate"
+                and target.route == "open_url"
+                and target.safety.get("allow") is True
+                and target.safety.get("reason") == "public_readonly"
+                and target.confirmation_required is False
+            ):
+                raise ValueError(
+                    "current-retry public-navigation confirmation-preservation target must avoid confirmation"
+                )
+        else:
+            raise ValueError(
+                "current-retry confirmation-preservation candidate seed has unsupported candidate_family"
+            )
+        validate_public_record(row)
+
+
+def _current_retry_confirmation_preservation_materialization_summary(
+    *,
+    candidate_seed_rows: list[dict[str, Any]],
+    candidate_sft_rows: list[SFTDatasetRow],
+    formal_public_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    formal_counts = formal_public_manifest["counts"]
+    formal_source_summary = formal_public_manifest.get("source_summary") or {}
+    return {
+        "candidate_family_count": len(_CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES),
+        "candidate_seed_rows": len(candidate_seed_rows),
+        "candidate_sft_rows": len(candidate_sft_rows),
+        "candidate_families": [
+            str(row["provenance"]["candidate_family"]) for row in candidate_seed_rows
+        ],
+        "formal_public_sample_seed_rows": formal_counts["seed_rows"],
+        "formal_public_sample_sft_rows": formal_counts["sft_rows"],
+        "formal_public_sample_dpo_pairs": formal_counts["dpo_pairs"],
+        "formal_public_sample_has_current_retry_confirmation_preservation_candidates": bool(
+            formal_source_summary.get("current_retry_confirmation_preservation_candidates_formal_public_sample")
+        ),
+        "formal_public_sample_modified": False,
+        "seed_traces_modified": False,
+        "recommended_next_step": "merge_current_retry_confirmation_preservation_candidates_into_public_sample",
+    }
+
+
 def _form_fill_confirmation_marker_extension_preview_seed(
     row: dict[str, Any],
     candidate_seed_path: Path,
@@ -2612,6 +2970,117 @@ def materialize_blocked_payment_safety_repair_candidates(
     from voice2task.reports import write_blocked_payment_safety_repair_materialization_report
 
     paths = write_blocked_payment_safety_repair_materialization_report(
+        materialization,
+        output_dir=output_dir,
+        sft_rows=[row.to_dict() for row in candidate_sft_rows],
+    )
+    return {"seed": seed_output_path, **paths}
+
+
+def materialize_current_retry_confirmation_preservation_candidates(
+    *,
+    candidate_design_path: Path,
+    seed_output_path: Path,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Write standalone candidates from the reviewed current-retry confirmation-preservation design."""
+
+    _reject_formal_public_sample_output_path(seed_output_path)
+    design = read_json(candidate_design_path)
+    formal_public_manifest = read_json(FORMAL_PUBLIC_MANIFEST_PATH)
+    source_design_ref = _safe_artifact_ref(candidate_design_path)
+    candidate_seed_rows = _current_retry_confirmation_preservation_candidate_seed_rows(
+        design,
+        source_design_ref,
+    )
+    candidate_sft_rows = expand_sft_rows(candidate_seed_rows, public_safe=True)
+    for row in candidate_sft_rows:
+        validate_public_record(row.to_dict())
+
+    write_jsonl(seed_output_path, candidate_seed_rows)
+    materialization = {
+        "evidence_kind": "current_retry_confirmation_preservation_materialization",
+        "materialization_status": "candidate_dataset_materialized",
+        "source_candidate_design": {
+            "path": source_design_ref,
+            "evidence_kind": design["evidence_kind"],
+            "design_mode": design["design_mode"],
+            "dataset_manifest_id": design["dataset_manifest_id"],
+            "summary": design["summary"],
+            "source_diagnosis": design["source_diagnosis"],
+        },
+        "summary": _current_retry_confirmation_preservation_materialization_summary(
+            candidate_seed_rows=candidate_seed_rows,
+            candidate_sft_rows=candidate_sft_rows,
+            formal_public_manifest=formal_public_manifest,
+        ),
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_candidate_data_generated": True,
+            "formal_public_sample_modified": False,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "prompt_change": False,
+            "slot_normalization": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+            "private_corpus_publication": False,
+            "live_browser_benchmark": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_recovery_claim": False,
+            "held_out_generalization_recovered": False,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "candidate_families": [
+            {
+                "candidate_seed_id": seed["id"],
+                "candidate_sft_row_ids": [
+                    row.id for row in candidate_sft_rows if row.provenance["source_id"] == seed["id"]
+                ],
+                "candidate_family": seed["provenance"]["candidate_family"],
+                "source_candidate_id": seed["provenance"]["source_candidate_id"],
+                "source_row_ids": seed["provenance"]["source_row_ids"],
+                "accepted_target_contract_sketch": seed["provenance"]["accepted_target_contract_sketch"],
+                "rejected_drift_sketches": seed["provenance"]["rejected_drift_sketches"],
+            }
+            for seed in candidate_seed_rows
+        ],
+        "artifact_files": {
+            "candidate_seed": _safe_artifact_ref(seed_output_path),
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization_json": "current_retry_confirmation_preservation_materialization.json",
+            "materialization_markdown": "current_retry_confirmation_preservation_materialization.md",
+            "manifest": "manifest.json",
+        },
+    }
+
+    from voice2task.reports import write_current_retry_confirmation_preservation_materialization_report
+
+    paths = write_current_retry_confirmation_preservation_materialization_report(
         materialization,
         output_dir=output_dir,
         sft_rows=[row.to_dict() for row in candidate_sft_rows],
@@ -3070,6 +3539,41 @@ def merge_blocked_payment_safety_repair_candidates_into_public_sample(
     return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
 
 
+def merge_current_retry_confirmation_preservation_candidates_into_public_sample(
+    *,
+    candidate_seed_path: Path,
+    seed_path: Path,
+    output_dir: Path,
+) -> DatasetManifest:
+    """Merge reviewed current-retry confirmation-preservation candidate seeds into the formal public sample."""
+
+    seed_rows = _read_seed_rows(seed_path)
+    candidate_seed_rows = read_jsonl(candidate_seed_path)
+    _validate_reviewed_current_retry_confirmation_preservation_candidate_seed_rows(candidate_seed_rows)
+    existing_ids = {str(row["id"]) for row in seed_rows}
+    duplicate_ids = sorted(str(row["id"]) for row in candidate_seed_rows if str(row["id"]) in existing_ids)
+    if duplicate_ids:
+        raise ValueError(
+            "current-retry confirmation-preservation candidate seed IDs already exist in public sample: "
+            f"{', '.join(duplicate_ids)}"
+        )
+
+    merged_candidates = [
+        _formal_current_retry_confirmation_preservation_candidate_seed(
+            row,
+            candidate_seed_path=candidate_seed_path,
+        )
+        for row in candidate_seed_rows
+    ]
+    for row in merged_candidates:
+        as_contract(row["target_contract"])
+
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(seed_path, [*seed_rows, *merged_candidates])
+    return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+
 def merge_form_fill_remediation_candidates_into_public_sample(
     *,
     candidate_seed_path: Path,
@@ -3239,6 +3743,121 @@ def blocked_payment_safety_repair_public_sample_merge_evidence(
             "manifest": manifest.files["manifest"],
             "merge_json": "blocked_payment_safety_repair_public_sample_merge.json",
             "merge_markdown": "blocked_payment_safety_repair_public_sample_merge.md",
+            "merge_manifest": "manifest.json",
+        },
+        "recommended_next_step": "run_prediction_only_eval_against_the_new_manifest_in_a_later_phase",
+    }
+
+
+def current_retry_confirmation_preservation_public_sample_merge_evidence(
+    *,
+    manifest: DatasetManifest,
+    candidate_seed_path: Path,
+    pre_merge_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    from voice2task.validation import validate_dataset_artifacts
+
+    source_summary = manifest.source_summary
+    candidate_seed_rows = int(
+        source_summary.get("current_retry_confirmation_preservation_candidate_seed_rows", 0)
+    )
+    candidate_sft_rows = int(source_summary.get("current_retry_confirmation_preservation_candidate_sft_rows", 0))
+    pre_counts = dict(pre_merge_manifest.get("counts") or {})
+    pre_rejections = dict(pre_merge_manifest.get("dpo_rejection_counts") or {})
+    post_rejections = manifest.dpo_rejection_counts
+    rejection_deltas = {
+        key: int(post_rejections.get(key, 0)) - int(pre_rejections.get(key, 0))
+        for key in sorted(set(pre_rejections) | set(post_rejections))
+        if int(post_rejections.get(key, 0)) - int(pre_rejections.get(key, 0)) != 0
+    }
+    validation = validate_dataset_artifacts(
+        sft_path=Path(manifest.files["sft"]),
+        dpo_path=Path(manifest.files["dpo"]),
+        manifest_path=Path(manifest.files["manifest"]),
+        public=True,
+    )
+    return {
+        "evidence_kind": "current_retry_confirmation_preservation_public_sample_merge",
+        "merge_status": "formal_public_sample_rebuilt" if validation.ok else "formal_public_sample_validation_failed",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "pre_merge_public_sample_counts": pre_counts,
+        "pre_merge_public_sample_dpo_rejection_counts": pre_rejections,
+        "formal_public_sample_counts": manifest.counts,
+        "formal_public_sample_split_counts": manifest.split_counts,
+        "formal_public_sample_dpo_rejection_counts": manifest.dpo_rejection_counts,
+        "source_summary": source_summary,
+        "candidate_source": {
+            "candidate_seed": _safe_artifact_ref(candidate_seed_path),
+            "candidate_seed_rows": candidate_seed_rows,
+            "candidate_sft_rows": candidate_sft_rows,
+            "candidate_dpo_pairs": manifest.counts["dpo_pairs"] - int(pre_counts.get("dpo_pairs", 0)),
+            "candidate_source_mode": "current_retry_confirmation_preservation_candidate_seed",
+            "formal_source_mode": "current_retry_confirmation_preservation_formal_public_seed",
+            "candidate_families": source_summary.get("current_retry_confirmation_preservation_families", []),
+            "seed_split_counts": source_summary.get(
+                "current_retry_confirmation_preservation_seed_split_counts",
+                {"train": candidate_seed_rows, "dev": 0, "test": 0},
+            ),
+            "dpo_rejection_deltas": rejection_deltas,
+        },
+        "validation": {
+            "ok": validation.ok,
+            "failures": validation.failures,
+            "counts": validation.counts,
+        },
+        "metric_authority": {
+            "contract_evaluation_ladder": "authoritative",
+            "contract_exact_match": "authoritative_strict_metric",
+            "slot_f1": "authoritative_strict_metric",
+            "slot_f1_soft": "diagnostic_only_not_primary",
+        },
+        "execution_scope": {
+            "formal_public_sample_modified": True,
+            "seed_traces_modified": True,
+            "sft_artifacts_rebuilt": True,
+            "dpo_artifacts_rebuilt": True,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "prompt_change": False,
+            "slot_normalization": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+            "private_corpus_publication": False,
+            "live_browser_benchmark": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_recovery_claim": False,
+            "held_out_generalization_recovered": False,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "seed": manifest.files["seed"],
+            "sft": manifest.files["sft"],
+            "dpo": manifest.files["dpo"],
+            "manifest": manifest.files["manifest"],
+            "merge_json": "current_retry_confirmation_preservation_public_sample_merge.json",
+            "merge_markdown": "current_retry_confirmation_preservation_public_sample_merge.md",
             "merge_manifest": "manifest.json",
         },
         "recommended_next_step": "run_prediction_only_eval_against_the_new_manifest_in_a_later_phase",
@@ -3432,6 +4051,9 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
         _form_fill_confirmation_marker_extension_formal_seed_count(seed_rows)
     )
     blocked_payment_repair_seed_count = _blocked_payment_safety_repair_formal_seed_count(seed_rows)
+    current_retry_confirmation_preservation_seed_count = (
+        _current_retry_confirmation_preservation_formal_seed_count(seed_rows)
+    )
     source_summary: dict[str, Any] = {
         "seed_rows": len(seed_rows),
         "source": "sanitized_public_seed_fixture",
@@ -3495,6 +4117,24 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
                 ),
                 "blocked_payment_safety_repair_seed_split_counts": (
                     _blocked_payment_safety_repair_formal_seed_split_counts(seed_rows)
+                ),
+            }
+        )
+    if current_retry_confirmation_preservation_seed_count:
+        source_summary.update(
+            {
+                "current_retry_confirmation_preservation_candidate_seed_rows": (
+                    current_retry_confirmation_preservation_seed_count
+                ),
+                "current_retry_confirmation_preservation_candidate_sft_rows": (
+                    _current_retry_confirmation_preservation_formal_sft_count(rows)
+                ),
+                "current_retry_confirmation_preservation_candidates_formal_public_sample": True,
+                "current_retry_confirmation_preservation_families": (
+                    _current_retry_confirmation_preservation_formal_families(seed_rows)
+                ),
+                "current_retry_confirmation_preservation_seed_split_counts": (
+                    _current_retry_confirmation_preservation_formal_seed_split_counts(seed_rows)
                 ),
             }
         )
