@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task Scaled Public Sample Current-123 Adapter Prediction Baseline 简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; line-height: 1.6; color: #17202a; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #d8dee4; padding-bottom: 4px; }
+    code { background: #f6f8fa; padding: 2px 5px; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #d8dee4; padding: 8px; text-align: left; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+    .warn { color: #9a3412; font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task Scaled Public Sample Current-123 Adapter Prediction Baseline 简报</h1>
+  <p><span class="status">blocked before prediction, fail-closed evidence recorded</span></p>
+  <p><strong>一句话结论：</strong>本阶段完成 scaled manifest 上的 prediction-only baseline 脚手架和 blocked evidence；A100 SSH alias 超时，所以没有真实预测、指标或模型效果结论。</p>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>新增 OpenSpec change：<code>run-scaled-public-sample-current-123-adapter-prediction-baseline</code>。</li>
+    <li>新增 dev/test public-safe prediction config templates，target manifest 绑定 <code>public-sample-20260617T152259Z</code>。</li>
+    <li>保留 source adapter 边界：<code>a100-current-train-split-sft-retry</code> / <code>public-sample-20260617T045941Z</code>。</li>
+    <li>新增 focused tests，检查 prediction-only 配置、无训练输出字段、无私有路径、dev/test 各 207 rows。</li>
+    <li>记录 public-safe blocked evidence：远端预检在 A100 SSH alias connectivity timeout 处停止，没有创建 private override，没有启动 GPU job。</li>
+  </ul>
+
+  <h2>边界</h2>
+  <table>
+    <tbody>
+      <tr><th>target manifest</th><td><code>public-sample-20260617T152259Z</code></td></tr>
+      <tr><th>source adapter runtime</th><td><code>a100-current-train-split-sft-retry</code></td></tr>
+      <tr><th>source adapter manifest</th><td><code>public-sample-20260617T045941Z</code></td></tr>
+      <tr><th>target split counts</th><td>train 261 / dev 207 / test 207</td></tr>
+      <tr><th>status</th><td>blocked before private prediction; no metrics yet</td></tr>
+    </tbody>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>configs/sft-a100-scaled-public-sample-current-123-adapter-dev-prediction.json</code></li>
+    <li><code>configs/sft-a100-scaled-public-sample-current-123-adapter-test-prediction.json</code></li>
+    <li><code>tests/test_formal_public_heldout_prediction.py</code></li>
+    <li><code>reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/</code></li>
+    <li><code>openspec/changes/run-scaled-public-sample-current-123-adapter-prediction-baseline/</code></li>
+  </ul>
+
+  <h2>不能过度声称</h2>
+  <ul>
+    <li class="warn">没有运行 A100，没有生成真实 predictions，没有 strict metrics。</li>
+    <li>这不是模型效果下降或提升证据，只是新 manifest baseline 仍缺少 observed metrics 的阻塞证据。</li>
+    <li>不能声称 model recovery、held-out recovery、production readiness、adapter release 或 live-browser benchmark improvement。</li>
+    <li>后续如果运行，也必须说明 source adapter 是旧边界 <code>public-sample-20260617T045941Z</code>，不是 scaled manifest paired training。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>等待 A100 SSH 恢复后，重试同一个 prediction-only baseline；在新 boundary 指标存在前，不建议启动下一轮训练。</p>
+</main>
+</body>
+</html>

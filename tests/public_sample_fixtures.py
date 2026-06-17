@@ -8,6 +8,7 @@ PUBLIC_SAMPLE_DIR = REPO_ROOT / "data" / "public-samples"
 PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID = "public-sample-20260617T045941Z"
 PRE_SCALED_PUBLIC_SAMPLE_COUNTS = {"seed_rows": 102, "sft_rows": 261, "dpo_pairs": 881}
 PRE_SCALED_PUBLIC_SAMPLE_SPLITS = {"train": 123, "dev": 69, "test": 69}
+SCALED_PUBLIC_SAMPLE_MANIFEST_ID = "public-sample-20260617T152259Z"
 SCALED_PUBLIC_SAMPLE_COUNTS = {"seed_rows": 240, "sft_rows": 675, "dpo_pairs": 2046}
 SCALED_PUBLIC_SAMPLE_SPLITS = {"train": 261, "dev": 207, "test": 207}
 

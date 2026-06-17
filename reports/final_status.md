@@ -11,6 +11,7 @@
 | 项目 | 值 |
 | --- | --- |
 | Latest data evidence pack | `reports/public-sample/scaled-public-sample-merge/` |
+| Latest scaled-manifest prediction baseline evidence pack | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/` |
 | Latest standalone scaled candidate evidence pack | `reports/public-sample/scaled-public-sample-candidate-materialization/` |
 | Latest readiness evidence pack | `reports/public-sample/current-123-train-split-sft-retry-readiness/` |
 | Latest model evidence pack | `reports/public-sample/a100-current-123-train-split-sft-retry/` |
@@ -30,6 +31,17 @@
 | Prior SFT v3 retry evidence | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
 
 最新模型证据绑定 `public-sample-20260617T045941Z`。它在 A100 上训练了一个新的 private adapter，使用当时的 123-row train split，然后做 dev/test prediction-only strict evaluation。没有修 prediction、没有 normalize slot、没有改 prompt、没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。随后 formal public sample 已通过 scaled merge 更新到 `public-sample-20260617T152259Z`；旧 manifest 上的模型指标不能和新 boundary 的未来指标直接比较。
+
+随后尝试了 scaled manifest 上的 prediction-only baseline：
+
+- evidence: `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/report.md`
+- target manifest: `public-sample-20260617T152259Z`
+- source adapter runtime: `a100-current-train-split-sft-retry`
+- source adapter manifest: `public-sample-20260617T045941Z`
+- status: blocked before A100 prediction because the configured SSH alias timed out
+- no private override created, no GPU job launched, no dev/test predictions written, no metrics generated
+
+因此，新 scaled boundary 目前仍没有 observed model-quality metrics。最新可引用的模型效果仍是下方绑定 `public-sample-20260617T045941Z` 的 current-123 retry 指标。
 
 ## Formal Public Held-Out 指标（绑定 `public-sample-20260617T045941Z`）
 

@@ -2,7 +2,11 @@ import json
 from pathlib import Path
 
 import pytest
-from public_sample_fixtures import PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID, write_pre_scaled_public_sample_fixture
+from public_sample_fixtures import (
+    PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID,
+    SCALED_PUBLIC_SAMPLE_MANIFEST_ID,
+    write_pre_scaled_public_sample_fixture,
+)
 
 from voice2task.io import read_json
 from voice2task.leak_scan import scan_paths
@@ -70,6 +74,69 @@ def test_formal_public_heldout_prediction_fixture_checks_current_dev_test_row_se
         assert metadata["prediction_rows_before_limit"] == expected_count
         assert len(metadata["prediction_row_ids"]) == expected_count
         assert all(f"-{split}-" in row_id or row_id.startswith("seed-") for row_id in metadata["prediction_row_ids"])
+
+
+def test_scaled_public_sample_current_123_adapter_prediction_configs_preserve_boundaries() -> None:
+    config_paths = {
+        "dev": CONFIG_DIR / "sft-a100-scaled-public-sample-current-123-adapter-dev-prediction.json",
+        "test": CONFIG_DIR / "sft-a100-scaled-public-sample-current-123-adapter-test-prediction.json",
+    }
+
+    for split, config_path in config_paths.items():
+        config = read_json(config_path)
+        serialized = json.dumps(config, ensure_ascii=False, sort_keys=True)
+
+        assert config["dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+        assert config["target_dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+        assert config["source_adapter_runtime"] == "a100-current-train-split-sft-retry"
+        assert config["source_adapter_dataset_manifest_id"] == PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+        assert config["requires_paired_training_manifest_id"] == PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+        assert config["adapter_path"] == "<a100_project_root>/runs/a100-current-train-split-sft-retry/adapter"
+        assert config["prediction_split"] == split
+        assert config["allow_private_prediction"] is True
+        assert config["generalization_claim"] is False
+        assert config["formal_public_sample_heldout_prediction"] is True
+        assert config["private_override_required"] is True
+        assert config["output_root"] == "<a100_project_root>"
+        training_only_keys = {
+            "adapter_output_dir",
+            "allow_heavy_training",
+            "gradient_accumulation_steps",
+            "learning_rate",
+            "logging_steps",
+            "lora_rank",
+            "max_steps",
+            "num_train_epochs",
+            "save_steps",
+            "train_split",
+        }
+        assert training_only_keys.isdisjoint(config)
+        assert "/mnt/data/" not in serialized
+        assert "/Users/" not in serialized
+
+    assert scan_paths(list(config_paths.values())).ok is True
+
+
+def test_scaled_public_sample_current_123_adapter_prediction_fixture_checks_dev_test_row_selection(
+    tmp_path: Path,
+) -> None:
+    expected_counts = {"dev": 207, "test": 207}
+    for split, expected_count in expected_counts.items():
+        metadata = run_sft_prediction_export(
+            config_path=CONFIG_DIR / f"sft-a100-scaled-public-sample-current-123-adapter-{split}-prediction.json",
+            manifest_path=PUBLIC_SAMPLE_MANIFEST,
+            output_path=tmp_path / split / "predictions.jsonl",
+            dry_run=False,
+            fixture_mode=True,
+        )
+
+        assert metadata["dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+        assert metadata["prediction_split"] == split
+        assert metadata["prediction_status"] == "fixture_predictions_written"
+        assert metadata["prediction_source_kind"] == "public_sample_contract_fixture"
+        assert metadata["prediction_count"] == expected_count
+        assert metadata["prediction_rows_before_limit"] == expected_count
+        assert len(metadata["prediction_row_ids"]) == expected_count
 
 
 def test_formal_public_heldout_prediction_report_records_blocked_status_without_quality_claims(
@@ -212,6 +279,57 @@ def test_committed_post_confirmation_marker_merge_evidence_is_blocked_fail_close
     assert phase_leak_scan["ok"] is True
     assert final_phase_leak_scan["ok"] is True
     assert "No model-quality metrics" in report
+    assert scan_paths([evidence_dir]).ok is True
+
+
+def test_committed_scaled_public_sample_current_123_adapter_prediction_is_blocked_fail_closed() -> None:
+    evidence_dir = (
+        REPO_ROOT
+        / "reports"
+        / "public-sample"
+        / "a100-scaled-public-sample-current-123-adapter-prediction-baseline"
+    )
+    evidence = read_json(evidence_dir / "formal_public_heldout_prediction.json")
+    manifest = read_json(evidence_dir / "manifest.json")
+    preflight = read_json(evidence_dir / "a100_preflight_status.json")
+    leak_scan = read_json(evidence_dir / "leak_scan_result.json")
+    report = (evidence_dir / "report.md").read_text(encoding="utf-8")
+
+    assert evidence["run_status"] == "blocked"
+    assert evidence["blocked_reason"] == "a100_ssh_timeout_remote_dependency_unavailable"
+    assert evidence["dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+    assert evidence["source_adapter_runtime"] == "a100-current-train-split-sft-retry"
+    assert evidence["formal_public_sample_counts"] == {"seed_rows": 240, "sft_rows": 675, "dpo_pairs": 2046}
+    assert evidence["formal_public_sample_split_counts"] == {"train": 261, "dev": 207, "test": 207}
+    assert evidence["split_results"] == {}
+    assert evidence["prediction_metadata_by_split"] == {}
+    assert evidence["overall_interpretation"] == "formal_public_heldout_prediction_blocked"
+    assert evidence["claims"]["prediction_only"] is True
+    assert evidence["claims"]["training_performed"] is False
+    assert evidence["claims"]["held_out_generalization_recovered"] is False
+    assert evidence["claims"]["model_recovery_claim"] is False
+    assert evidence["claims"]["adapter_release"] is False
+    assert evidence["claims"]["production_readiness_claim"] is False
+    assert evidence["claims"]["prediction_repair_or_replacement"] is False
+
+    boundary = evidence["comparison_boundary"]
+    assert boundary["current_dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+    assert boundary["target_dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+    assert boundary["prior_dataset_manifest_id"] == PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+    assert boundary["source_adapter_dataset_manifest_id"] == PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+    assert boundary["source_adapter_runtime"] == "a100-current-train-split-sft-retry"
+    assert boundary["direct_improvement_regression_comparison_valid"] is False
+
+    assert manifest["run_status"] == "blocked"
+    assert manifest["dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+    assert manifest["source_adapter_runtime"] == "a100-current-train-split-sft-retry"
+    assert preflight["status"] == "blocked"
+    assert preflight["execution_scope"]["prediction_run"] is False
+    assert preflight["execution_scope"]["metrics_generated"] is False
+    assert preflight["artifact_policy"]["host_details_omitted"] is True
+    assert leak_scan["ok"] is True
+    assert "No model-quality metrics" in report
+    assert "not a clean direct improvement/regression comparison" in report
     assert scan_paths([evidence_dir]).ok is True
 
 

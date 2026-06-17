@@ -1,0 +1,36 @@
+{
+  "artifact_policy": {
+    "checkpoints_or_adapters_copied_to_git": false,
+    "host_details_omitted": true,
+    "private_corpus_rows_omitted": true,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "remote_caches_copied_to_git": false,
+    "ssh_details_omitted": true
+  },
+  "blocked_reason": "a100_ssh_timeout_remote_dependency_unavailable",
+  "checks": {
+    "gpu_occupancy": "not_available_because_remote_access_timed_out",
+    "prediction_execution": "not_launched",
+    "private_adapter_availability": "not_available_because_remote_access_timed_out",
+    "private_override_status": "not_created_because_remote_access_timed_out",
+    "ssh_alias_connectivity": "timeout"
+  },
+  "dataset_manifest_id": "public-sample-20260617T152259Z",
+  "evidence_kind": "a100_scaled_public_sample_current_123_adapter_prediction_preflight",
+  "execution_scope": {
+    "a100_execution": false,
+    "dev_predictions_written": false,
+    "metrics_generated": false,
+    "prediction_run": false,
+    "test_predictions_written": false,
+    "training_run": false
+  },
+  "generated_at": "2026-06-17T16:09:05.352663+00:00",
+  "notes": "A100 prediction-only execution was not launched because the configured SSH alias did not respond before the connectivity timeout. This artifact intentionally records no model-quality metrics.",
+  "source_adapter_dataset_manifest_id": "public-sample-20260617T045941Z",
+  "source_adapter_runtime": "a100-current-train-split-sft-retry",
+  "status": "blocked",
+  "target_dataset_manifest_id": "public-sample-20260617T152259Z"
+}
