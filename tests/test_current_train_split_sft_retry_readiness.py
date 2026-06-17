@@ -28,8 +28,8 @@ PUBLIC_MERGE_EVIDENCE = (
     REPO_ROOT
     / "reports"
     / "public-sample"
-    / "blocked-payment-safety-repair-public-sample-merge"
-    / "blocked_payment_safety_repair_public_sample_merge.json"
+    / "current-retry-confirmation-preservation-public-sample-merge"
+    / "current_retry_confirmation_preservation_public_sample_merge.json"
 )
 READINESS_DIR = REPO_ROOT / "reports" / "public-sample" / "current-train-split-sft-retry-readiness"
 RETRY_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "a100-current-train-split-sft-retry"
@@ -113,6 +113,7 @@ def test_current_train_split_retry_dry_run_selects_repair_rows(tmp_path: Path) -
     assert sum(row_id.startswith("candidate-form-fill-remediation-") for row_id in row_ids) == 9
     assert sum(row_id.startswith("candidate-form-fill-confirmation-marker-extension-") for row_id in row_ids) == 12
     assert sum(row_id.startswith("candidate-blocked-payment-repair-") for row_id in row_ids) == 4
+    assert sum(row_id.startswith("candidate-current-retry-") for row_id in row_ids) == 5
 
 
 def test_current_train_split_retry_readiness_cli_writes_public_safe_non_claiming_evidence(
@@ -158,6 +159,12 @@ def test_current_train_split_retry_readiness_cli_writes_public_safe_non_claiming
     assert evidence["summary"]["training_rows_used"] == 123
     assert evidence["summary"]["form_fill_repair_train_rows"] == 21
     assert evidence["summary"]["blocked_payment_repair_train_rows"] == 4
+    assert evidence["summary"]["current_retry_confirmation_preservation_train_rows"] == 5
+    assert evidence["summary"]["public_merge_manifest_id"] == _current_manifest()["manifest_id"]
+    assert evidence["summary"]["public_merge_counts_match_current_manifest"] is True
+    assert evidence["summary"]["prediction_config_interpretation"] == (
+        "requires_paired_target_manifest_adapter_before_prediction"
+    )
     assert evidence["summary"]["readiness_status"] == "ready_for_bounded_a100_sft_retry_phase"
     assert evidence["summary"]["recommended_next_change"] == "run-a100-current-train-split-sft-retry"
     assert evidence["current_strict_metrics"]["dev"]["contract_exact_match"] == 0.463768115942029
@@ -170,6 +177,10 @@ def test_current_train_split_retry_readiness_cli_writes_public_safe_non_claiming
     assert evidence["claims"]["adapter_release"] is False
     assert manifest["artifact_policy"]["private_paths_omitted"] is True
     assert "readiness-only" in markdown
+    assert "Current-retry confirmation-preservation train rows: `5`" in markdown
+    assert "Prior evaluated model manifest: `public-sample-20260616T165835Z`" in markdown
+    assert "not current-manifest model evidence" in markdown
+    assert "paired adapter trained for `public-sample-20260617T045941Z`" in markdown
     assert "run-a100-current-train-split-sft-retry" in markdown
     assert scan_paths([output_dir]).ok is True
 

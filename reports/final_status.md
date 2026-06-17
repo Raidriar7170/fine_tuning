@@ -11,6 +11,7 @@
 | 项目 | 值 |
 | --- | --- |
 | Latest data evidence pack | `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/` |
+| Latest readiness evidence pack | `reports/public-sample/current-123-train-split-sft-retry-readiness/` |
 | Latest model evidence pack | `reports/public-sample/a100-current-train-split-sft-retry/` |
 | Latest candidate-design evidence pack | `reports/public-sample/current-retry-confirmation-preservation-candidate-design/` |
 | Latest diagnosis evidence pack | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
@@ -200,7 +201,19 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - 新增 5 条 SFT rows 和 17 条 DPO construction pairs；
 - 该阶段没有训练、没有 prediction、没有改 prompt/evaluator、没有 slot normalization、没有 claim safety improvement 或 model recovery。
 
-下一步如果继续，应先在新 manifest 边界下做 bounded prediction-only baseline 或 training-readiness，不应把这次 data materialization 直接包装成模型效果改善。
+当时的下一步是先在新 manifest 边界下做 bounded prediction-only baseline 或 training-readiness，避免把这次 data materialization 直接包装成模型效果改善。
+
+随后已完成 current-123-row train-split SFT retry readiness：
+
+- evidence: `reports/public-sample/current-123-train-split-sft-retry-readiness/current_train_split_sft_retry_readiness.md`
+- 该阶段只做本地 dry-run 和 public-safe readiness report；
+- 没有 A100 training、prediction、DPO、prompt/evaluator 改动、slot normalization、checkpoint/adapter 发布或 private corpus 发布；
+- dry-run 选择全部 123 条 train rows；
+- train split 中包含 21 条 form-fill repair rows、4 条 blocked-payment repair rows、5 条 current-retry confirmation-preservation rows；
+- readiness status: `ready_for_bounded_a100_sft_retry_phase`；
+- prediction configs 被明确标注为需要 paired adapter trained for `public-sample-20260617T045941Z`，不能直接拿 prior adapter 结果当作 current-manifest model evidence。
+
+下一步如果继续，应开 bounded A100 SFT retry phase：在 123-row train split 上训练新的 private adapter，然后做 strict dev/test prediction evaluation；仍然不发布 adapter/checkpoint/raw log/private override。
 
 ## 主要证据链接
 
@@ -225,6 +238,7 @@ artifacts；仍然不能从 candidate design 本身宣称 safety improvement 或
 - Blocked-payment repair public merge: `reports/public-sample/blocked-payment-safety-repair-public-sample-merge/blocked_payment_safety_repair_public_sample_merge.md`
 - Current-retry confirmation-preservation materialization: `reports/public-sample/current-retry-confirmation-preservation-materialization/current_retry_confirmation_preservation_materialization.md`
 - Current-retry confirmation-preservation public merge: `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/current_retry_confirmation_preservation_public_sample_merge.md`
+- Current-123 train split SFT retry readiness: `reports/public-sample/current-123-train-split-sft-retry-readiness/current_train_split_sft_retry_readiness.md`
 - Current train split SFT retry readiness: `reports/public-sample/current-train-split-sft-retry-readiness/current_train_split_sft_retry_readiness.md`
 - Context contract: `CONTEXT.md`
 - Human brief: `docs/human-briefs/2026-06-16-refresh-current-formal-heldout-residual-diagnosis.html`

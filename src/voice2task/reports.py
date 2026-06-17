@@ -5392,9 +5392,27 @@ def write_current_train_split_sft_retry_readiness_report(
     split_counts = safe_manifest.get("split_counts", {})
     if not isinstance(split_counts, dict):
         split_counts = {}
-    merge_summary = safe_merge.get("summary", {})
-    if not isinstance(merge_summary, dict):
-        merge_summary = {}
+    raw_merge_summary = safe_merge.get("summary", {})
+    if not isinstance(raw_merge_summary, dict):
+        raw_merge_summary = {}
+    manifest_counts = safe_manifest.get("counts", {})
+    if not isinstance(manifest_counts, dict):
+        manifest_counts = {}
+    merge_counts = safe_merge.get(
+        "formal_public_sample_counts",
+        raw_merge_summary.get("formal_public_sample_counts", {}),
+    )
+    if not isinstance(merge_counts, dict):
+        merge_counts = {}
+    merge_split_counts = safe_merge.get(
+        "formal_public_sample_split_counts",
+        raw_merge_summary.get("formal_public_sample_split_counts", {}),
+    )
+    if not isinstance(merge_split_counts, dict):
+        merge_split_counts = {}
+    merge_source_summary = safe_merge.get("source_summary", raw_merge_summary.get("source_summary", {}))
+    if not isinstance(merge_source_summary, dict):
+        merge_source_summary = {}
 
     manifest_id = str(safe_manifest.get("manifest_id", "unknown"))
     train_split_rows = int(split_counts.get("train", 0))
@@ -5403,6 +5421,9 @@ def write_current_train_split_sft_retry_readiness_report(
         source_summary.get("form_fill_confirmation_marker_extension_candidate_sft_rows", 0)
     )
     blocked_payment_repair_rows = int(source_summary.get("blocked_payment_safety_repair_candidate_sft_rows", 0))
+    current_retry_confirmation_rows = int(
+        source_summary.get("current_retry_confirmation_preservation_candidate_sft_rows", 0)
+    )
     baseline_manifest_id = str(safe_baseline.get("dataset_manifest_id", "unknown"))
     baseline_interpretation = str(safe_baseline.get("overall_interpretation", "unknown"))
     retry_runtime = str(safe_sft_config.get("reference_runtime", "unknown"))
@@ -5412,6 +5433,27 @@ def write_current_train_split_sft_retry_readiness_report(
     dry_run_manifest_id = str(safe_dry_run.get("dataset_manifest_id", "unknown"))
     previous_runtime = "a100-form-fill-remediation-sft-v3"
     runtime_is_distinct = retry_runtime not in {"unknown", previous_runtime}
+    merge_has_current_retry_candidates = (
+        merge_source_summary.get("current_retry_confirmation_preservation_candidates_formal_public_sample") is True
+    )
+    merge_current_retry_rows = int(
+        merge_source_summary.get("current_retry_confirmation_preservation_candidate_sft_rows", 0)
+    )
+    merge_matches_current_manifest = (
+        merge_counts == manifest_counts
+        and merge_split_counts == split_counts
+        and merge_has_current_retry_candidates
+        and merge_current_retry_rows == current_retry_confirmation_rows == 5
+    )
+    merge_summary = {
+        "dataset_manifest_id": manifest_id if merge_matches_current_manifest else "unknown",
+        "formal_public_sample_counts": merge_counts,
+        "formal_public_sample_split_counts": merge_split_counts,
+        "current_retry_confirmation_preservation_train_rows": merge_current_retry_rows,
+        "current_retry_confirmation_preservation_candidates_formal_public_sample": merge_has_current_retry_candidates,
+        "matches_current_manifest": merge_matches_current_manifest,
+        "merge_status": safe_merge.get("merge_status", raw_merge_summary.get("merge_status", "unknown")),
+    }
     dry_run_ok = (
         dry_run_manifest_id == manifest_id
         and config_manifest_id == manifest_id
@@ -5419,6 +5461,8 @@ def write_current_train_split_sft_retry_readiness_report(
         and training_rows_used == train_split_rows
         and form_fill_repair_rows == 21
         and blocked_payment_repair_rows == 4
+        and current_retry_confirmation_rows == 5
+        and merge_matches_current_manifest
         and runtime_is_distinct
         and dev_runtime == retry_runtime
         and test_runtime == retry_runtime
@@ -5437,9 +5481,12 @@ def write_current_train_split_sft_retry_readiness_report(
         "train_split_rows": train_split_rows,
         "form_fill_repair_train_rows": form_fill_repair_rows,
         "blocked_payment_repair_train_rows": blocked_payment_repair_rows,
+        "current_retry_confirmation_preservation_train_rows": current_retry_confirmation_rows,
         "public_merge_manifest_id": merge_summary.get("dataset_manifest_id", manifest_id),
+        "public_merge_counts_match_current_manifest": merge_matches_current_manifest,
         "future_retry_runtime": retry_runtime,
         "previous_sft_v3_runtime": previous_runtime,
+        "prediction_config_interpretation": "requires_paired_target_manifest_adapter_before_prediction",
         "readiness_status": readiness_status,
         "recommended_next_change": "run-a100-current-train-split-sft-retry",
         "recommended_next_step": "open_bounded_run-a100-current-train-split-sft-retry_before_training_execution",
@@ -5486,7 +5533,8 @@ def write_current_train_split_sft_retry_readiness_report(
     limitations = [
         "readiness-only evidence is not model-quality evidence",
         "future A100 SFT retry still requires a separate bounded OpenSpec phase and fresh GPU preflight",
-        "the 118-row train split is small and may overfit",
+        f"the {train_split_rows}-row train split is small and may overfit",
+        "current-train-split prediction configs require a paired target-manifest adapter before evaluation",
         "strict contract_exact_match and strict slot_f1 remain the headline metrics",
         "slot_f1_soft remains diagnostic-only",
     ]
@@ -5555,15 +5603,26 @@ def write_current_train_split_sft_retry_readiness_report(
         "## Summary",
         "",
         f"- Manifest: `{summary['dataset_manifest_id']}`",
-        f"- Current baseline interpretation: `{summary['current_baseline_interpretation']}`",
+        f"- Prior evaluated model manifest: `{summary['current_baseline_dataset_manifest_id']}`",
+        f"- Prior model interpretation: `{summary['current_baseline_interpretation']}`",
         f"- Train split rows selected by dry-run: `{summary['training_rows_used']}`",
         f"- Form-fill repair train rows: `{summary['form_fill_repair_train_rows']}`",
         f"- Blocked-payment repair train rows: `{summary['blocked_payment_repair_train_rows']}`",
+        (
+            "- Current-retry confirmation-preservation train rows: "
+            f"`{summary['current_retry_confirmation_preservation_train_rows']}`"
+        ),
         f"- Future retry runtime: `{summary['future_retry_runtime']}`",
         f"- Readiness status: `{summary['readiness_status']}`",
         f"- Recommended next change: `{summary['recommended_next_change']}`",
         "",
-        "## Current Strict Metrics Input",
+        "## Prior Strict Metrics Input",
+        "",
+        (
+            "These strict metrics are prior model evidence bound to "
+            f"`{summary['current_baseline_dataset_manifest_id']}`. They are included as context only and "
+            f"are not current-manifest model evidence for `{summary['dataset_manifest_id']}`."
+        ),
         "",
     ]
     for split, metrics in sorted(current_metrics.items()):
@@ -5574,7 +5633,7 @@ def write_current_train_split_sft_retry_readiness_report(
             "## Evidence Inputs",
             "",
             f"- Dry-run metadata: `{safe_artifact_files['dry_run_metadata']}`",
-            f"- Current baseline evidence: `{safe_artifact_files['current_baseline_evidence']}`",
+            f"- Prior model evidence: `{safe_artifact_files['current_baseline_evidence']}`",
             f"- Public merge evidence: `{safe_artifact_files['public_merge_evidence']}`",
             f"- SFT config: `{safe_artifact_files['sft_config']}`",
             f"- Dev prediction config: `{safe_artifact_files['dev_prediction_config']}`",
@@ -5585,7 +5644,9 @@ def write_current_train_split_sft_retry_readiness_report(
             (
                 "Open `run-a100-current-train-split-sft-retry` as a separate bounded phase. "
                 "That phase must perform fresh A100 GPU preflight, use private overrides outside git, "
-                "keep all adapters/logs/checkpoints private, and publish only sanitized strict held-out evidence."
+                "train a paired adapter trained for "
+                f"`{summary['dataset_manifest_id']}`, keep all adapters/logs/checkpoints private, "
+                "and publish only sanitized strict held-out evidence."
             ),
         ]
     )
