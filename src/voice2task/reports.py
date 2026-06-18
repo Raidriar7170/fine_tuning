@@ -2799,15 +2799,13 @@ def write_formal_heldout_residual_cluster_inspection_report(
             "a100_job": False,
         },
         "diagnostic_artifacts": {
-            "inspection": (
-                "reports/public-sample/formal-heldout-residual-cluster-inspection/"
-                "formal_heldout_residual_cluster_inspection.json"
+            "inspection": _public_report_artifact_path(
+                output_dir, "formal_heldout_residual_cluster_inspection.json"
             ),
-            "markdown": (
-                "reports/public-sample/formal-heldout-residual-cluster-inspection/"
-                "formal_heldout_residual_cluster_inspection.md"
+            "markdown": _public_report_artifact_path(
+                output_dir, "formal_heldout_residual_cluster_inspection.md"
             ),
-            "manifest": "reports/public-sample/formal-heldout-residual-cluster-inspection/manifest.json",
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
         },
     }
     write_json(manifest_path, manifest)

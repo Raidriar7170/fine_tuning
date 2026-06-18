@@ -84,6 +84,13 @@ def _existing_artifact_paths(predictions_path: Path, prediction_metadata: dict[s
     return {key: path.as_posix() for key, path in candidates.items() if path.exists()}
 
 
+def _public_cli_artifact_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return path.as_posix() if not path.is_absolute() else path.name
+
+
 def _load_objective_inspection(
     predictions_path: Path,
     prediction_metadata: dict[str, object],
@@ -524,6 +531,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "inspect-formal-heldout-residual-clusters":
         inspection = inspect_formal_heldout_residual_clusters(
             residual_diagnosis=read_json(args.residual_diagnosis),
+            diagnosis_artifact=_public_cli_artifact_path(args.residual_diagnosis),
         )
         paths = write_formal_heldout_residual_cluster_inspection_report(
             inspection,

@@ -11,6 +11,9 @@ from voice2task.reports import write_formal_heldout_residual_cluster_inspection_
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RESIDUAL_DIR = REPO_ROOT / "reports" / "public-sample" / "formal-heldout-residual-family-diagnosis"
 CLUSTER_DIR = REPO_ROOT / "reports" / "public-sample" / "formal-heldout-residual-cluster-inspection"
+SCALED_CLUSTER_DIR = (
+    REPO_ROOT / "reports" / "public-sample" / "scaled-current-123-adapter-residual-cluster-inspection"
+)
 ARCHIVED_CHANGE_DIR = (
     REPO_ROOT
     / "openspec"
@@ -125,6 +128,16 @@ def test_formal_heldout_residual_cluster_inspection_cli_writes_public_safe_repor
     assert direct_paths["json"].exists()
     assert direct_paths["markdown"].exists()
     assert direct_paths["manifest"].exists()
+    direct_manifest = read_json(direct_paths["manifest"])
+    assert direct_manifest["diagnostic_artifacts"] == {
+        "inspection": "direct/formal_heldout_residual_cluster_inspection.json",
+        "markdown": "direct/formal_heldout_residual_cluster_inspection.md",
+        "manifest": "direct/manifest.json",
+    }
+    assert inspection["source_residual_diagnosis"]["diagnosis_artifact"].endswith(
+        "reports/public-sample/formal-heldout-residual-family-diagnosis/"
+        "formal_heldout_residual_family_diagnosis.json"
+    )
 
 
 def test_committed_formal_heldout_residual_cluster_inspection_is_bounded_and_public_safe() -> None:
@@ -152,3 +165,103 @@ def test_committed_formal_heldout_residual_cluster_inspection_is_bounded_and_pub
     assert inspection["claims"]["production_readiness_claim"] is False
     assert inspection["claims"]["semantic_equivalence_primary_metric"] is False
     assert scan_paths([CLUSTER_DIR, ARCHIVED_CHANGE_DIR, HUMAN_BRIEF]).ok is True
+
+
+def test_committed_scaled_current_123_adapter_residual_cluster_inspection_is_bounded() -> None:
+    manifest = read_json(SCALED_CLUSTER_DIR / "manifest.json")
+    inspection = read_json(SCALED_CLUSTER_DIR / "formal_heldout_residual_cluster_inspection.json")
+    report = (SCALED_CLUSTER_DIR / "formal_heldout_residual_cluster_inspection.md").read_text(
+        encoding="utf-8"
+    )
+    leak_scan = read_json(SCALED_CLUSTER_DIR / "final_leak_scan_result.json")
+
+    assert manifest["evidence_kind"] == "formal_heldout_residual_cluster_inspection"
+    assert manifest["source_residual_diagnosis"]["source_formal_heldout_evidence"][
+        "dataset_manifest_id"
+    ] == "public-sample-20260617T152259Z"
+    assert manifest["source_residual_diagnosis"]["diagnosis_artifact"] == (
+        "reports/public-sample/scaled-current-123-adapter-residual-diagnosis/"
+        "formal_heldout_residual_family_diagnosis.json"
+    )
+    assert manifest["summary"]["strict_contract_exact_match"] == {
+        "dev": 0.2463768115942029,
+        "test": 0.2028985507246377,
+    }
+    assert manifest["summary"]["strict_slot_f1"] == {
+        "dev": 0.28743961352657005,
+        "test": 0.2592592592592593,
+    }
+    assert manifest["summary"]["residual_row_count"] == 321
+    assert manifest["summary"]["source_residual_field_count"] == 540
+    assert manifest["summary"]["cluster_count"] == 29
+    assert manifest["summary"]["top_cluster_task_family"] == (
+        "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity"
+    )
+    assert manifest["summary"]["top_cluster_field_path"] == "slots"
+    assert manifest["summary"]["top_cluster_residual_rows"] == 78
+    assert manifest["summary"]["top_cluster_residual_fields"] == 78
+    assert manifest["summary"]["soft_slot_f1_primary_metric"] is False
+    assert manifest["source_count_consistency"] == {
+        "expected_residual_rows": 321,
+        "clustered_residual_rows": 321,
+        "expected_residual_fields": 540,
+        "clustered_residual_fields": 540,
+        "ok": True,
+    }
+    assert manifest["diagnostic_artifacts"] == {
+        "inspection": (
+            "reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/"
+            "formal_heldout_residual_cluster_inspection.json"
+        ),
+        "markdown": (
+            "reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/"
+            "formal_heldout_residual_cluster_inspection.md"
+        ),
+        "manifest": "reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/manifest.json",
+    }
+
+    top_clusters = inspection["residual_clusters"][:5]
+    observed_top_clusters = [
+        (cluster["short_name"], cluster["field_path"], cluster["residual_row_count"])
+        for cluster in top_clusters
+    ]
+    assert observed_top_clusters == [
+        ("clarify", "slots", 78),
+        ("blocked", "slots", 51),
+        ("search", "slots", 51),
+        ("form_fill", "slots", 50),
+        ("blocked", "normalized_command", 47),
+    ]
+    assert top_clusters[0]["recommended_action_candidate"] == (
+        "route_intent_boundary_inspection_before_data_or_training"
+    )
+    assert top_clusters[1]["recommended_action_candidate"] == (
+        "dedicated_safety_boundary_inspection_before_data_or_training"
+    )
+    assert top_clusters[2]["recommended_action_candidate"] == (
+        "label_canonicalization_review_before_data_or_training"
+    )
+
+    assert inspection["execution_scope"]["a100_job"] is False
+    assert inspection["execution_scope"]["prediction_run"] is False
+    assert inspection["execution_scope"]["training_run"] is False
+    assert inspection["execution_scope"]["dataset_mutation"] is False
+    assert inspection["execution_scope"]["prompt_change"] is False
+    assert inspection["execution_scope"]["evaluator_metric_change"] is False
+    assert inspection["execution_scope"]["evaluator_relaxation"] is False
+    assert inspection["execution_scope"]["semantic_equivalence_scoring"] is False
+    assert inspection["execution_scope"]["prediction_repair"] is False
+    assert inspection["claims"]["analysis_only"] is True
+    assert inspection["claims"]["held_out_recovery_claim"] is False
+    assert inspection["claims"]["model_recovery_claim"] is False
+    assert inspection["claims"]["production_readiness_claim"] is False
+    assert inspection["claims"]["semantic_equivalence_primary_metric"] is False
+    assert manifest["artifact_policy"]["a100_job"] is False
+    assert manifest["artifact_policy"]["training_run"] is False
+    assert manifest["artifact_policy"]["prediction_run"] is False
+    assert manifest["artifact_policy"]["dataset_mutation"] is False
+    assert manifest["artifact_policy"]["evaluator_metric_change"] is False
+    assert leak_scan["ok"] is True
+    assert "analysis-only residual cluster inspection" in report
+    assert "does not authorize data, training, prompt, or evaluator changes" in report
+    assert scan_paths([SCALED_CLUSTER_DIR]).ok is True

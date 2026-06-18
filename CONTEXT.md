@@ -6,38 +6,40 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-18, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has fourteen current layers:
+The public-facing truth surface has fifteen current layers:
 
 1. the scaled-manifest current-123 adapter prediction baseline recovery retry
    evidence under
    `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/`;
-2. the scaled-manifest current-123 adapter residual-family diagnosis under
+2. the scaled-manifest current-123 adapter residual-cluster inspection under
+   `reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/`;
+3. the scaled-manifest current-123 adapter residual-family diagnosis under
    `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/`;
-3. the prior scaled-manifest current-123 adapter prediction baseline blocked evidence
+4. the prior scaled-manifest current-123 adapter prediction baseline blocked evidence
    under
    `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/`;
-4. the scaled public-sample formal merge evidence under
+5. the scaled public-sample formal merge evidence under
    `reports/public-sample/scaled-public-sample-merge/`;
-5. the standalone scaled public-sample candidate materialization evidence under
+6. the standalone scaled public-sample candidate materialization evidence under
    `reports/public-sample/scaled-public-sample-candidate-materialization/`;
-6. the scaled public-sample and tiered-evaluation design evidence under
+7. the scaled public-sample and tiered-evaluation design evidence under
    `reports/public-sample/scaled-public-sample-and-tiered-eval-design/`;
-7. the current-123-row train-split SFT retry model evidence under
+8. the current-123-row train-split SFT retry model evidence under
    `reports/public-sample/a100-current-123-train-split-sft-retry/`;
-8. the current-123-row train-split SFT retry readiness evidence under
+9. the current-123-row train-split SFT retry readiness evidence under
    `reports/public-sample/current-123-train-split-sft-retry-readiness/`;
-9. the current-retry confirmation-preservation materialization and public merge
+10. the current-retry confirmation-preservation materialization and public merge
    under
    `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/`;
-10. the current-retry confirmation-preservation candidate design under
+11. the current-retry confirmation-preservation candidate design under
    `reports/public-sample/current-retry-confirmation-preservation-candidate-design/`;
-11. the current-train-split SFT retry trade-off diagnosis under
+12. the current-train-split SFT retry trade-off diagnosis under
    `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/`;
-12. the prior current-train-split SFT retry under
+13. the prior current-train-split SFT retry under
    `reports/public-sample/a100-current-train-split-sft-retry/`;
-13. the current-manifest SFT v3 prediction-only baseline under
+14. the current-manifest SFT v3 prediction-only baseline under
    `reports/public-sample/a100-current-manifest-sft-v3-prediction-baseline/`;
-14. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
+15. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
    source, under
    `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/`.
 
@@ -54,6 +56,8 @@ Current formal public sample data boundary:
 | latest model evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
 | latest scaled-manifest prediction baseline | observed after A100 recovery; strict exact remains partial and lower than the prior-boundary adapter evidence |
 | latest scaled-manifest baseline evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| latest scaled-manifest residual cluster interpretation | `scaled_current_123_residual_clusters_clarify_slots_top_cluster` |
+| latest scaled-manifest residual cluster evidence | `reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/` |
 | latest scaled-manifest residual diagnosis interpretation | `scaled_current_123_residuals_slot_and_normalized_command_dominant` |
 | latest scaled-manifest residual diagnosis evidence | `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/` |
 | prior scaled-manifest blocked baseline evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/` |
@@ -156,6 +160,19 @@ schema validity, route, safety recall, and confirmation are comparatively
 strong; strict slot and full-contract exact remain weak. The next bounded phase,
 if the project continues, should inspect scaled residual clusters before data
 design or paired SFT retry.
+
+That scaled-manifest residual-cluster inspection is now complete under
+`reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/`.
+It is analysis-only: no A100 job, training, prediction rerun, data mutation,
+prompt change, evaluator relaxation, semantic-equivalence scoring, slot
+normalization, prediction repair, checkpoint release, adapter release,
+production-readiness claim, or live-browser benchmark claim was performed. The
+inspection found `29` residual clusters and verified source-count consistency
+for `321` residual rows / `540` residual fields. The top clusters are
+`clarify/slots=78`, `blocked/slots=51`, `search/slots=51`,
+`form_fill/slots=50`, and `blocked/normalized_command=47`. The next bounded
+phase should select or design a remediation target from these ranked clusters;
+it should not jump directly to training or evaluator changes.
 
 Claim boundaries:
 

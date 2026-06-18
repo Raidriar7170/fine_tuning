@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task 扩样本残差聚类检查简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; margin: 32px; color: #202124; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 1px 4px; border-radius: 4px; }
+    .claim { padding: 12px 14px; background: #eef6ff; border-left: 4px solid #2563eb; }
+    .warn { padding: 12px 14px; background: #fff7ed; border-left: 4px solid #f97316; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task 扩样本残差聚类检查简报</h1>
+  <p class="claim">结论：scaled residual cluster inspection 已完成；最大 cluster 是 <code>clarify/slots</code>，下一步应先做 target selection / remediation design，而不是直接训练。</p>
+
+  <h2>当前状态</h2>
+  <table>
+    <tr><th>项目</th><th>状态</th></tr>
+    <tr><td>OpenSpec change</td><td><code>inspect-scaled-current-123-adapter-residual-clusters</code></td></tr>
+    <tr><td>阶段类型</td><td>analysis-only；不启动 A100、不训练、不预测、不改数据、不改 prompt/evaluator</td></tr>
+    <tr><td>Source diagnosis</td><td><code>reports/public-sample/scaled-current-123-adapter-residual-diagnosis/</code></td></tr>
+    <tr><td>Target manifest</td><td><code>public-sample-20260617T152259Z</code></td></tr>
+    <tr><td>Cluster evidence</td><td><code>reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/</code></td></tr>
+  </table>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>读取已提交的 scaled residual-family diagnosis。</li>
+    <li>把 321 个 strict residual rows / 540 个 residual fields 聚合成 29 个 ranked clusters。</li>
+    <li>修正 cluster report manifest 的 output-directory artifact paths，避免复用旧 report writer 时路径写错。</li>
+    <li>更新 <code>CONTEXT.md</code>、<code>reports/final_status.md</code> 和本简报。</li>
+    <li>补 focused tests，覆盖 cluster counts、source boundary、claim boundaries、manifest paths 和 leak-scan 状态。</li>
+  </ul>
+
+  <h2>Top Clusters</h2>
+  <table>
+    <tr><th>排名</th><th>Cluster</th><th>字段</th><th>Rows / Fields</th><th>建议动作</th></tr>
+    <tr><td>1</td><td><code>clarify</code></td><td><code>slots</code></td><td>78 / 78</td><td>先检查 ambiguity slot canonicalization / route-intent 边界</td></tr>
+    <tr><td>2</td><td><code>blocked</code></td><td><code>slots</code></td><td>51 / 51</td><td>检查安全边界表达和 unsafe payment slot 规范</td></tr>
+    <tr><td>3</td><td><code>search</code></td><td><code>slots</code></td><td>51 / 51</td><td>检查 query canonicalization，而不是放松 evaluator</td></tr>
+    <tr><td>4</td><td><code>form_fill</code></td><td><code>slots</code></td><td>50 / 50</td><td>检查表单字段具体性和 confirmation 边界</td></tr>
+    <tr><td>5</td><td><code>blocked</code></td><td><code>normalized_command</code></td><td>47 / 47</td><td>检查 safety normalized_command canonicalization</td></tr>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/formal_heldout_residual_cluster_inspection.md</code></li>
+    <li><code>reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/formal_heldout_residual_cluster_inspection.json</code></li>
+    <li><code>reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/manifest.json</code></li>
+    <li><code>CONTEXT.md</code></li>
+    <li><code>reports/final_status.md</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li>Focused tests、full pytest、ruff、OpenSpec strict validation、leak scan、diff check：以最终命令输出为准。</li>
+    <li>Source count consistency: 321 residual rows / 540 residual fields，clustered counts 完全一致。</li>
+    <li>Leak scan: cluster evidence directory 通过 public-safe scan。</li>
+  </ul>
+
+  <h2>剩余风险</h2>
+  <ul>
+    <li>这是 cluster inspection，不是 remediation target selection。</li>
+    <li><code>slot_f1_soft</code> 仍只是 diagnostic-only，不能作为 recovery 或 semantic-equivalence 主张。</li>
+    <li>Top cluster 说明下一步优先审查方向，不自动证明应该立即训练。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>开启 bounded target-selection / remediation-design phase：从 ranked clusters 中选择最值得修的目标，优先判断 <code>clarify/slots=78</code> 是 gold/pred canonicalization 问题、route-intent 边界问题，还是需要新的对照数据设计。</p>
+
+  <p class="warn">不要从本阶段直接跳到 paired SFT retry；也不要把 cluster 排名改写成模型恢复证据。</p>
+</main>
+</body>
+</html>

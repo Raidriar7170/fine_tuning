@@ -2474,6 +2474,7 @@ def _residual_cluster_action_candidate(short_name: str) -> str:
 def inspect_formal_heldout_residual_clusters(
     *,
     residual_diagnosis: dict[str, Any],
+    diagnosis_artifact: str | None = None,
 ) -> dict[str, Any]:
     if residual_diagnosis.get("evidence_kind") != "formal_heldout_residual_family_diagnosis":
         raise ValueError("residual diagnosis must be formal_heldout_residual_family_diagnosis evidence")
@@ -2574,9 +2575,12 @@ def inspect_formal_heldout_residual_clusters(
             "source_formal_heldout_evidence": _sanitize_public_value(
                 residual_diagnosis.get("source_formal_heldout_evidence", {})
             ),
-            "diagnosis_artifact": (
-                "reports/public-sample/formal-heldout-residual-family-diagnosis/"
-                "formal_heldout_residual_family_diagnosis.json"
+            "diagnosis_artifact": _sanitize_public_summary(
+                diagnosis_artifact
+                or (
+                    "reports/public-sample/formal-heldout-residual-family-diagnosis/"
+                    "formal_heldout_residual_family_diagnosis.json"
+                )
             ),
         },
         "summary": {
