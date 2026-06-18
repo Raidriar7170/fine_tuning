@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>review-safety-repair-candidates-before-materialization</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172026; background: #f7f8f5; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; border-bottom: 1px solid #d8ded2; padding-bottom: 6px; }
+    p, li { line-height: 1.62; }
+    .lede { font-size: 18px; color: #24403a; }
+    .status { display: inline-block; padding: 4px 10px; background: #dbeadd; border: 1px solid #a7c7aa; border-radius: 6px; font-weight: 650; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; background: #fff; }
+    th, td { border: 1px solid #d8ded2; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #edf1e8; }
+    code { background: #eef1ea; padding: 1px 5px; border-radius: 4px; }
+    .warn { background: #fff8df; border-left: 4px solid #d6a11d; padding: 10px 12px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Safety Repair Candidate Design Review</h1>
+  <p class="lede">结论：只允许 row-backed <code>clarify_confirmation_preservation</code> 进入后续 bounded materialization proposal；广义 unsafe-action denial 先 deferred 到 safety-policy design。</p>
+  <p><span class="status">needs review</span></p>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>新增 OpenSpec change：<code>review-safety-repair-candidates-before-materialization</code>。</li>
+    <li>新增 CLI：<code>voice2task.cli.eval review-safety-repair-candidates-before-materialization</code>。</li>
+    <li>新增报告目录：<code>reports/public-sample/safety-repair-candidate-design-review/</code>。</li>
+    <li>输出 <code>safety_repair_candidate_design_review.json</code>、<code>safety_repair_candidate_design_review.md</code>、<code>manifest.json</code> 和 leak scan。</li>
+  </ul>
+
+  <h2>Review Decisions</h2>
+  <table>
+    <thead><tr><th>theme</th><th>status</th><th>解释</th></tr></thead>
+    <tbody>
+      <tr><td><code>clarify_confirmation_preservation</code></td><td><code>ready_for_later_bounded_materialization_proposal</code></td><td>直接由 current unsafe false-negative row 支撑，但仍不是 data approval。</td></tr>
+      <tr><td><code>confirmation_required_boundary</code></td><td><code>ready_for_later_policy_scoped_materialization_proposal</code></td><td>有 confirmation residual 支撑，后续必须窄化到 policy-scoped proposal。</td></tr>
+      <tr><td><code>unsafe_action_denial_boundary</code></td><td><code>deferred_to_safety_policy_design</code></td><td>属于更宽泛的 safety policy extrapolation，不能直接 materialize。</td></tr>
+    </tbody>
+  </table>
+
+  <h2>边界</h2>
+  <ul>
+    <li>所有 theme 的 <code>approved_for_materialization</code> 都是 <code>false</code>。</li>
+    <li>没有 seed materialization、formal public sample mutation、split change。</li>
+    <li>没有训练、prediction rerun、DPO/GRPO、prompt/evaluator 改动、evaluator relaxation、LLM judge 或 semantic-equivalence scoring。</li>
+    <li>没有 prediction repair、adapter/checkpoint release、safety improvement、safety readiness、production readiness 或 held-out recovery claim。</li>
+  </ul>
+
+  <h2>验证状态</h2>
+  <ul>
+    <li>RED: 新 focused test 首次因 CLI 不存在和 committed review evidence 缺失失败。</li>
+    <li><code>PYTHONPATH=src pytest -q tests/test_safety_repair_candidate_design_review.py</code>: passed, 2 tests。</li>
+    <li><code>PYTHONPATH=src pytest -q tests/test_safety_repair_candidate_design_review.py tests/test_safety_repair_candidate_design.py</code>: passed, 5 tests。</li>
+    <li><code>PYTHONPATH=src pytest -q</code>: passed, 459 tests。</li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>: passed, 6 items before archive; passed, 5 items after archive。</li>
+    <li><code>PYTHONPATH=src ruff check src tests</code>: passed。</li>
+    <li>Leak scan over the review report directory, Human Brief, <code>CONTEXT.md</code>, <code>reports/final_status.md</code>, and OpenSpec change: passed, 0 findings。</li>
+    <li><code>git diff --check</code>: passed。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <div class="warn">
+    后续如果继续，只能新开 bounded <code>propose_clarify_confirmation_safety_repair_materialization_after_review</code>，且范围限于 row-backed clarify confirmation theme。不要直接合并数据、训练、改 evaluator、引入 DPO 或把 review 说成 materialization approval。
+  </div>
+</main>
+</body>
+</html>

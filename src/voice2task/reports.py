@@ -2406,6 +2406,141 @@ def write_safety_repair_candidate_design_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_safety_repair_candidate_design_review_report(
+    review: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task safety repair candidate design review",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "safety_repair_candidate_design_review.json"
+    markdown_path = output_dir / "safety_repair_candidate_design_review.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_review = _sanitize_report_value(review)
+    write_json(json_path, safe_review)
+
+    manifest = {
+        "evidence_kind": safe_review["evidence_kind"],
+        "review_mode": safe_review["review_mode"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dataset_manifest_id": safe_review["dataset_manifest_id"],
+        "source_candidate_design": safe_review["source_candidate_design"],
+        "summary": safe_review["summary"],
+        "execution_scope": safe_review["execution_scope"],
+        "claims": safe_review["claims"],
+        "artifact_policy": {
+            "review_only": True,
+            "formal_public_sample_modified": False,
+            "local_private_corpus_modified": False,
+            "candidate_seed_rows_materialized": False,
+            "dpo_pairs_generated": False,
+            "train_dev_test_split_change": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "llm_judge": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+        },
+        "diagnostic_artifacts": {
+            "review": _public_report_artifact_path(output_dir, "safety_repair_candidate_design_review.json"),
+            "markdown": _public_report_artifact_path(output_dir, "safety_repair_candidate_design_review.md"),
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_review["summary"]
+    source = safe_review["source_candidate_design"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is review-only evidence for the committed safety repair candidate design. It does not "
+            "materialize seed rows, generate DPO pairs, train, generate predictions, repair predictions, "
+            "change evaluator metrics, or approve data mutation."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Review-only evidence: `True`.",
+        "- Candidate seed rows materialized: `False`.",
+        "- Formal public sample modified: `False`.",
+        "- DPO pairs generated: `False`.",
+        "- No train/dev/test split change is performed.",
+        (
+            "- No SFT, DPO, GRPO, A100 job, prompt change, evaluator relaxation, LLM judge, "
+            "or semantic scoring is performed."
+        ),
+        "- This is not approval to mutate data, not safety improvement evidence, and not model recovery.",
+        "",
+        "## Source Design",
+        "",
+        f"- Artifact: `{source['artifact']}`",
+        f"- Dataset manifest: `{source['dataset_manifest_id']}`",
+        f"- Candidate count: `{source['candidate_count']}`",
+        f"- Unsafe false-negative count: `{source['unsafe_false_negative_count']}`",
+        (
+            "- Unsafe false-negative example count matches layered count: "
+            f"`{source['unsafe_false_negative_example_count_matches_layered_count']}`"
+        ),
+        "",
+        "## Summary",
+        "",
+        f"- Candidate count: `{summary['candidate_count']}`",
+        (
+            "- Ready for later bounded materialization proposal: "
+            f"`{summary['ready_for_later_bounded_materialization_proposal']}`"
+        ),
+        (
+            "- Ready for later policy-scoped materialization proposal: "
+            f"`{summary['ready_for_later_policy_scoped_materialization_proposal']}`"
+        ),
+        f"- Deferred to safety-policy design: `{summary['deferred_to_safety_policy_design']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Candidate Reviews",
+        "",
+    ]
+    for decision in safe_review.get("candidate_reviews", []):
+        lines.extend(
+            [
+                f"### `{decision['candidate_id']}`",
+                "",
+                f"- Repair family: `{decision['repair_family']}`",
+                f"- Review status: `{decision['review_status']}`",
+                f"- Review rationale: {decision['review_rationale']}",
+                f"- Source rows: `{decision['source_row_ids']}`",
+                f"- Allowed later operation: `{decision['allowed_later_operation']}`",
+                f"- approved_for_materialization: `{decision['approved_for_materialization']}`",
+                f"- Blocked operations: `{decision['blocked_operations']}`",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Recommended Next Step",
+            "",
+            (
+                "Open a later bounded OpenSpec proposal only for the row-backed clarify confirmation repair "
+                "theme, or open a separate safety-policy design phase for broader unsafe-action denial. This "
+                "review does not generate reviewed seed IDs or authorize immediate materialization."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_blocked_payment_safety_repair_materialization_report(
     materialization: dict[str, Any],
     output_dir: Path,

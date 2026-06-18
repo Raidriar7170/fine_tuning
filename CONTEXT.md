@@ -6,10 +6,11 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-18, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has twenty-two current layers. The newest
-four are the safety repair candidate design under
-`reports/public-sample/safety-repair-candidate-design/`, the residual-driven
-remediation target selection under
+The public-facing truth surface has twenty-three current layers. The newest
+five are the safety repair candidate design review under
+`reports/public-sample/safety-repair-candidate-design-review/`, the safety
+repair candidate design under `reports/public-sample/safety-repair-candidate-design/`,
+the residual-driven remediation target selection under
 `reports/public-sample/remediation-target-selection/`, the additive layered
 evaluator under `reports/public-sample/layered-eval/`, and the additive
 residual diagnosis under `reports/public-sample/residual-diagnosis/`;
@@ -67,9 +68,12 @@ Current formal public sample data boundary:
 | latest model run type | prediction-only retry on the scaled dev/test split using the existing `a100-current-train-split-sft-retry` private adapter |
 | latest model interpretation | `formal_public_heldout_partial_signal` |
 | latest model evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| latest safety repair candidate-design review evidence | `reports/public-sample/safety-repair-candidate-design-review/` |
+| latest safety repair candidate-design review result | 1 row-backed theme ready for later bounded materialization proposal, 1 policy-scoped theme, 1 broad unsafe-action theme deferred to policy design; review-only, not data approval |
+| latest safety repair candidate-design review recommended next step | `propose_clarify_confirmation_safety_repair_materialization_after_review` |
 | latest safety repair candidate-design evidence | `reports/public-sample/safety-repair-candidate-design/` |
 | latest safety repair candidate-design result | 3 public-safe design themes anchored by 1 current unsafe false negative; design-only, no seed materialization/data/training/evaluator change |
-| latest safety repair candidate-design recommended next step | `review_safety_repair_candidates_before_materialization` |
+| latest safety repair candidate-design recommended next step | `review_safety_repair_candidates_before_materialization`, now completed as review-only evidence |
 | latest residual-driven remediation target selection evidence | `reports/public-sample/remediation-target-selection/` |
 | latest residual-driven remediation target selection | selected `safety-repair-unsafe-false-negative` first and `slot-value-canonicalization-policy` second; recommendation source only, no training/data/evaluator change |
 | latest residual-driven recommended next change | `design-safety-repair-candidates`, now completed as design-only evidence |
@@ -177,6 +181,22 @@ scoring, repair predictions, release adapters/checkpoints, or claim held-out
 recovery, production readiness, safety readiness, safety improvement, or
 live-browser benchmark improvement. The recommended next step is
 `review_safety_repair_candidates_before_materialization`.
+
+The safety repair candidate design review is now complete under
+`reports/public-sample/safety-repair-candidate-design-review/`. It is
+review-only evidence, not materialization approval. It reviews the three
+safety repair themes and keeps `approved_for_materialization=false` for all of
+them. `clarify_confirmation_preservation` is directly row-backed by
+`family-clarify-test-1-aug-1` and is ready only for a later bounded
+materialization proposal. `confirmation_required_boundary` is partially
+supported and should remain policy-scoped if proposed later. The broader
+`unsafe_action_denial_boundary` theme is deferred to a separate safety-policy
+design before any materialization. This phase does not generate seed rows,
+mutate the formal public sample, change splits, train, rerun predictions, run
+DPO/GRPO, change prompts, alter evaluator metrics, relax the evaluator, use an
+LLM judge, run semantic-equivalence scoring, repair predictions, release
+adapters/checkpoints, or claim held-out recovery, production readiness, safety
+readiness, safety improvement, or live-browser benchmark improvement.
 
 The latest strategic design is now complete under
 `reports/public-sample/scaled-public-sample-and-tiered-eval-design/`. It is a
@@ -309,17 +329,20 @@ design-only `design-safety-repair-candidates` phase.
 
 Recommended next bounded step:
 
-- Status: needs human review before any follow-up materialization or policy
-  phase.
+- Status: review-only evidence is complete; any materialization still requires
+  a separate bounded OpenSpec proposal.
 - Inputs:
-  `reports/public-sample/safety-repair-candidate-design/safety_repair_candidate_design.json`,
-  `reports/public-sample/safety-repair-candidate-design/safety_repair_candidate_design.md`,
-  and `reports/public-sample/safety-repair-candidate-design/manifest.json`.
-- Recommended operation: `review_safety_repair_candidates_before_materialization`.
-- Boundary: review the three safety repair design themes only. Do not silently
-  continue `merge-scaled-clarify-slot-boundary-candidates`, merge data, train,
-  rerun prediction, run DPO/GRPO, adjust LoRA parameters, relax evaluators,
-  repair predictions, repair slots, or overwrite historical scaled evidence.
+  `reports/public-sample/safety-repair-candidate-design-review/safety_repair_candidate_design_review.json`,
+  `reports/public-sample/safety-repair-candidate-design-review/safety_repair_candidate_design_review.md`,
+  and `reports/public-sample/safety-repair-candidate-design-review/manifest.json`.
+- Recommended operation:
+  `propose_clarify_confirmation_safety_repair_materialization_after_review`.
+- Boundary: if continued, open a new bounded proposal only for the row-backed
+  clarify confirmation theme or a separate safety-policy design phase for
+  broader unsafe-action denial. Do not silently continue
+  `merge-scaled-clarify-slot-boundary-candidates`, merge data, train, rerun
+  prediction, run DPO/GRPO, adjust LoRA parameters, relax evaluators, repair
+  predictions, repair slots, or overwrite historical scaled evidence.
 
 Claim boundaries:
 

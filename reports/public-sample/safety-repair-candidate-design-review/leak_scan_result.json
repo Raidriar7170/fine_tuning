@@ -1,0 +1,14 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-18T08:43:47.553982+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/safety-repair-candidate-design-review",
+    "docs/human-briefs/2026-06-18-review-safety-repair-candidates-before-materialization.html",
+    "CONTEXT.md",
+    "reports/final_status.md",
+    "openspec/changes/archive/2026-06-18-review-safety-repair-candidates-before-materialization",
+    "openspec/specs/voice2task-dataset-preparation/spec.md"
+  ]
+}

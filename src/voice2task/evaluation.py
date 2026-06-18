@@ -2760,6 +2760,153 @@ def design_safety_repair_candidates(
     }
 
 
+def _safety_candidate_review_decision(candidate: dict[str, Any]) -> dict[str, Any]:
+    repair_family = _sanitize_public_summary(str(candidate.get("repair_family", "unknown")))
+    if repair_family == "clarify_confirmation_preservation":
+        review_status = "ready_for_later_bounded_materialization_proposal"
+        allowed_later_operation = "bounded_open_spec_materialization_proposal_only"
+        rationale = (
+            "Directly anchored by the current unsafe false-negative public sidecar row; a later phase may "
+            "propose a narrow materialization pack without broadening to all unsafe-action policy."
+        )
+    elif repair_family == "confirmation_required_boundary":
+        review_status = "ready_for_later_policy_scoped_materialization_proposal"
+        allowed_later_operation = "bounded_open_spec_policy_or_materialization_proposal_only"
+        rationale = (
+            "Partially supported by confirmation residuals and the current unsafe false-negative row; keep any "
+            "later materialization proposal narrowly scoped to confirmation-preservation boundaries."
+        )
+    elif repair_family == "unsafe_action_denial_boundary":
+        review_status = "deferred_to_safety_policy_design"
+        allowed_later_operation = "separate_safety_policy_design_before_materialization"
+        rationale = (
+            "Broader unsafe-action denial theme is strategy-level evidence rather than directly row-backed; "
+            "it needs a separate safety-policy design before materialization."
+        )
+    else:
+        review_status = "rejected_before_materialization"
+        allowed_later_operation = "none_until_source_design_revised"
+        rationale = "Unknown repair family cannot be reviewed for later materialization."
+
+    return {
+        "candidate_id": _sanitize_id(str(candidate.get("candidate_id", repair_family))),
+        "repair_family": repair_family,
+        "review_status": review_status,
+        "review_rationale": rationale,
+        "source_row_ids": [_sanitize_id(str(row_id)) for row_id in candidate.get("source_row_ids", [])],
+        "source_evidence": _sanitize_public_value(candidate.get("source_evidence", [])),
+        "accepted_target_contract_sketch": _sanitize_public_value(candidate.get("accepted_target_contract_sketch", {})),
+        "rejected_drift_sketches": _sanitize_public_value(candidate.get("rejected_drift_sketches", [])),
+        "approved_for_materialization": False,
+        "allowed_later_operation": allowed_later_operation,
+        "blocked_operations": [
+            "materialize_now",
+            "merge_public_sample_now",
+            "train_now",
+            "rerun_predictions_now",
+            "relax_evaluator_now",
+        ],
+    }
+
+
+def review_safety_repair_candidate_design(
+    *,
+    candidate_design: dict[str, Any],
+    candidate_design_artifact: str,
+) -> dict[str, Any]:
+    if candidate_design.get("evidence_kind") != "safety_repair_candidate_design":
+        raise ValueError("candidate design must be safety_repair_candidate_design evidence")
+    summary = candidate_design.get("summary", {})
+    if not isinstance(summary, dict):
+        raise ValueError("candidate design summary must be an object")
+    if summary.get("unsafe_false_negative_example_count_matches_layered_count") is not True:
+        raise ValueError("candidate design must have unsafe false-negative example consistency")
+    candidates = candidate_design.get("candidates", [])
+    if not isinstance(candidates, list) or not candidates:
+        raise ValueError("candidate design must contain candidates for review")
+
+    candidate_reviews = [
+        _safety_candidate_review_decision(candidate)
+        for candidate in candidates
+        if isinstance(candidate, dict)
+    ]
+    if len(candidate_reviews) != int(summary.get("candidate_count", len(candidate_reviews))):
+        raise ValueError("candidate review count must match source design candidate count")
+
+    status_counts = _count_by([str(decision["review_status"]) for decision in candidate_reviews])
+    recommended_next_step = (
+        "propose_clarify_confirmation_safety_repair_materialization_after_review"
+        if status_counts.get("ready_for_later_bounded_materialization_proposal", 0)
+        else "revise_safety_repair_candidate_design_before_materialization"
+    )
+
+    return {
+        "evidence_kind": "safety_repair_candidate_design_review",
+        "review_mode": "public_safe_review_only_no_materialization",
+        "dataset_manifest_id": _sanitize_public_summary(str(candidate_design.get("dataset_manifest_id", ""))),
+        "source_candidate_design": {
+            "artifact": _sanitize_public_summary(candidate_design_artifact),
+            "candidate_count": int(summary.get("candidate_count", 0)),
+            "dataset_manifest_id": _sanitize_public_summary(str(candidate_design.get("dataset_manifest_id", ""))),
+            "evidence_kind": str(candidate_design.get("evidence_kind", "")),
+            "unsafe_false_negative_count": int(summary.get("unsafe_false_negative_count", 0)),
+            "unsafe_false_negative_example_count_matches_layered_count": True,
+        },
+        "summary": {
+            "candidate_count": len(candidate_reviews),
+            "ready_for_later_bounded_materialization_proposal": status_counts.get(
+                "ready_for_later_bounded_materialization_proposal",
+                0,
+            ),
+            "ready_for_later_policy_scoped_materialization_proposal": status_counts.get(
+                "ready_for_later_policy_scoped_materialization_proposal",
+                0,
+            ),
+            "deferred_to_safety_policy_design": status_counts.get("deferred_to_safety_policy_design", 0),
+            "recommended_next_step": recommended_next_step,
+            "candidate_seed_rows_materialized": False,
+            "formal_public_sample_modified": False,
+            "dpo_pairs_generated": False,
+        },
+        "candidate_reviews": candidate_reviews,
+        "execution_scope": {
+            "review_only": True,
+            "formal_public_sample_modified": False,
+            "local_private_corpus_modified": False,
+            "candidate_seed_rows_materialized": False,
+            "dpo_pairs_generated": False,
+            "train_dev_test_split_change": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "llm_judge": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+        },
+        "claims": {
+            "review_evidence_only": True,
+            "materialization_approval_claim": False,
+            "held_out_recovery_claim": False,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "safety_readiness_claim": False,
+            "production_readiness_claim": False,
+            "live_browser_benchmark_claim": False,
+            "public_full_corpus_release": False,
+        },
+    }
+
+
 def _family_short_name(task_family: str) -> str:
     return _sanitize_public_summary(task_family.split("|", 1)[0] if task_family else "unknown")
 

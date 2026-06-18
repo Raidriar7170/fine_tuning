@@ -31,6 +31,7 @@ from voice2task.evaluation import (
     load_predictions,
     load_sft_rows,
     prompt_fixture_predictions,
+    review_safety_repair_candidate_design,
     rule_baseline_predictions,
     run_execution_smoke,
     select_formal_heldout_remediation_target,
@@ -56,6 +57,7 @@ from voice2task.reports import (
     write_metrics_report,
     write_runtime_label_tiny_overfit_diagnostic_report,
     write_safety_repair_candidate_design_report,
+    write_safety_repair_candidate_design_review_report,
     write_scaled_clarify_slot_boundary_candidate_design_report,
     write_scaled_residual_remediation_target_selection_report,
     write_schema_diagnostics_report,
@@ -370,6 +372,14 @@ def build_parser() -> argparse.ArgumentParser:
     design_safety_repair.add_argument(
         "--title",
         default="Voice2Task safety repair candidate design",
+    )
+
+    review_safety_repair = subcommands.add_parser("review-safety-repair-candidates-before-materialization")
+    review_safety_repair.add_argument("--candidate-design", type=Path, required=True)
+    review_safety_repair.add_argument("--output", type=Path, required=True)
+    review_safety_repair.add_argument(
+        "--title",
+        default="Voice2Task safety repair candidate design review",
     )
 
     smoke = subcommands.add_parser("smoke")
@@ -748,6 +758,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_safety_repair_candidate_design_report(
             design,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "review-safety-repair-candidates-before-materialization":
+        review = review_safety_repair_candidate_design(
+            candidate_design=read_json(args.candidate_design),
+            candidate_design_artifact=_public_cli_artifact_path(args.candidate_design),
+        )
+        paths = write_safety_repair_candidate_design_review_report(
+            review,
             output_dir=args.output,
             title=args.title,
         )

@@ -1,0 +1,203 @@
+{
+  "candidate_reviews": [
+    {
+      "accepted_target_contract_sketch": {
+        "confirmation_required": true,
+        "route": "clarify",
+        "safety": {
+          "allow": true,
+          "reason": "ambiguous_request"
+        },
+        "task_type": "clarify"
+      },
+      "allowed_later_operation": "bounded_open_spec_materialization_proposal_only",
+      "approved_for_materialization": false,
+      "blocked_operations": [
+        "materialize_now",
+        "merge_public_sample_now",
+        "train_now",
+        "rerun_predictions_now",
+        "relax_evaluator_now"
+      ],
+      "candidate_id": "safety-repair-clarify-confirmation-preservation",
+      "rejected_drift_sketches": [
+        {
+          "confirmation_required": false,
+          "route": "search_web",
+          "safety": {
+            "allow": true,
+            "reason": "information_request"
+          },
+          "task_type": "search"
+        }
+      ],
+      "repair_family": "clarify_confirmation_preservation",
+      "review_rationale": "Directly anchored by the current unsafe false-negative public sidecar row; a later phase may propose a narrow materialization pack without broadening to all unsafe-action policy.",
+      "review_status": "ready_for_later_bounded_materialization_proposal",
+      "source_evidence": [
+        "layered_eval_unsafe_false_negative",
+        "public_gold_prediction_boundary_diff"
+      ],
+      "source_row_ids": [
+        "family-clarify-test-1-aug-1"
+      ]
+    },
+    {
+      "accepted_target_contract_sketch": {
+        "confirmation_required": true,
+        "route": "clarify",
+        "safety": {
+          "allow": true,
+          "reason": "ambiguous_request"
+        },
+        "task_type": "clarify"
+      },
+      "allowed_later_operation": "bounded_open_spec_policy_or_materialization_proposal_only",
+      "approved_for_materialization": false,
+      "blocked_operations": [
+        "materialize_now",
+        "merge_public_sample_now",
+        "train_now",
+        "rerun_predictions_now",
+        "relax_evaluator_now"
+      ],
+      "candidate_id": "safety-repair-confirmation-required-boundary",
+      "rejected_drift_sketches": [
+        {
+          "confirmation_required": false,
+          "route": "search_web",
+          "safety": {
+            "allow": true,
+            "reason": "information_request"
+          },
+          "task_type": "search"
+        },
+        {
+          "confirmation_required": false,
+          "route": "fill_form",
+          "safety": {
+            "allow": true,
+            "reason": "public_readonly"
+          },
+          "task_type": "form_fill"
+        }
+      ],
+      "repair_family": "confirmation_required_boundary",
+      "review_rationale": "Partially supported by confirmation residuals and the current unsafe false-negative row; keep any later materialization proposal narrowly scoped to confirmation-preservation boundaries.",
+      "review_status": "ready_for_later_policy_scoped_materialization_proposal",
+      "source_evidence": [
+        "residual_diagnosis_confirmation",
+        "layered_eval_requires_confirmation_accuracy"
+      ],
+      "source_row_ids": [
+        "family-clarify-test-1-aug-1"
+      ]
+    },
+    {
+      "accepted_target_contract_sketch": {
+        "confirmation_required": false,
+        "route": "deny",
+        "safety": {
+          "allow": false,
+          "reason": "unsafe_operation"
+        },
+        "task_type": "blocked"
+      },
+      "allowed_later_operation": "separate_safety_policy_design_before_materialization",
+      "approved_for_materialization": false,
+      "blocked_operations": [
+        "materialize_now",
+        "merge_public_sample_now",
+        "train_now",
+        "rerun_predictions_now",
+        "relax_evaluator_now"
+      ],
+      "candidate_id": "safety-repair-unsafe-action-denial-boundary",
+      "rejected_drift_sketches": [
+        {
+          "confirmation_required": false,
+          "route": "open_url",
+          "safety": {
+            "allow": true,
+            "reason": "public_readonly"
+          },
+          "task_type": "navigate"
+        },
+        {
+          "confirmation_required": false,
+          "route": "search_web",
+          "safety": {
+            "allow": true,
+            "reason": "information_request"
+          },
+          "task_type": "search"
+        }
+      ],
+      "repair_family": "unsafe_action_denial_boundary",
+      "review_rationale": "Broader unsafe-action denial theme is strategy-level evidence rather than directly row-backed; it needs a separate safety-policy design before materialization.",
+      "review_status": "deferred_to_safety_policy_design",
+      "source_evidence": [
+        "remediation_target_selection_unsafe_false_negative"
+      ],
+      "source_row_ids": [
+        "family-clarify-test-1-aug-1"
+      ]
+    }
+  ],
+  "claims": {
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "materialization_approval_claim": false,
+    "model_quality_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release": false,
+    "review_evidence_only": true,
+    "safety_improvement_claim": false,
+    "safety_readiness_claim": false
+  },
+  "dataset_manifest_id": "public-sample-20260617T152259Z",
+  "evidence_kind": "safety_repair_candidate_design_review",
+  "execution_scope": {
+    "a100_job": false,
+    "adapter_release": false,
+    "candidate_seed_rows_materialized": false,
+    "checkpoint_release": false,
+    "dpo_pairs_generated": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "evaluator_relaxation": false,
+    "formal_public_sample_modified": false,
+    "grpo_run": false,
+    "llm_judge": false,
+    "local_private_corpus_modified": false,
+    "prediction_repair": false,
+    "prediction_replacement": false,
+    "prediction_run": false,
+    "prompt_change": false,
+    "review_only": true,
+    "semantic_equivalence_scoring": false,
+    "sft_run": false,
+    "train_dev_test_split_change": false,
+    "training_run": false
+  },
+  "review_mode": "public_safe_review_only_no_materialization",
+  "source_candidate_design": {
+    "artifact": "reports/public-sample/safety-repair-candidate-design/safety_repair_candidate_design.json",
+    "candidate_count": 3,
+    "dataset_manifest_id": "public-sample-20260617T152259Z",
+    "evidence_kind": "safety_repair_candidate_design",
+    "unsafe_false_negative_count": 1,
+    "unsafe_false_negative_example_count_matches_layered_count": true
+  },
+  "summary": {
+    "candidate_count": 3,
+    "candidate_seed_rows_materialized": false,
+    "deferred_to_safety_policy_design": 1,
+    "dpo_pairs_generated": false,
+    "formal_public_sample_modified": false,
+    "ready_for_later_bounded_materialization_proposal": 1,
+    "ready_for_later_policy_scoped_materialization_proposal": 1,
+    "recommended_next_step": "propose_clarify_confirmation_safety_repair_materialization_after_review"
+  }
+}
