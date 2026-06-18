@@ -12,6 +12,7 @@
 | --- | --- |
 | Latest data evidence pack | `reports/public-sample/scaled-public-sample-merge/` |
 | Latest scaled-manifest prediction baseline evidence pack | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| Latest scaled clarify slot-boundary candidate materialization evidence pack | `reports/public-sample/scaled-clarify-slot-boundary-candidate-materialization/` |
 | Latest scaled remediation target selection evidence pack | `reports/public-sample/scaled-residual-remediation-target-selection/` |
 | Latest scaled clarify slot-boundary candidate-design evidence pack | `reports/public-sample/scaled-clarify-slot-boundary-candidate-design/` |
 | Latest scaled-manifest residual cluster inspection evidence pack | `reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/` |
@@ -35,7 +36,8 @@
 | Latest strategic-design interpretation | `scale_data_and_diagnose_by_tier_before_another_training_retry` |
 | Latest scaled-manifest cluster interpretation | `scaled_current_123_residual_clusters_clarify_slots_top_cluster` |
 | Latest scaled remediation target selection | `clarify/slots` = 78 residual rows / 78 residual fields |
-| Latest scaled clarify candidate-design result | 3 themes / 28 source families / 78 source-family incidence; design-only |
+| Latest scaled clarify materialization result | 9 standalone candidate seeds / 27 candidate SFT rows / no DPO pairs; standalone-only |
+| Latest scaled clarify candidate-design result | 3 themes / 28 source families / 78 source-family incidence; design source |
 | Latest scaled-manifest diagnosis interpretation | `scaled_current_123_residuals_slot_and_normalized_command_dominant` |
 | Latest prior-manifest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
 | Prior SFT v3 retry evidence | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
@@ -98,6 +100,16 @@ A100 恢复后已完成 observed retry：
 - rejected drift sketches: 错误转成 `search/search_web`、`navigate/open_url`、`form_fill/fill_form` 或 `blocked/deny`；
 - recommended next bounded decision: `materialize-scaled-clarify-slot-boundary-candidates`。
 
+随后已完成 standalone scaled clarify slot-boundary candidate materialization：
+
+- evidence: `reports/public-sample/scaled-clarify-slot-boundary-candidate-materialization/scaled_clarify_slot_boundary_candidate_materialization.md`
+- candidate seed file: `data/public-samples/scaled_clarify_slot_boundary_seed_candidates.jsonl`
+- 从 3 个 reviewed clarify themes 派生 `9` 条 standalone candidate seeds，每个 theme 各 1 条 train/dev/test；
+- 派生 `27` 条 SFT candidate rows；
+- 所有 target contract 保持 `clarify/clarify`、`safety.reason=ambiguous_request`、`confirmation_required=true`、非空 `slots.ambiguity`；
+- 没有合入 formal public sample、没有重建 formal SFT/DPO/manifest、没有生成 DPO pairs、没有训练、没有 prediction、没有 A100 execution、没有改 prompt/evaluator、没有 slot normalization、没有 prediction repair，也不能宣称模型恢复；
+- recommended next bounded decision: `merge-scaled-clarify-slot-boundary-candidates`。
+
 ## Formal Public Held-Out 指标（绑定 `public-sample-20260617T152259Z`）
 
 | 指标 | Dev | Test |
@@ -155,7 +167,7 @@ A100 恢复后已完成 observed retry：
 2. Strict slot exactness 是当前最大残差来源：scaled residual diagnosis 记录 `slots=304` 个 strict residual fields。
 3. `normalized_command` strict string mismatch 也很重：scaled residual diagnosis 记录 `normalized_command=194` 个 residual fields。
 4. Route/task_type、safety、confirmation 相对更稳定，但仍有少量 residual fields：`task_type=13`、`route=13`、`safety=10`、`confirmation_required=6`。
-5. `clarify/slots=78` 已经进入 target selection 和 candidate design，但还没有 materialize 数据、重训或生成新 prediction；不能把设计稿说成模型效果提升。
+5. `clarify/slots=78` 已经进入 target selection、candidate design 和 standalone materialization，但还没有 formal merge、重训或生成新 prediction；不能把候选数据说成模型效果提升。
 
 ## 不应过度宣称
 
@@ -169,14 +181,15 @@ A100 恢复后已完成 observed retry：
 
 ## 推荐下一阶段
 
-当前最新推荐是先做 bounded clarify candidate materialization：
+当前最新推荐是先做 bounded clarify formal merge：
 
-- 输入：`reports/public-sample/scaled-clarify-slot-boundary-candidate-design/`
-- 目的：把 3 个 reviewed clarify boundary themes materialize 成 public-safe seed rows 和 derived artifacts；
-- 边界：可以生成/重建数据 artifact，但仍不训练、不跑 prediction、不改 evaluator、不发布模型，也不能从数据 materialization 本身宣称模型恢复；
-- 产物：candidate materialization / public sample merge evidence，明确新的 manifest boundary 和后续是否需要 paired SFT readiness。
+- 输入：`data/public-samples/scaled_clarify_slot_boundary_seed_candidates.jsonl`
+  和 `reports/public-sample/scaled-clarify-slot-boundary-candidate-materialization/`
+- 目的：把 9 条 reviewed clarify boundary candidates 合入 formal public sample，并明确新的 manifest boundary；
+- 边界：可以重建 formal seed/SFT/DPO/manifest artifact，但仍不训练、不跑 prediction、不改 evaluator、不发布模型，也不能从 merge 本身宣称模型恢复；
+- 后续：只有新 manifest boundary 明确后，才应该进入 paired SFT readiness 或 prediction-only baseline。
 
-不建议直接启动 paired SFT retry。只有当 clarify candidate rows 被 materialize 并形成新的 manifest boundary 后，才应该进入训练 readiness 或 prediction-only baseline。
+不建议直接启动 paired SFT retry。候选数据已经 materialized，但还没有形成新的 formal manifest boundary。
 
 ## 历史 prior-manifest 阶段
 

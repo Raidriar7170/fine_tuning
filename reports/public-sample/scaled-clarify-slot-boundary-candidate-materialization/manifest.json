@@ -1,0 +1,133 @@
+{
+  "artifact_policy": {
+    "a100_execution": false,
+    "candidate_data_only": true,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "dpo_pairs_generated": false,
+    "evaluator_metric_change": false,
+    "formal_dpo_rebuilt": false,
+    "formal_public_sample_files_modified": false,
+    "formal_sample_merge": false,
+    "formal_sft_rebuilt": false,
+    "host_details_omitted": true,
+    "prediction_repair_or_replacement": false,
+    "prediction_run": false,
+    "private_overrides_copied_to_git": false,
+    "private_paths_omitted": true,
+    "prompt_change": false,
+    "public_sample_modified": false,
+    "raw_logs_copied_to_git": false,
+    "slot_normalization": false,
+    "ssh_details_omitted": true,
+    "standalone_only": true,
+    "training_run": false
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_generalization_recovered": false,
+    "live_browser_benchmark_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false,
+    "strict_contract_exact_match_primary_metric": true,
+    "strict_slot_f1_primary_metric": true
+  },
+  "diagnostic_artifacts": {
+    "candidate_seed": "data/public-samples/scaled_clarify_slot_boundary_seed_candidates.jsonl",
+    "candidate_sft": "reports/public-sample/scaled-clarify-slot-boundary-candidate-materialization/sft_candidate_rows.jsonl",
+    "manifest": "reports/public-sample/scaled-clarify-slot-boundary-candidate-materialization/manifest.json",
+    "markdown": "reports/public-sample/scaled-clarify-slot-boundary-candidate-materialization/scaled_clarify_slot_boundary_candidate_materialization.md",
+    "materialization": "reports/public-sample/scaled-clarify-slot-boundary-candidate-materialization/scaled_clarify_slot_boundary_candidate_materialization.json"
+  },
+  "evidence_kind": "scaled_clarify_slot_boundary_candidate_materialization",
+  "execution_scope": {
+    "a100_execution": false,
+    "dpo_pairs_generated": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "formal_dpo_rebuilt": false,
+    "formal_public_sample_modified": false,
+    "formal_sft_rebuilt": false,
+    "grpo_run": false,
+    "local_public_sample_only": true,
+    "new_candidate_data_generated": true,
+    "prediction_repair": false,
+    "prediction_replacement": false,
+    "prediction_run": false,
+    "prompt_change": false,
+    "public_sample_modified": false,
+    "seed_traces_modified": false,
+    "sft_run": false,
+    "slot_normalization": false,
+    "standalone_candidate_data_only": true,
+    "training_run": false
+  },
+  "generated_at": "2026-06-18T03:25:10.240595+00:00",
+  "materialization_status": "standalone_candidate_dataset_materialized",
+  "source_design": {
+    "artifact": "reports/public-sample/scaled-clarify-slot-boundary-candidate-design/scaled_clarify_slot_boundary_candidate_design.json",
+    "design_status": "candidate_design_only_no_data_no_training_no_metric_change",
+    "evidence_kind": "scaled_clarify_slot_boundary_candidate_design",
+    "source_manifest_id": "public-sample-20260617T152259Z",
+    "summary": {
+      "blocked_payment_deferred_to_dedicated_safety_phase": true,
+      "candidate_theme_count": 3,
+      "candidate_theme_ids": [
+        "clarify_search_or_extract_ambiguity",
+        "clarify_navigation_or_form_fill_ambiguity",
+        "clarify_pronoun_or_context_missing"
+      ],
+      "recommended_next_change": "materialize-scaled-clarify-slot-boundary-candidates",
+      "recommended_next_step": "review_then_materialize_scaled_clarify_slot_boundary_candidates_in_one_later_bounded_phase",
+      "represented_source_family_incidence_total": 78,
+      "selected_field_path": "slots",
+      "selected_residual_field_count": 78,
+      "selected_residual_row_count": 78,
+      "selected_target": "clarify",
+      "selected_task_family": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+      "source_family_count": 28,
+      "source_family_incidence_total": 78
+    }
+  },
+  "summary": {
+    "augmentation_depth": {
+      "augmentations_per_seed": 2,
+      "expansion_function": "expand_sft_rows(public_safe=True)",
+      "sft_rows_per_seed": 3
+    },
+    "candidate_seed_rows": 9,
+    "candidate_sft_rows": 27,
+    "candidate_theme_count": 3,
+    "candidate_theme_ids": [
+      "clarify_search_or_extract_ambiguity",
+      "clarify_navigation_or_form_fill_ambiguity",
+      "clarify_pronoun_or_context_missing"
+    ],
+    "candidate_theme_seed_counts": {
+      "clarify_navigation_or_form_fill_ambiguity": 3,
+      "clarify_pronoun_or_context_missing": 3,
+      "clarify_search_or_extract_ambiguity": 3
+    },
+    "formal_public_sample_modified": false,
+    "recommended_next_change": "merge-scaled-clarify-slot-boundary-candidates",
+    "recommended_next_step": "review_standalone_clarify_candidates_then_merge_in_one_later_bounded_phase",
+    "represented_source_family_incidence_total": 78,
+    "seed_split_counts": {
+      "dev": 3,
+      "test": 3,
+      "train": 3
+    },
+    "sft_split_counts": {
+      "dev": 9,
+      "test": 9,
+      "train": 9
+    },
+    "source_family_count": 28,
+    "source_family_incidence_total": 78,
+    "source_manifest_id": "public-sample-20260617T152259Z"
+  }
+}

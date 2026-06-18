@@ -1137,6 +1137,264 @@ def materialize_scaled_public_sample_candidates(
     return {"seed": seed_output_path, **paths}
 
 
+_SCALED_CLARIFY_THEME_NORMALIZED_COMMANDS = {
+    "clarify_search_or_extract_ambiguity": "澄清查询或提取目标",
+    "clarify_navigation_or_form_fill_ambiguity": "澄清打开或填写目标",
+    "clarify_pronoun_or_context_missing": "澄清指代对象",
+}
+
+_SCALED_CLARIFY_THEME_ID_SLUGS = {
+    "clarify_search_or_extract_ambiguity": "search-extract-ambiguity",
+    "clarify_navigation_or_form_fill_ambiguity": "navigation-form-fill-ambiguity",
+    "clarify_pronoun_or_context_missing": "pronoun-context-missing",
+}
+
+
+def _reject_scaled_clarify_candidate_outputs(*, seed_output_path: Path, output_dir: Path) -> None:
+    candidate_paths = [
+        seed_output_path,
+        output_dir,
+        output_dir / "sft_candidate_rows.jsonl",
+        output_dir / "scaled_clarify_slot_boundary_candidate_materialization.json",
+        output_dir / "scaled_clarify_slot_boundary_candidate_materialization.md",
+        output_dir / "manifest.json",
+    ]
+    for path in candidate_paths:
+        _reject_formal_public_sample_output_path(path)
+    if output_dir.resolve() == FORMAL_PUBLIC_SEED_PATH.parent.resolve():
+        raise ValueError(
+            "candidate materialization must not overwrite formal public sample files: "
+            f"{output_dir.as_posix()}"
+        )
+
+
+def _validate_scaled_clarify_accepted_target_sketch(theme: dict[str, Any]) -> None:
+    theme_id = str(theme.get("theme_id", "<missing>"))
+    sketch = theme.get("accepted_target_sketch")
+    if not isinstance(sketch, dict):
+        raise ValueError(f"scaled clarify theme {theme_id} accepted target sketch must be an object")
+
+    safety = sketch.get("safety")
+    slots = sketch.get("slots")
+    if (
+        sketch.get("task_type") != "clarify"
+        or sketch.get("route") != "clarify"
+        or sketch.get("confirmation_required") is not True
+        or not isinstance(safety, dict)
+        or safety.get("allow") is not True
+        or safety.get("reason") != "ambiguous_request"
+        or not isinstance(slots, dict)
+        or not str(slots.get("ambiguity", "")).strip()
+    ):
+        raise ValueError(
+            "scaled clarify candidate design accepted target sketch must preserve "
+            "clarify/clarify/ambiguous_request/confirm:true with non-empty slots.ambiguity"
+        )
+
+
+def _validate_scaled_clarify_design(design: dict[str, Any]) -> None:
+    summary = design.get("summary") or {}
+    if design.get("evidence_kind") != "scaled_clarify_slot_boundary_candidate_design":
+        raise ValueError("scaled clarify materialization requires scaled clarify candidate-design evidence")
+    if design.get("design_status") != "candidate_design_only_no_data_no_training_no_metric_change":
+        raise ValueError("scaled clarify candidate design must be design-only before materialization")
+    if design.get("source_manifest_id") != "public-sample-20260617T152259Z":
+        raise ValueError("scaled clarify candidate design has an unexpected source manifest id")
+    expected_theme_ids = set(_SCALED_CLARIFY_THEME_ID_SLUGS)
+    candidate_themes = design.get("candidate_themes", [])
+    theme_ids = {str(theme.get("theme_id")) for theme in candidate_themes}
+    if theme_ids != expected_theme_ids:
+        raise ValueError("scaled clarify candidate design must contain the expected three candidate themes")
+    if len(candidate_themes) != 3:
+        raise ValueError("scaled clarify candidate design must contain exactly three candidate theme rows")
+    if int(summary.get("candidate_theme_count", 0)) != 3:
+        raise ValueError("scaled clarify candidate design must contain exactly three candidate themes")
+    if int(summary.get("source_family_count", 0)) != 28:
+        raise ValueError("scaled clarify candidate design must cover 28 source families")
+    if int(summary.get("source_family_incidence_total", 0)) != 78:
+        raise ValueError("scaled clarify candidate design must cover 78 source-family incidence")
+    for theme in candidate_themes:
+        _validate_scaled_clarify_accepted_target_sketch(theme)
+
+
+def _scaled_clarify_candidate_contract(theme: dict[str, Any]) -> dict[str, Any]:
+    theme_id = str(theme["theme_id"])
+    sketch = theme["accepted_target_sketch"]
+    slots = sketch["slots"]
+    ambiguity = str(slots["ambiguity"]).strip()
+    return {
+        "contract_version": "v1",
+        "language": "zh-CN",
+        "normalized_command": _SCALED_CLARIFY_THEME_NORMALIZED_COMMANDS[theme_id],
+        "task_type": "clarify",
+        "route": "clarify",
+        "safety": {"allow": True, "reason": "ambiguous_request"},
+        "confirmation_required": True,
+        "slots": {"ambiguity": ambiguity},
+    }
+
+
+def _scaled_clarify_candidate_augmentations(input_text: str) -> list[str]:
+    return [f"先确认一下：{input_text}", f"{input_text}，但我没说清楚具体对象"]
+
+
+def _scaled_clarify_candidate_seed_rows(design: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    splits = ("train", "dev", "test")
+    source_design_artifact = (
+        "reports/public-sample/scaled-clarify-slot-boundary-candidate-design/"
+        "scaled_clarify_slot_boundary_candidate_design.json"
+    )
+    for theme in sorted(design["candidate_themes"], key=lambda value: str(value["theme_id"])):
+        theme_id = str(theme["theme_id"])
+        theme_slug = _SCALED_CLARIFY_THEME_ID_SLUGS[theme_id]
+        templates = list(theme.get("suggested_public_utterance_templates") or [])
+        if len(templates) != 3:
+            raise ValueError(f"scaled clarify candidate theme {theme_id} must contain exactly three templates")
+        for index, input_text in enumerate(templates):
+            split = splits[index]
+            row = {
+                "id": f"scaled-clarify-slot-boundary-{theme_slug}-{split}",
+                "split": split,
+                "input_text": input_text,
+                "target_contract": _scaled_clarify_candidate_contract(theme),
+                "augmentations": _scaled_clarify_candidate_augmentations(input_text),
+                "provenance": {
+                    "source_mode": "scaled_clarify_slot_boundary_candidate_seed",
+                    "public_safe": True,
+                    "candidate_status": "standalone_not_formal_public_sample",
+                    "source_design_artifact": source_design_artifact,
+                    "source_manifest_id": design["source_manifest_id"],
+                    "candidate_theme_id": theme_id,
+                    "candidate_template_index": index + 1,
+                    "source_family_count": theme["source_family_count"],
+                    "source_family_incidence_total": theme["source_family_incidence_total"],
+                    "accepted_target_shape": (
+                        "clarify/clarify/ambiguous_request/confirm:true/slots:ambiguity"
+                    ),
+                    "split_role": split,
+                },
+            }
+            validate_public_record(row)
+            rows.append(row)
+    return rows
+
+
+def _scaled_clarify_theme_seed_counts(seed_rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = Counter(row["provenance"]["candidate_theme_id"] for row in seed_rows)
+    return {theme_id: counts.get(theme_id, 0) for theme_id in sorted(_SCALED_CLARIFY_THEME_ID_SLUGS)}
+
+
+def materialize_scaled_clarify_slot_boundary_candidates(
+    *,
+    candidate_design_path: Path,
+    seed_output_path: Path,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Write standalone scaled clarify slot-boundary candidates without mutating the formal public sample."""
+
+    _reject_scaled_clarify_candidate_outputs(seed_output_path=seed_output_path, output_dir=output_dir)
+    design = read_json(candidate_design_path)
+    _validate_scaled_clarify_design(design)
+
+    candidate_seed_rows = _scaled_clarify_candidate_seed_rows(design)
+    candidate_sft_rows = expand_sft_rows(candidate_seed_rows, public_safe=True)
+    for row in candidate_sft_rows:
+        validate_public_record(row.to_dict())
+
+    write_jsonl(seed_output_path, candidate_seed_rows)
+    summary = design["summary"]
+    materialization = {
+        "evidence_kind": "scaled_clarify_slot_boundary_candidate_materialization",
+        "materialization_status": "standalone_candidate_dataset_materialized",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_design": {
+            "artifact": _safe_artifact_ref(candidate_design_path),
+            "evidence_kind": design["evidence_kind"],
+            "design_status": design["design_status"],
+            "source_manifest_id": design["source_manifest_id"],
+            "summary": summary,
+        },
+        "summary": {
+            "source_manifest_id": design["source_manifest_id"],
+            "candidate_theme_count": summary["candidate_theme_count"],
+            "candidate_theme_ids": summary["candidate_theme_ids"],
+            "source_family_count": summary["source_family_count"],
+            "source_family_incidence_total": summary["source_family_incidence_total"],
+            "represented_source_family_incidence_total": summary[
+                "represented_source_family_incidence_total"
+            ],
+            "candidate_seed_rows": len(candidate_seed_rows),
+            "candidate_sft_rows": len(candidate_sft_rows),
+            "seed_split_counts": _scaled_seed_split_counts(candidate_seed_rows),
+            "sft_split_counts": _split_counts(candidate_sft_rows),
+            "candidate_theme_seed_counts": _scaled_clarify_theme_seed_counts(candidate_seed_rows),
+            "augmentation_depth": {
+                "augmentations_per_seed": 2,
+                "sft_rows_per_seed": 3,
+                "expansion_function": "expand_sft_rows(public_safe=True)",
+            },
+            "formal_public_sample_modified": False,
+            "recommended_next_change": "merge-scaled-clarify-slot-boundary-candidates",
+            "recommended_next_step": (
+                "review_standalone_clarify_candidates_then_merge_in_one_later_bounded_phase"
+            ),
+        },
+        "execution_scope": {
+            "local_public_sample_only": True,
+            "new_candidate_data_generated": True,
+            "standalone_candidate_data_only": True,
+            "formal_public_sample_modified": False,
+            "public_sample_modified": False,
+            "seed_traces_modified": False,
+            "formal_sft_rebuilt": False,
+            "formal_dpo_rebuilt": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "slot_normalization": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_generalization_recovered": False,
+            "model_recovery_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "candidate_seed": _safe_artifact_ref(seed_output_path),
+            "candidate_sft": "sft_candidate_rows.jsonl",
+            "materialization_json": "scaled_clarify_slot_boundary_candidate_materialization.json",
+            "materialization_markdown": "scaled_clarify_slot_boundary_candidate_materialization.md",
+            "manifest": "manifest.json",
+        },
+    }
+
+    from voice2task.reports import write_scaled_clarify_slot_boundary_candidate_materialization_report
+
+    paths = write_scaled_clarify_slot_boundary_candidate_materialization_report(
+        materialization,
+        output_dir=output_dir,
+        sft_rows=[row.to_dict() for row in candidate_sft_rows],
+    )
+    return {"seed": seed_output_path, **paths}
+
+
 def _family_stratified_case_specs() -> list[dict[str, Any]]:
     raw_specs = {
         "search": {

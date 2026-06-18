@@ -3876,6 +3876,140 @@ def write_scaled_clarify_slot_boundary_candidate_design_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_scaled_clarify_slot_boundary_candidate_materialization_report(
+    materialization: dict[str, Any],
+    output_dir: Path,
+    sft_rows: list[dict[str, Any]],
+    title: str = "Voice2Task scaled clarify slot-boundary candidate materialization",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "scaled_clarify_slot_boundary_candidate_materialization.json"
+    markdown_path = output_dir / "scaled_clarify_slot_boundary_candidate_materialization.md"
+    manifest_path = output_dir / "manifest.json"
+    sft_path = output_dir / "sft_candidate_rows.jsonl"
+    safe_materialization = _sanitize_report_value(materialization)
+    safe_sft_rows = _sanitize_report_value(sft_rows)
+
+    scope = safe_materialization.get("execution_scope", {})
+    claims = safe_materialization.get("claims", {})
+    allowed_true_scope = {
+        "local_public_sample_only",
+        "new_candidate_data_generated",
+        "standalone_candidate_data_only",
+    }
+    allowed_true_claims = {"strict_contract_exact_match_primary_metric", "strict_slot_f1_primary_metric"}
+    bad_scope = [key for key, value in scope.items() if value is True and key not in allowed_true_scope]
+    bad_claims = [key for key, value in claims.items() if value is True and key not in allowed_true_claims]
+    if bad_scope or bad_claims:
+        raise ValueError(
+            "scaled clarify materialization report cannot claim unsupported scope or recovery signals: "
+            f"scope={bad_scope}, claims={bad_claims}"
+        )
+
+    write_json(json_path, safe_materialization)
+    write_jsonl(sft_path, safe_sft_rows)
+
+    summary = safe_materialization["summary"]
+    manifest = {
+        "evidence_kind": safe_materialization["evidence_kind"],
+        "materialization_status": safe_materialization["materialization_status"],
+        "generated_at": safe_materialization["generated_at"],
+        "source_design": safe_materialization["source_design"],
+        "summary": summary,
+        "execution_scope": safe_materialization["execution_scope"],
+        "claims": safe_materialization["claims"],
+        "artifact_policy": {
+            "candidate_data_only": True,
+            "standalone_only": True,
+            "formal_public_sample_files_modified": False,
+            "public_sample_modified": False,
+            "formal_sample_merge": False,
+            "formal_sft_rebuilt": False,
+            "formal_dpo_rebuilt": False,
+            "dpo_pairs_generated": False,
+            "training_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "prompt_change": False,
+            "slot_normalization": False,
+            "prediction_repair_or_replacement": False,
+            "evaluator_metric_change": False,
+            "raw_logs_copied_to_git": False,
+            "checkpoints_or_adapters_copied_to_git": False,
+            "private_overrides_copied_to_git": False,
+            "private_paths_omitted": True,
+            "host_details_omitted": True,
+            "ssh_details_omitted": True,
+        },
+        "diagnostic_artifacts": {
+            "candidate_seed": safe_materialization["artifact_files"]["candidate_seed"],
+            "candidate_sft": _public_report_artifact_path(output_dir, "sft_candidate_rows.jsonl"),
+            "materialization": _public_report_artifact_path(
+                output_dir,
+                "scaled_clarify_slot_boundary_candidate_materialization.json",
+            ),
+            "markdown": _public_report_artifact_path(
+                output_dir,
+                "scaled_clarify_slot_boundary_candidate_materialization.md",
+            ),
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is a standalone scaled clarify slot-boundary candidate materialization. "
+            "It creates public-safe candidate seed/SFT sidecars and does not merge the formal public sample."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- Formal public sample seed, SFT, DPO, and manifest files are not rewritten.",
+        "- No formal public sample merge is performed.",
+        "- No DPO pairs, SFT training, prediction run, or A100 execution is performed.",
+        "- No prompt change, evaluator metric change, slot normalization, or prediction repair is introduced.",
+        "- strict `contract_exact_match` and strict `slot_f1` remain primary for later evaluation.",
+        "- No model-quality improvement can be inferred until a later strict prediction or training evaluation exists.",
+        "",
+        "## Summary",
+        "",
+        f"- Source manifest: `{summary['source_manifest_id']}`",
+        f"- Candidate themes: `{summary['candidate_theme_count']}`",
+        f"- Source families represented: `{summary['source_family_count']}`",
+        f"- Source-family incidence represented: `{summary['source_family_incidence_total']}`",
+        f"- Candidate seed rows: `{summary['candidate_seed_rows']}`",
+        f"- Candidate SFT rows: `{summary['candidate_sft_rows']}`",
+        f"- Seed split counts: `{summary['seed_split_counts']}`",
+        f"- SFT split counts: `{summary['sft_split_counts']}`",
+        f"- Formal public sample modified: `{summary['formal_public_sample_modified']}`",
+        f"- Recommended next change: `{summary['recommended_next_change']}`",
+        "",
+        "## Theme Counts",
+        "",
+        "| theme | candidate seeds |",
+        "| --- | ---: |",
+    ]
+    for theme_id, count in summary["candidate_theme_seed_counts"].items():
+        lines.append(f"| `{theme_id}` | {count} |")
+    lines.extend(
+        [
+            "",
+            "## Recommended Next Step",
+            "",
+            (
+                "Review these standalone candidates before any later formal merge, DPO generation, "
+                "training retry, or model-quality claim. A later bounded phase should create a new "
+                "formal manifest boundary before comparing strict metrics."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path, "sft": sft_path}
+
+
 def write_form_fill_remediation_plan_report(
     diagnosis: dict[str, Any],
     output_dir: Path,

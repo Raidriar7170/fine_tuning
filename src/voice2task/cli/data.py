@@ -19,6 +19,7 @@ from voice2task.dataset import (
     materialize_family_stratified_generalization_candidates,
     materialize_form_fill_confirmation_marker_extension_candidates,
     materialize_form_fill_remediation_candidates,
+    materialize_scaled_clarify_slot_boundary_candidates,
     materialize_scaled_public_sample_candidates,
     materialize_slot_value_generalization_candidates,
     merge_blocked_payment_safety_repair_candidates_into_public_sample,
@@ -117,6 +118,13 @@ def build_parser() -> argparse.ArgumentParser:
     scaled_public_sample_parser = subcommands.add_parser("materialize-scaled-public-sample-candidates")
     scaled_public_sample_parser.add_argument("--seed-output", type=Path, required=True)
     scaled_public_sample_parser.add_argument("--output", type=Path, required=True)
+
+    scaled_clarify_parser = subcommands.add_parser(
+        "materialize-scaled-clarify-slot-boundary-candidates"
+    )
+    scaled_clarify_parser.add_argument("--candidate-design", type=Path, required=True)
+    scaled_clarify_parser.add_argument("--seed-output", type=Path, required=True)
+    scaled_clarify_parser.add_argument("--output", type=Path, required=True)
 
     merge_slot_value_parser = subcommands.add_parser("merge-slot-value-candidates")
     merge_slot_value_parser.add_argument("--candidate-seed", type=Path, required=True)
@@ -324,6 +332,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "materialize-scaled-public-sample-candidates":
         paths = materialize_scaled_public_sample_candidates(
+            seed_output_path=args.seed_output,
+            output_dir=args.output,
+        )
+        manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+        payload = {
+            "ok": True,
+            "paths": {name: path.as_posix() for name, path in paths.items()},
+            "summary": manifest["summary"],
+            "execution_scope": manifest["execution_scope"],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.command == "materialize-scaled-clarify-slot-boundary-candidates":
+        paths = materialize_scaled_clarify_slot_boundary_candidates(
+            candidate_design_path=args.candidate_design,
             seed_output_path=args.seed_output,
             output_dir=args.output,
         )
