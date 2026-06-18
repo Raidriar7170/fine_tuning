@@ -6,40 +6,44 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-18, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has fifteen current layers:
+The public-facing truth surface has seventeen current layers:
 
-1. the scaled-manifest current-123 adapter prediction baseline recovery retry
+1. the scaled clarify slot-boundary candidate design under
+   `reports/public-sample/scaled-clarify-slot-boundary-candidate-design/`;
+2. the scaled residual remediation target selection under
+   `reports/public-sample/scaled-residual-remediation-target-selection/`;
+3. the scaled-manifest current-123 adapter prediction baseline recovery retry
    evidence under
    `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/`;
-2. the scaled-manifest current-123 adapter residual-cluster inspection under
+4. the scaled-manifest current-123 adapter residual-cluster inspection under
    `reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/`;
-3. the scaled-manifest current-123 adapter residual-family diagnosis under
+5. the scaled-manifest current-123 adapter residual-family diagnosis under
    `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/`;
-4. the prior scaled-manifest current-123 adapter prediction baseline blocked evidence
+6. the prior scaled-manifest current-123 adapter prediction baseline blocked evidence
    under
    `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/`;
-5. the scaled public-sample formal merge evidence under
+7. the scaled public-sample formal merge evidence under
    `reports/public-sample/scaled-public-sample-merge/`;
-6. the standalone scaled public-sample candidate materialization evidence under
+8. the standalone scaled public-sample candidate materialization evidence under
    `reports/public-sample/scaled-public-sample-candidate-materialization/`;
-7. the scaled public-sample and tiered-evaluation design evidence under
+9. the scaled public-sample and tiered-evaluation design evidence under
    `reports/public-sample/scaled-public-sample-and-tiered-eval-design/`;
-8. the current-123-row train-split SFT retry model evidence under
+10. the current-123-row train-split SFT retry model evidence under
    `reports/public-sample/a100-current-123-train-split-sft-retry/`;
-9. the current-123-row train-split SFT retry readiness evidence under
+11. the current-123-row train-split SFT retry readiness evidence under
    `reports/public-sample/current-123-train-split-sft-retry-readiness/`;
-10. the current-retry confirmation-preservation materialization and public merge
+12. the current-retry confirmation-preservation materialization and public merge
    under
    `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/`;
-11. the current-retry confirmation-preservation candidate design under
+13. the current-retry confirmation-preservation candidate design under
    `reports/public-sample/current-retry-confirmation-preservation-candidate-design/`;
-12. the current-train-split SFT retry trade-off diagnosis under
+14. the current-train-split SFT retry trade-off diagnosis under
    `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/`;
-13. the prior current-train-split SFT retry under
+15. the prior current-train-split SFT retry under
    `reports/public-sample/a100-current-train-split-sft-retry/`;
-14. the current-manifest SFT v3 prediction-only baseline under
+16. the current-manifest SFT v3 prediction-only baseline under
    `reports/public-sample/a100-current-manifest-sft-v3-prediction-baseline/`;
-15. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
+17. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
    source, under
    `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/`.
 
@@ -58,6 +62,10 @@ Current formal public sample data boundary:
 | latest scaled-manifest baseline evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
 | latest scaled-manifest residual cluster interpretation | `scaled_current_123_residual_clusters_clarify_slots_top_cluster` |
 | latest scaled-manifest residual cluster evidence | `reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/` |
+| latest scaled remediation target selection evidence | `reports/public-sample/scaled-residual-remediation-target-selection/` |
+| latest scaled remediation target selection | `clarify/slots`, 78 residual rows / 78 residual fields, from `clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity` |
+| latest scaled clarify candidate-design evidence | `reports/public-sample/scaled-clarify-slot-boundary-candidate-design/` |
+| latest scaled clarify candidate-design result | 3 public-safe candidate themes covering 28 source families / 78 source-family incidence; design-only, no materialization or model-quality claim |
 | latest scaled-manifest residual diagnosis interpretation | `scaled_current_123_residuals_slot_and_normalized_command_dominant` |
 | latest scaled-manifest residual diagnosis evidence | `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/` |
 | prior scaled-manifest blocked baseline evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/` |
@@ -173,6 +181,36 @@ for `321` residual rows / `540` residual fields. The top clusters are
 `form_fill/slots=50`, and `blocked/normalized_command=47`. The next bounded
 phase should select or design a remediation target from these ranked clusters;
 it should not jump directly to training or evaluator changes.
+
+The scaled residual remediation target selection is now complete under
+`reports/public-sample/scaled-residual-remediation-target-selection/`. It is
+target-selection only: no A100 job, training, prediction rerun, data mutation,
+prompt change, evaluator relaxation, semantic-equivalence scoring, slot
+normalization, prediction repair, checkpoint release, adapter release, or model
+recovery claim was performed. It selected the largest non-safety strict residual
+target, `clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity` /
+`slots`, with `78` residual rows / `78` residual fields across dev/test. The
+`blocked/slots` cluster remains explicitly deferred to a dedicated safety
+boundary phase. The recommended next bounded phase was public-safe clarify
+slot-boundary candidate design.
+
+The scaled clarify slot-boundary candidate design is now complete under
+`reports/public-sample/scaled-clarify-slot-boundary-candidate-design/`. It is
+design-only: no public seed rows, SFT rows, DPO pairs, manifest rebuild,
+training, prediction, prompt change, evaluator change, slot normalization,
+prediction repair, adapter/checkpoint release, production-readiness claim,
+held-out recovery claim, or live-browser claim was performed. It defines `3`
+candidate themes: `clarify_search_or_extract_ambiguity`,
+`clarify_navigation_or_form_fill_ambiguity`, and
+`clarify_pronoun_or_context_missing`. Together they cover all `28` source
+families and all `78` source-family incidence from the selected clarify cluster.
+Accepted sketches preserve `task_type=clarify`, `route=clarify`,
+`safety.allow=true`, `safety.reason=ambiguous_request`,
+`confirmation_required=true`, and non-empty `slots.ambiguity`; rejected drift
+sketches cover incorrect `search/search_web`, `navigate/open_url`,
+`form_fill/fill_form`, and `blocked/deny` outputs. The next bounded phase, if
+the loop continues, should materialize these reviewed clarify boundary
+candidates before any paired SFT retry.
 
 Claim boundaries:
 

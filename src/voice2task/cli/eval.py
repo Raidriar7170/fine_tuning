@@ -10,6 +10,7 @@ from voice2task.evaluation import (
     design_blocked_payment_safety_repair_candidates,
     design_form_fill_confirmation_marker_coverage_extension,
     design_form_fill_remediation_cases,
+    design_scaled_clarify_slot_boundary_candidates,
     design_slot_value_generalization_cases,
     diagnose_alignment_mismatches,
     diagnose_constrained_contract_decoding,
@@ -53,6 +54,7 @@ from voice2task.reports import (
     write_merged_slot_value_residual_report,
     write_metrics_report,
     write_runtime_label_tiny_overfit_diagnostic_report,
+    write_scaled_clarify_slot_boundary_candidate_design_report,
     write_scaled_residual_remediation_target_selection_report,
     write_schema_diagnostics_report,
     write_sft_contract_learning_signal_report,
@@ -255,6 +257,15 @@ def build_parser() -> argparse.ArgumentParser:
     select_scaled_target.add_argument(
         "--title",
         default="Voice2Task scaled residual remediation target selection",
+    )
+
+    design_scaled_clarify = subcommands.add_parser("design-scaled-clarify-slot-boundary-candidates")
+    design_scaled_clarify.add_argument("--target-selection", type=Path, required=True)
+    design_scaled_clarify.add_argument("--residual-clusters", type=Path, required=True)
+    design_scaled_clarify.add_argument("--output", type=Path, required=True)
+    design_scaled_clarify.add_argument(
+        "--title",
+        default="Voice2Task scaled clarify slot-boundary candidate design",
     )
 
     inspect_form_fill = subcommands.add_parser("inspect-form-fill-boundary-field-specificity")
@@ -557,6 +568,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         paths = write_scaled_residual_remediation_target_selection_report(
             selection,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "design-scaled-clarify-slot-boundary-candidates":
+        design = design_scaled_clarify_slot_boundary_candidates(
+            target_selection=read_json(args.target_selection),
+            residual_cluster_inspection=read_json(args.residual_clusters),
+            target_selection_artifact=_public_cli_artifact_path(args.target_selection),
+            cluster_inspection_artifact=_public_cli_artifact_path(args.residual_clusters),
+        )
+        paths = write_scaled_clarify_slot_boundary_candidate_design_report(
+            design,
             output_dir=args.output,
             title=args.title,
         )

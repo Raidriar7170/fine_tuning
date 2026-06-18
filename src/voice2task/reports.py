@@ -3730,6 +3730,152 @@ def write_scaled_residual_remediation_target_selection_report(
     return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
 
 
+def write_scaled_clarify_slot_boundary_candidate_design_report(
+    design: dict[str, Any],
+    output_dir: Path,
+    title: str = "Voice2Task scaled clarify slot-boundary candidate design",
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "scaled_clarify_slot_boundary_candidate_design.json"
+    markdown_path = output_dir / "scaled_clarify_slot_boundary_candidate_design.md"
+    manifest_path = output_dir / "manifest.json"
+    safe_design = _sanitize_report_value(design)
+    write_json(json_path, safe_design)
+
+    manifest = {
+        "evidence_kind": safe_design["evidence_kind"],
+        "design_status": safe_design["design_status"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_manifest_id": safe_design["source_manifest_id"],
+        "source_target_selection": safe_design["source_target_selection"],
+        "source_residual_cluster_inspection": safe_design["source_residual_cluster_inspection"],
+        "source_count_consistency": safe_design["source_count_consistency"],
+        "summary": safe_design["summary"],
+        "metric_authority": safe_design["metric_authority"],
+        "execution_scope": safe_design["execution_scope"],
+        "claims": safe_design["claims"],
+        "artifact_policy": {
+            "candidate_design_only": True,
+            "public_seed_rows_modified": False,
+            "sft_rows_generated": False,
+            "dpo_pairs_generated": False,
+            "manifest_rebuild": False,
+            "formal_public_sample_modified": False,
+            "local_private_corpus_modified": False,
+            "data_materialization": False,
+            "dataset_mutation": False,
+            "training_run": False,
+            "sft_training_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_job": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "slot_normalization": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+        },
+        "diagnostic_artifacts": {
+            "design": _public_report_artifact_path(
+                output_dir,
+                "scaled_clarify_slot_boundary_candidate_design.json",
+            ),
+            "markdown": _public_report_artifact_path(
+                output_dir,
+                "scaled_clarify_slot_boundary_candidate_design.md",
+            ),
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    summary = safe_design["summary"]
+    consistency = safe_design["source_count_consistency"]
+    lines = [
+        f"# {title}",
+        "",
+        (
+            "This is a public-safe candidate-design report for the selected scaled `clarify/slots` "
+            "residual cluster. It is design evidence only: it does not materialize seed rows, "
+            "generate SFT or DPO rows, rebuild manifests, train, generate predictions, change prompts, "
+            "or change evaluator metrics."
+        ),
+        "",
+        "## Boundary",
+        "",
+        "- strict `contract_exact_match` remains primary.",
+        "- Strict `slot_f1` remains authoritative for slot scoring.",
+        "- `slot_f1_soft` remains diagnostic-only.",
+        "- Semantic equivalence is not introduced as a primary metric.",
+        "- No public sample data, private corpus, prompt, evaluator, adapter, checkpoint, or A100 job changed.",
+        (
+            "- This is not a model recovery, held-out recovery, safety improvement, "
+            "production-readiness, or live-browser claim."
+        ),
+        "- Blocked-payment residuals remain deferred to a dedicated safety boundary phase.",
+        "",
+        "## Summary",
+        "",
+        f"- Source manifest id: `{safe_design['source_manifest_id']}`",
+        f"- Selected target: `{summary['selected_target']}`",
+        f"- Selected task family: `{summary['selected_task_family']}`",
+        f"- Selected field path: `{summary['selected_field_path']}`",
+        f"- Selected residual rows: `{summary['selected_residual_row_count']}`",
+        f"- Selected residual fields: `{summary['selected_residual_field_count']}`",
+        f"- Source families: `{summary['source_family_count']}`",
+        f"- Source family incidence total: `{summary['source_family_incidence_total']}`",
+        f"- Candidate themes: `{summary['candidate_theme_ids']}`",
+        f"- Recommended next change: `{summary['recommended_next_change']}`",
+        f"- Recommended next step: `{summary['recommended_next_step']}`",
+        "",
+        "## Source Count Consistency",
+        "",
+        f"- Selected cluster matches source cluster: `{consistency['selected_cluster_matches_source_cluster']}`",
+        f"- Themes cover all source families: `{consistency['themes_cover_all_source_families']}`",
+        (
+            "- Themes cover all source-family incidence: "
+            f"`{consistency['themes_cover_all_source_family_incidence']}`"
+        ),
+        "",
+        "## Candidate Themes",
+        "",
+    ]
+    for theme in safe_design.get("candidate_themes", []):
+        lines.extend(
+            [
+                f"### `{theme['theme_id']}`",
+                "",
+                f"- Description: {theme['description']}",
+                f"- Source family count: `{theme['source_family_count']}`",
+                f"- Source family incidence total: `{theme['source_family_incidence_total']}`",
+                f"- Source families: `{theme['source_family_ids']}`",
+                f"- Accepted target sketch: `{theme['accepted_target_sketch']}`",
+                f"- Rejected drift sketches: `{theme['rejected_drift_sketches']}`",
+                f"- Suggested public utterance templates: `{theme['suggested_public_utterance_templates']}`",
+                f"- Intended later action: `{theme['intended_later_action']}`",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Recommended Next Step",
+            "",
+            (
+                "Use this report as reviewable input for one later bounded materialization phase. "
+                "That later phase may generate candidate seed/SFT/DPO artifacts, but this design phase "
+                "does not do so and does not claim any model-quality improvement."
+            ),
+        ]
+    )
+    markdown_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"json": json_path, "markdown": markdown_path, "manifest": manifest_path}
+
+
 def write_form_fill_remediation_plan_report(
     diagnosis: dict[str, Any],
     output_dir: Path,

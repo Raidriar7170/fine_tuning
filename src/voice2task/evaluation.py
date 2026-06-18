@@ -3912,6 +3912,302 @@ def select_scaled_residual_remediation_target(
     }
 
 
+_SCALED_CLARIFY_TASK_FAMILY = "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity"
+
+
+def _clarify_accepted_target_sketch(ambiguity: str) -> dict[str, Any]:
+    return {
+        "task_type": "clarify",
+        "route": "clarify",
+        "safety": {"allow": True, "reason": "ambiguous_request"},
+        "confirmation_required": True,
+        "slots": {"ambiguity": ambiguity},
+    }
+
+
+def _clarify_rejected_drift_sketches() -> list[dict[str, str]]:
+    return [
+        {
+            "task_type": "search",
+            "route": "search_web",
+            "drift_reason": "ambiguous request incorrectly treated as a searchable query",
+        },
+        {
+            "task_type": "navigate",
+            "route": "open_url",
+            "drift_reason": "ambiguous destination incorrectly treated as a known URL target",
+        },
+        {
+            "task_type": "form_fill",
+            "route": "fill_form",
+            "drift_reason": "missing field/value details incorrectly treated as a fillable form task",
+        },
+        {
+            "task_type": "blocked",
+            "route": "deny",
+            "drift_reason": "ambiguous but not unsafe request incorrectly denied",
+        },
+    ]
+
+
+def _clarify_theme_definitions() -> list[dict[str, Any]]:
+    return [
+        {
+            "theme_id": "clarify_search_or_extract_ambiguity",
+            "description": "information or extraction request with an underspecified target/source",
+            "ambiguity": "用户想查询或提取信息，但目标、来源或对象不明确，需要先追问。",
+            "suggested_public_utterance_templates": [
+                "帮我查一下这个的最新情况",
+                "把那个页面里的价格提取出来",
+                "看看这条内容具体讲了什么",
+            ],
+        },
+        {
+            "theme_id": "clarify_navigation_or_form_fill_ambiguity",
+            "description": "navigation or form-fill action missing destination, field, or value details",
+            "ambiguity": "用户给出打开或填写动作，但缺少目标网站、字段或要填写的值，需要先确认。",
+            "suggested_public_utterance_templates": [
+                "打开那个官网",
+                "把这个填到表单里",
+                "帮我提交一下那项信息",
+            ],
+        },
+        {
+            "theme_id": "clarify_pronoun_or_context_missing",
+            "description": "deictic or context-dependent wording without enough prior context",
+            "ambiguity": "用户使用这个、那里、刚才那个等指代词，但当前上下文不足以确定对象。",
+            "suggested_public_utterance_templates": [
+                "帮我处理一下刚才那个",
+                "看一下这里的信息",
+                "把它整理出来",
+            ],
+        },
+    ]
+
+
+def _partition_clarify_source_families(
+    source_family_counts: dict[str, Any],
+) -> list[list[tuple[str, int]]]:
+    partitions: list[list[tuple[str, int]]] = [[], [], []]
+    for index, (family_id, count) in enumerate(sorted(source_family_counts.items())):
+        partitions[index % len(partitions)].append((_sanitize_id(str(family_id)), int(count)))
+    return partitions
+
+
+def design_scaled_clarify_slot_boundary_candidates(
+    *,
+    target_selection: dict[str, Any],
+    residual_cluster_inspection: dict[str, Any],
+    target_selection_artifact: str | None = None,
+    cluster_inspection_artifact: str | None = None,
+) -> dict[str, Any]:
+    if target_selection.get("evidence_kind") != "scaled_residual_remediation_target_selection":
+        raise ValueError("target selection must be scaled_residual_remediation_target_selection evidence")
+    if (
+        residual_cluster_inspection.get("evidence_kind")
+        != "formal_heldout_residual_cluster_inspection"
+    ):
+        raise ValueError("cluster inspection must be formal_heldout_residual_cluster_inspection evidence")
+
+    selection_summary = target_selection.get("summary", {})
+    selected = target_selection.get("selection", {}).get("selected", {})
+    if not isinstance(selection_summary, dict) or not isinstance(selected, dict):
+        raise ValueError("target selection is missing selected clarify cluster summary")
+    if selection_summary.get("selected_target") != "clarify":
+        raise ValueError("scaled clarify candidate design requires selected target clarify")
+    if selection_summary.get("selected_field_path") != "slots":
+        raise ValueError("scaled clarify candidate design requires selected field path slots")
+    if selection_summary.get("selected_task_family") != _SCALED_CLARIFY_TASK_FAMILY:
+        raise ValueError("scaled clarify candidate design requires the clarify ambiguity task family")
+
+    source_evidence = residual_cluster_inspection.get("source_residual_diagnosis", {}).get(
+        "source_formal_heldout_evidence",
+        {},
+    )
+    source_manifest_id = _sanitize_public_summary(str(source_evidence.get("dataset_manifest_id", "")))
+    if source_manifest_id != selection_summary.get("source_manifest_id"):
+        raise ValueError("target selection and cluster inspection source manifest ids differ")
+
+    matching_clusters = [
+        cluster
+        for cluster in residual_cluster_inspection.get("residual_clusters", [])
+        if isinstance(cluster, dict)
+        and cluster.get("task_family") == _SCALED_CLARIFY_TASK_FAMILY
+        and cluster.get("field_path") == "slots"
+    ]
+    if len(matching_clusters) != 1:
+        raise ValueError("expected exactly one source clarify slots residual cluster")
+    source_cluster = matching_clusters[0]
+
+    source_family_counts = source_cluster.get("source_family_counts", {})
+    if not isinstance(source_family_counts, dict) or not source_family_counts:
+        raise ValueError("source clarify cluster has no source family counts")
+
+    selected_residual_rows = int(selection_summary.get("selected_residual_row_count", 0))
+    selected_residual_fields = int(selection_summary.get("selected_residual_field_count", 0))
+    source_family_incidence_total = sum(int(count) for count in source_family_counts.values())
+    selected_cluster_matches_source = (
+        int(source_cluster.get("residual_row_count", 0)) == selected_residual_rows
+        and int(source_cluster.get("residual_field_count", 0)) == selected_residual_fields
+        and source_family_incidence_total == selected_residual_rows
+    )
+    if not selected_cluster_matches_source:
+        raise ValueError("selected clarify cluster counts do not match source cluster counts")
+
+    partitions = _partition_clarify_source_families(source_family_counts)
+    candidate_themes: list[dict[str, Any]] = []
+    for theme, source_families in zip(_clarify_theme_definitions(), partitions, strict=True):
+        family_counts = {family_id: count for family_id, count in source_families}
+        candidate_themes.append(
+            {
+                "theme_id": theme["theme_id"],
+                "design_status": "candidate_design_only",
+                "description": theme["description"],
+                "source_family_counts": family_counts,
+                "source_family_ids": sorted(family_counts),
+                "source_family_count": len(family_counts),
+                "source_family_incidence_total": sum(family_counts.values()),
+                "accepted_target_sketch": _clarify_accepted_target_sketch(str(theme["ambiguity"])),
+                "rejected_drift_sketches": _clarify_rejected_drift_sketches(),
+                "suggested_public_utterance_templates": theme[
+                    "suggested_public_utterance_templates"
+                ],
+                "intended_later_action": "review_before_seed_materialization",
+            }
+        )
+
+    represented_family_ids = sorted(
+        family_id for theme in candidate_themes for family_id in theme["source_family_ids"]
+    )
+    represented_incidence_total = sum(
+        int(theme["source_family_incidence_total"]) for theme in candidate_themes
+    )
+
+    return {
+        "evidence_kind": "scaled_clarify_slot_boundary_candidate_design",
+        "design_status": "candidate_design_only_no_data_no_training_no_metric_change",
+        "source_manifest_id": source_manifest_id,
+        "source_target_selection": {
+            "artifact": _sanitize_public_summary(
+                target_selection_artifact
+                or "reports/public-sample/scaled-residual-remediation-target-selection/"
+                "scaled_residual_remediation_target_selection.json"
+            ),
+            "evidence_kind": _sanitize_public_summary(str(target_selection.get("evidence_kind", ""))),
+            "selection_status": _sanitize_public_summary(
+                str(target_selection.get("selection_status", ""))
+            ),
+            "summary": _sanitize_public_value(selection_summary),
+        },
+        "source_residual_cluster_inspection": {
+            "artifact": _sanitize_public_summary(
+                cluster_inspection_artifact
+                or "reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/"
+                "formal_heldout_residual_cluster_inspection.json"
+            ),
+            "evidence_kind": _sanitize_public_summary(
+                str(residual_cluster_inspection.get("evidence_kind", ""))
+            ),
+            "diagnostic_kind": _sanitize_public_summary(
+                str(residual_cluster_inspection.get("diagnostic_kind", ""))
+            ),
+        },
+        "source_cluster": _sanitize_public_value(
+            {
+                "task_family": source_cluster.get("task_family"),
+                "short_name": source_cluster.get("short_name"),
+                "field_path": source_cluster.get("field_path"),
+                "category": source_cluster.get("category"),
+                "mismatch_category": source_cluster.get("mismatch_category"),
+                "residual_row_count": source_cluster.get("residual_row_count"),
+                "residual_field_count": source_cluster.get("residual_field_count"),
+                "residual_rows_by_split": source_cluster.get("residual_rows_by_split"),
+                "source_family_counts": source_family_counts,
+                "recommended_action_candidate": source_cluster.get("recommended_action_candidate"),
+            }
+        ),
+        "source_count_consistency": {
+            "selected_cluster_matches_source_cluster": selected_cluster_matches_source,
+            "selected_residual_row_count": selected_residual_rows,
+            "selected_residual_field_count": selected_residual_fields,
+            "source_family_count": len(source_family_counts),
+            "source_family_incidence_total": source_family_incidence_total,
+            "candidate_theme_count": len(candidate_themes),
+            "represented_source_family_count": len(represented_family_ids),
+            "represented_source_family_incidence_total": represented_incidence_total,
+            "themes_cover_all_source_families": represented_family_ids
+            == sorted(_sanitize_id(str(family_id)) for family_id in source_family_counts),
+            "themes_cover_all_source_family_incidence": represented_incidence_total
+            == source_family_incidence_total,
+        },
+        "candidate_themes": candidate_themes,
+        "summary": {
+            "candidate_theme_count": len(candidate_themes),
+            "candidate_theme_ids": [str(theme["theme_id"]) for theme in candidate_themes],
+            "selected_target": "clarify",
+            "selected_task_family": _SCALED_CLARIFY_TASK_FAMILY,
+            "selected_field_path": "slots",
+            "selected_residual_row_count": selected_residual_rows,
+            "selected_residual_field_count": selected_residual_fields,
+            "source_family_count": len(source_family_counts),
+            "source_family_incidence_total": source_family_incidence_total,
+            "represented_source_family_incidence_total": represented_incidence_total,
+            "recommended_next_change": "materialize-scaled-clarify-slot-boundary-candidates",
+            "recommended_next_step": (
+                "review_then_materialize_scaled_clarify_slot_boundary_candidates_in_one_later_"
+                "bounded_phase"
+            ),
+            "blocked_payment_deferred_to_dedicated_safety_phase": True,
+        },
+        "metric_authority": {
+            "contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "slot_f1_soft_diagnostic_only": True,
+            "semantic_equivalence_primary_metric": False,
+        },
+        "execution_scope": {
+            "source_target_selection_read_as_input": True,
+            "source_residual_cluster_inspection_read_as_input": True,
+            "design_only": True,
+            "public_seed_rows_modified": False,
+            "sft_rows_generated": False,
+            "dpo_pairs_generated": False,
+            "manifest_rebuild": False,
+            "local_private_corpus_modified": False,
+            "a100_job": False,
+            "prediction_run": False,
+            "training_run": False,
+            "sft_training_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prompt_change": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "slot_normalization": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+        },
+        "claims": {
+            "candidate_design_only": True,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "held_out_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "live_browser_benchmark_claim": False,
+            "public_full_corpus_release_claim": False,
+            "adapter_release_claim": False,
+            "checkpoint_release_claim": False,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+        },
+    }
+
+
 _FORM_FILL_TASK_FAMILY = "form_fill|fill_form|requires_confirmation|confirm:true|slots:field"
 
 

@@ -1,0 +1,373 @@
+{
+  "candidate_themes": [
+    {
+      "accepted_target_sketch": {
+        "confirmation_required": true,
+        "route": "clarify",
+        "safety": {
+          "allow": true,
+          "reason": "ambiguous_request"
+        },
+        "slots": {
+          "ambiguity": "用户想查询或提取信息，但目标、来源或对象不明确，需要先追问。"
+        },
+        "task_type": "clarify"
+      },
+      "description": "information or extraction request with an underspecified target/source",
+      "design_status": "candidate_design_only",
+      "intended_later_action": "review_before_seed_materialization",
+      "rejected_drift_sketches": [
+        {
+          "drift_reason": "ambiguous request incorrectly treated as a searchable query",
+          "route": "search_web",
+          "task_type": "search"
+        },
+        {
+          "drift_reason": "ambiguous destination incorrectly treated as a known URL target",
+          "route": "open_url",
+          "task_type": "navigate"
+        },
+        {
+          "drift_reason": "missing field/value details incorrectly treated as a fillable form task",
+          "route": "fill_form",
+          "task_type": "form_fill"
+        },
+        {
+          "drift_reason": "ambiguous but not unsafe request incorrectly denied",
+          "route": "deny",
+          "task_type": "blocked"
+        }
+      ],
+      "source_family_count": 10,
+      "source_family_counts": {
+        "family-clarify-dev-2": 3,
+        "family-clarify-test-2": 1,
+        "scaled-public-sample-core-clarify-003": 3,
+        "scaled-public-sample-core-clarify-007": 3,
+        "scaled-public-sample-core-clarify-012": 3,
+        "scaled-public-sample-core-clarify-016": 3,
+        "scaled-public-sample-core-clarify-021": 3,
+        "scaled-public-sample-core-clarify-025": 3,
+        "scaled-public-sample-core-clarify-030": 3,
+        "seed-clarify-ambiguous": 3
+      },
+      "source_family_ids": [
+        "family-clarify-dev-2",
+        "family-clarify-test-2",
+        "scaled-public-sample-core-clarify-003",
+        "scaled-public-sample-core-clarify-007",
+        "scaled-public-sample-core-clarify-012",
+        "scaled-public-sample-core-clarify-016",
+        "scaled-public-sample-core-clarify-021",
+        "scaled-public-sample-core-clarify-025",
+        "scaled-public-sample-core-clarify-030",
+        "seed-clarify-ambiguous"
+      ],
+      "source_family_incidence_total": 28,
+      "suggested_public_utterance_templates": [
+        "帮我查一下这个的最新情况",
+        "把那个页面里的价格提取出来",
+        "看看这条内容具体讲了什么"
+      ],
+      "theme_id": "clarify_search_or_extract_ambiguity"
+    },
+    {
+      "accepted_target_sketch": {
+        "confirmation_required": true,
+        "route": "clarify",
+        "safety": {
+          "allow": true,
+          "reason": "ambiguous_request"
+        },
+        "slots": {
+          "ambiguity": "用户给出打开或填写动作，但缺少目标网站、字段或要填写的值，需要先确认。"
+        },
+        "task_type": "clarify"
+      },
+      "description": "navigation or form-fill action missing destination, field, or value details",
+      "design_status": "candidate_design_only",
+      "intended_later_action": "review_before_seed_materialization",
+      "rejected_drift_sketches": [
+        {
+          "drift_reason": "ambiguous request incorrectly treated as a searchable query",
+          "route": "search_web",
+          "task_type": "search"
+        },
+        {
+          "drift_reason": "ambiguous destination incorrectly treated as a known URL target",
+          "route": "open_url",
+          "task_type": "navigate"
+        },
+        {
+          "drift_reason": "missing field/value details incorrectly treated as a fillable form task",
+          "route": "fill_form",
+          "task_type": "form_fill"
+        },
+        {
+          "drift_reason": "ambiguous but not unsafe request incorrectly denied",
+          "route": "deny",
+          "task_type": "blocked"
+        }
+      ],
+      "source_family_count": 9,
+      "source_family_counts": {
+        "family-clarify-dev-3": 3,
+        "family-clarify-test-3": 1,
+        "scaled-public-sample-core-clarify-004": 3,
+        "scaled-public-sample-core-clarify-009": 3,
+        "scaled-public-sample-core-clarify-013": 3,
+        "scaled-public-sample-core-clarify-018": 3,
+        "scaled-public-sample-core-clarify-022": 3,
+        "scaled-public-sample-core-clarify-027": 3,
+        "scaled-public-sample-core-clarify-031": 3
+      },
+      "source_family_ids": [
+        "family-clarify-dev-3",
+        "family-clarify-test-3",
+        "scaled-public-sample-core-clarify-004",
+        "scaled-public-sample-core-clarify-009",
+        "scaled-public-sample-core-clarify-013",
+        "scaled-public-sample-core-clarify-018",
+        "scaled-public-sample-core-clarify-022",
+        "scaled-public-sample-core-clarify-027",
+        "scaled-public-sample-core-clarify-031"
+      ],
+      "source_family_incidence_total": 25,
+      "suggested_public_utterance_templates": [
+        "打开那个官网",
+        "把这个填到表单里",
+        "帮我提交一下那项信息"
+      ],
+      "theme_id": "clarify_navigation_or_form_fill_ambiguity"
+    },
+    {
+      "accepted_target_sketch": {
+        "confirmation_required": true,
+        "route": "clarify",
+        "safety": {
+          "allow": true,
+          "reason": "ambiguous_request"
+        },
+        "slots": {
+          "ambiguity": "用户使用这个、那里、刚才那个等指代词，但当前上下文不足以确定对象。"
+        },
+        "task_type": "clarify"
+      },
+      "description": "deictic or context-dependent wording without enough prior context",
+      "design_status": "candidate_design_only",
+      "intended_later_action": "review_before_seed_materialization",
+      "rejected_drift_sketches": [
+        {
+          "drift_reason": "ambiguous request incorrectly treated as a searchable query",
+          "route": "search_web",
+          "task_type": "search"
+        },
+        {
+          "drift_reason": "ambiguous destination incorrectly treated as a known URL target",
+          "route": "open_url",
+          "task_type": "navigate"
+        },
+        {
+          "drift_reason": "missing field/value details incorrectly treated as a fillable form task",
+          "route": "fill_form",
+          "task_type": "form_fill"
+        },
+        {
+          "drift_reason": "ambiguous but not unsafe request incorrectly denied",
+          "route": "deny",
+          "task_type": "blocked"
+        }
+      ],
+      "source_family_count": 9,
+      "source_family_counts": {
+        "family-clarify-test-1": 1,
+        "scaled-public-sample-core-clarify-001": 3,
+        "scaled-public-sample-core-clarify-006": 3,
+        "scaled-public-sample-core-clarify-010": 3,
+        "scaled-public-sample-core-clarify-015": 3,
+        "scaled-public-sample-core-clarify-019": 3,
+        "scaled-public-sample-core-clarify-024": 3,
+        "scaled-public-sample-core-clarify-028": 3,
+        "scaled-public-sample-core-clarify-033": 3
+      },
+      "source_family_ids": [
+        "family-clarify-test-1",
+        "scaled-public-sample-core-clarify-001",
+        "scaled-public-sample-core-clarify-006",
+        "scaled-public-sample-core-clarify-010",
+        "scaled-public-sample-core-clarify-015",
+        "scaled-public-sample-core-clarify-019",
+        "scaled-public-sample-core-clarify-024",
+        "scaled-public-sample-core-clarify-028",
+        "scaled-public-sample-core-clarify-033"
+      ],
+      "source_family_incidence_total": 25,
+      "suggested_public_utterance_templates": [
+        "帮我处理一下刚才那个",
+        "看一下这里的信息",
+        "把它整理出来"
+      ],
+      "theme_id": "clarify_pronoun_or_context_missing"
+    }
+  ],
+  "claims": {
+    "adapter_release_claim": false,
+    "candidate_design_only": true,
+    "checkpoint_release_claim": false,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_quality_claim": false,
+    "model_recovery_claim": false,
+    "private_corpus_generalization_claim": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release_claim": false,
+    "safety_improvement_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "soft_slot_f1_primary_metric": false
+  },
+  "design_status": "candidate_design_only_no_data_no_training_no_metric_change",
+  "evidence_kind": "scaled_clarify_slot_boundary_candidate_design",
+  "execution_scope": {
+    "a100_job": false,
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "design_only": true,
+    "dpo_pairs_generated": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "evaluator_relaxation": false,
+    "grpo_run": false,
+    "local_private_corpus_modified": false,
+    "manifest_rebuild": false,
+    "prediction_repair": false,
+    "prediction_replacement": false,
+    "prediction_run": false,
+    "prompt_change": false,
+    "public_seed_rows_modified": false,
+    "semantic_equivalence_scoring": false,
+    "sft_rows_generated": false,
+    "sft_training_run": false,
+    "slot_normalization": false,
+    "source_residual_cluster_inspection_read_as_input": true,
+    "source_target_selection_read_as_input": true,
+    "training_run": false
+  },
+  "metric_authority": {
+    "contract_exact_match_primary_metric": true,
+    "semantic_equivalence_primary_metric": false,
+    "slot_f1_soft_diagnostic_only": true,
+    "strict_slot_f1_primary_metric": true
+  },
+  "source_cluster": {
+    "category": "slot_strict_mismatch",
+    "field_path": "slots",
+    "mismatch_category": "value_mismatch",
+    "recommended_action_candidate": "route_intent_boundary_inspection_before_data_or_training",
+    "residual_field_count": 78,
+    "residual_row_count": 78,
+    "residual_rows_by_split": {
+      "dev": 42,
+      "test": 36
+    },
+    "short_name": "clarify",
+    "source_family_counts": {
+      "family-clarify-dev-2": 3,
+      "family-clarify-dev-3": 3,
+      "family-clarify-test-1": 1,
+      "family-clarify-test-2": 1,
+      "family-clarify-test-3": 1,
+      "scaled-public-sample-core-clarify-001": 3,
+      "scaled-public-sample-core-clarify-003": 3,
+      "scaled-public-sample-core-clarify-004": 3,
+      "scaled-public-sample-core-clarify-006": 3,
+      "scaled-public-sample-core-clarify-007": 3,
+      "scaled-public-sample-core-clarify-009": 3,
+      "scaled-public-sample-core-clarify-010": 3,
+      "scaled-public-sample-core-clarify-012": 3,
+      "scaled-public-sample-core-clarify-013": 3,
+      "scaled-public-sample-core-clarify-015": 3,
+      "scaled-public-sample-core-clarify-016": 3,
+      "scaled-public-sample-core-clarify-018": 3,
+      "scaled-public-sample-core-clarify-019": 3,
+      "scaled-public-sample-core-clarify-021": 3,
+      "scaled-public-sample-core-clarify-022": 3,
+      "scaled-public-sample-core-clarify-024": 3,
+      "scaled-public-sample-core-clarify-025": 3,
+      "scaled-public-sample-core-clarify-027": 3,
+      "scaled-public-sample-core-clarify-028": 3,
+      "scaled-public-sample-core-clarify-030": 3,
+      "scaled-public-sample-core-clarify-031": 3,
+      "scaled-public-sample-core-clarify-033": 3,
+      "seed-clarify-ambiguous": 3
+    },
+    "task_family": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity"
+  },
+  "source_count_consistency": {
+    "candidate_theme_count": 3,
+    "represented_source_family_count": 28,
+    "represented_source_family_incidence_total": 78,
+    "selected_cluster_matches_source_cluster": true,
+    "selected_residual_field_count": 78,
+    "selected_residual_row_count": 78,
+    "source_family_count": 28,
+    "source_family_incidence_total": 78,
+    "themes_cover_all_source_families": true,
+    "themes_cover_all_source_family_incidence": true
+  },
+  "source_manifest_id": "public-sample-20260617T152259Z",
+  "source_residual_cluster_inspection": {
+    "artifact": "reports/public-sample/scaled-current-123-adapter-residual-cluster-inspection/formal_heldout_residual_cluster_inspection.json",
+    "diagnostic_kind": "formal_public_heldout_residual_cluster_inspection",
+    "evidence_kind": "formal_heldout_residual_cluster_inspection"
+  },
+  "source_target_selection": {
+    "artifact": "reports/public-sample/scaled-residual-remediation-target-selection/scaled_residual_remediation_target_selection.json",
+    "evidence_kind": "scaled_residual_remediation_target_selection",
+    "selection_status": "selected_first_bounded_target",
+    "summary": {
+      "ranked_cluster_count": 29,
+      "recommended_next_change": "design-scaled-clarify-slot-boundary-candidates",
+      "recommended_next_step": "open_bounded_design-scaled-clarify-slot-boundary-candidates_before_data_training_prompt_or_metric_changes",
+      "selected_field_path": "slots",
+      "selected_residual_field_count": 78,
+      "selected_residual_row_count": 78,
+      "selected_target": "clarify",
+      "selected_task_family": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+      "soft_slot_f1": {
+        "dev": 0.6372298122661537,
+        "test": 0.6107811374904073
+      },
+      "soft_slot_f1_primary_metric": false,
+      "source_manifest_id": "public-sample-20260617T152259Z",
+      "source_residual_field_count": 540,
+      "source_residual_row_count": 321,
+      "strict_contract_exact_match": {
+        "dev": 0.2463768115942029,
+        "test": 0.2028985507246377
+      },
+      "strict_slot_f1": {
+        "dev": 0.28743961352657005,
+        "test": 0.2592592592592593
+      }
+    }
+  },
+  "summary": {
+    "blocked_payment_deferred_to_dedicated_safety_phase": true,
+    "candidate_theme_count": 3,
+    "candidate_theme_ids": [
+      "clarify_search_or_extract_ambiguity",
+      "clarify_navigation_or_form_fill_ambiguity",
+      "clarify_pronoun_or_context_missing"
+    ],
+    "recommended_next_change": "materialize-scaled-clarify-slot-boundary-candidates",
+    "recommended_next_step": "review_then_materialize_scaled_clarify_slot_boundary_candidates_in_one_later_bounded_phase",
+    "represented_source_family_incidence_total": 78,
+    "selected_field_path": "slots",
+    "selected_residual_field_count": 78,
+    "selected_residual_row_count": 78,
+    "selected_target": "clarify",
+    "selected_task_family": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+    "source_family_count": 28,
+    "source_family_incidence_total": 78
+  }
+}
