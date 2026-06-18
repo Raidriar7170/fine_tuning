@@ -10,6 +10,7 @@ from voice2task.evaluation import (
     design_blocked_payment_safety_repair_candidates,
     design_form_fill_confirmation_marker_coverage_extension,
     design_form_fill_remediation_cases,
+    design_safety_repair_candidates,
     design_scaled_clarify_slot_boundary_candidates,
     design_slot_value_generalization_cases,
     diagnose_alignment_mismatches,
@@ -54,6 +55,7 @@ from voice2task.reports import (
     write_merged_slot_value_residual_report,
     write_metrics_report,
     write_runtime_label_tiny_overfit_diagnostic_report,
+    write_safety_repair_candidate_design_report,
     write_scaled_clarify_slot_boundary_candidate_design_report,
     write_scaled_residual_remediation_target_selection_report,
     write_schema_diagnostics_report,
@@ -355,6 +357,19 @@ def build_parser() -> argparse.ArgumentParser:
     design_blocked_payment.add_argument(
         "--title",
         default="Voice2Task blocked-payment safety repair candidate design",
+    )
+
+    design_safety_repair = subcommands.add_parser("design-safety-repair-candidates")
+    design_safety_repair.add_argument("--target-selection", type=Path, required=True)
+    design_safety_repair.add_argument("--layered-eval-dev", type=Path, required=True)
+    design_safety_repair.add_argument("--layered-eval-test", type=Path, required=True)
+    design_safety_repair.add_argument("--residual-diagnosis", type=Path, required=True)
+    design_safety_repair.add_argument("--test-gold", type=Path, required=True)
+    design_safety_repair.add_argument("--test-predictions", type=Path, required=True)
+    design_safety_repair.add_argument("--output", type=Path, required=True)
+    design_safety_repair.add_argument(
+        "--title",
+        default="Voice2Task safety repair candidate design",
     )
 
     smoke = subcommands.add_parser("smoke")
@@ -706,6 +721,32 @@ def main(argv: list[str] | None = None) -> int:
             public_manifest=read_json(args.public_manifest),
         )
         paths = write_blocked_payment_safety_repair_candidate_design_report(
+            design,
+            output_dir=args.output,
+            title=args.title,
+        )
+        print(json.dumps({"ok": True, "paths": {key: value.as_posix() for key, value in paths.items()}}, indent=2))
+        return 0
+    if args.command == "design-safety-repair-candidates":
+        design = design_safety_repair_candidates(
+            target_selection=read_json(args.target_selection),
+            layered_eval_by_split={
+                "dev": read_json(args.layered_eval_dev),
+                "test": read_json(args.layered_eval_test),
+            },
+            residual_diagnosis=read_json(args.residual_diagnosis),
+            test_gold_rows=read_jsonl(args.test_gold),
+            test_prediction_rows=read_jsonl(args.test_predictions),
+            source_artifacts={
+                "layered_eval_dev": _public_cli_artifact_path(args.layered_eval_dev),
+                "layered_eval_test": _public_cli_artifact_path(args.layered_eval_test),
+                "public_test_gold": _public_cli_artifact_path(args.test_gold),
+                "public_test_predictions": _public_cli_artifact_path(args.test_predictions),
+                "remediation_target_selection": _public_cli_artifact_path(args.target_selection),
+                "residual_diagnosis": _public_cli_artifact_path(args.residual_diagnosis),
+            },
+        )
+        paths = write_safety_repair_candidate_design_report(
             design,
             output_dir=args.output,
             title=args.title,

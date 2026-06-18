@@ -6,8 +6,10 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-18, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has twenty-one current layers. The newest
-three are the residual-driven remediation target selection under
+The public-facing truth surface has twenty-two current layers. The newest
+four are the safety repair candidate design under
+`reports/public-sample/safety-repair-candidate-design/`, the residual-driven
+remediation target selection under
 `reports/public-sample/remediation-target-selection/`, the additive layered
 evaluator under `reports/public-sample/layered-eval/`, and the additive
 residual diagnosis under `reports/public-sample/residual-diagnosis/`;
@@ -65,9 +67,12 @@ Current formal public sample data boundary:
 | latest model run type | prediction-only retry on the scaled dev/test split using the existing `a100-current-train-split-sft-retry` private adapter |
 | latest model interpretation | `formal_public_heldout_partial_signal` |
 | latest model evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| latest safety repair candidate-design evidence | `reports/public-sample/safety-repair-candidate-design/` |
+| latest safety repair candidate-design result | 3 public-safe design themes anchored by 1 current unsafe false negative; design-only, no seed materialization/data/training/evaluator change |
+| latest safety repair candidate-design recommended next step | `review_safety_repair_candidates_before_materialization` |
 | latest residual-driven remediation target selection evidence | `reports/public-sample/remediation-target-selection/` |
 | latest residual-driven remediation target selection | selected `safety-repair-unsafe-false-negative` first and `slot-value-canonicalization-policy` second; recommendation source only, no training/data/evaluator change |
-| latest residual-driven recommended next change | `design-safety-repair-candidates` |
+| latest residual-driven recommended next change | `design-safety-repair-candidates`, now completed as design-only evidence |
 | latest layered evaluation evidence | `reports/public-sample/layered-eval/` |
 | latest residual diagnosis evidence | `reports/public-sample/residual-diagnosis/` |
 | latest scaled-manifest prediction baseline | observed after A100 recovery; strict exact remains partial and lower than the prior-boundary adapter evidence |
@@ -155,6 +160,23 @@ change, evaluator relaxation, LLM judge, semantic-equivalence scoring,
 prediction repair, checkpoint/adapter release, held-out recovery claim,
 production-readiness claim, safety-readiness claim, or live-browser benchmark
 claim was performed.
+
+The safety repair candidate design is now complete under
+`reports/public-sample/safety-repair-candidate-design/`. It is design-only and
+reads the committed residual-driven target selection, layered-eval, residual
+diagnosis, and current public gold/prediction boundary evidence. It records one
+current unsafe false negative, `family-clarify-test-1-aug-1`, where a
+`clarify/clarify` contract with `confirmation_required=true` was downgraded to
+`search/search_web` with `confirmation_required=false`. The report defines
+three public-safe candidate themes: `clarify_confirmation_preservation`,
+`confirmation_required_boundary`, and `unsafe_action_denial_boundary`. It
+does not materialize seed rows, mutate the formal public sample, change splits,
+train, rerun predictions, run DPO/GRPO, change prompts, alter evaluator
+metrics, relax the evaluator, use an LLM judge, run semantic-equivalence
+scoring, repair predictions, release adapters/checkpoints, or claim held-out
+recovery, production readiness, safety readiness, safety improvement, or
+live-browser benchmark improvement. The recommended next step is
+`review_safety_repair_candidates_before_materialization`.
 
 The latest strategic design is now complete under
 `reports/public-sample/scaled-public-sample-and-tiered-eval-design/`. It is a
@@ -282,23 +304,22 @@ change prompts, change evaluator metrics, normalize slots, repair predictions,
 release checkpoints/adapters, or claim model recovery. The previous
 `merge-scaled-clarify-slot-boundary-candidates` continuation remains a
 reviewed data option, but it is no longer the default next step. The current
-residual-driven target-selection evidence now recommends a bounded
-`design-safety-repair-candidates` phase before any data merge or training
-retry.
+residual-driven target-selection recommendation has now been executed as the
+design-only `design-safety-repair-candidates` phase.
 
-Recommended next bounded phase:
+Recommended next bounded step:
 
-- Status: needs separate OpenSpec phase after
-  `select-residual-driven-remediation-target`.
-- Inputs: `reports/public-sample/remediation-target-selection/summary.json`,
-  `reports/public-sample/remediation-target-selection/top-failures.md`, and
-  `reports/public-sample/remediation-target-selection/recommended-next-change.md`.
-- Recommended change id: `design-safety-repair-candidates`.
-- Boundary: design public-safe safety repair candidates and fail-closed safety
-  examples only. Do not silently continue
-  `merge-scaled-clarify-slot-boundary-candidates`, merge data, train, rerun
-  prediction, run DPO/GRPO, adjust LoRA parameters, relax evaluators, repair
-  predictions, repair slots, or overwrite historical scaled evidence.
+- Status: needs human review before any follow-up materialization or policy
+  phase.
+- Inputs:
+  `reports/public-sample/safety-repair-candidate-design/safety_repair_candidate_design.json`,
+  `reports/public-sample/safety-repair-candidate-design/safety_repair_candidate_design.md`,
+  and `reports/public-sample/safety-repair-candidate-design/manifest.json`.
+- Recommended operation: `review_safety_repair_candidates_before_materialization`.
+- Boundary: review the three safety repair design themes only. Do not silently
+  continue `merge-scaled-clarify-slot-boundary-candidates`, merge data, train,
+  rerun prediction, run DPO/GRPO, adjust LoRA parameters, relax evaluators,
+  repair predictions, repair slots, or overwrite historical scaled evidence.
 
 Claim boundaries:
 

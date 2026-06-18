@@ -1,0 +1,116 @@
+{
+  "aggregates": {
+    "accepted_safety_reason_counts": {
+      "ambiguous_request": 2,
+      "unsafe_operation": 1
+    },
+    "accepted_target_route_counts": {
+      "clarify": 2,
+      "deny": 1
+    },
+    "accepted_target_task_type_counts": {
+      "blocked": 1,
+      "clarify": 2
+    },
+    "candidate_counts_by_repair_family": {
+      "clarify_confirmation_preservation": 1,
+      "confirmation_required_boundary": 1,
+      "unsafe_action_denial_boundary": 1
+    },
+    "safety_related_residual_counts": {
+      "confirmation": 6,
+      "refusal_or_clarify": 9,
+      "risk_level": 10,
+      "unsafe_false_negative": 1
+    }
+  },
+  "artifact_policy": {
+    "a100_job": false,
+    "adapter_release": false,
+    "candidate_seed_rows_materialized": false,
+    "checkpoint_release": false,
+    "design_only": true,
+    "dpo_pairs_generated": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "evaluator_relaxation": false,
+    "formal_public_sample_modified": false,
+    "grpo_run": false,
+    "llm_judge": false,
+    "local_private_corpus_modified": false,
+    "prediction_repair": false,
+    "prediction_replacement": false,
+    "prediction_run": false,
+    "prompt_change": false,
+    "semantic_equivalence_scoring": false,
+    "sft_run": false,
+    "train_dev_test_split_change": false,
+    "training_run": false
+  },
+  "claims": {
+    "candidate_design_only": true,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_claim": false,
+    "model_quality_claim": false,
+    "model_recovery_claim": false,
+    "production_readiness_claim": false,
+    "public_full_corpus_release": false,
+    "safety_improvement_claim": false,
+    "safety_readiness_claim": false
+  },
+  "dataset_manifest_id": "public-sample-20260617T152259Z",
+  "design_mode": "public_safe_design_only_no_materialization",
+  "diagnostic_artifacts": {
+    "design": "reports/public-sample/safety-repair-candidate-design/safety_repair_candidate_design.json",
+    "manifest": "reports/public-sample/safety-repair-candidate-design/manifest.json",
+    "markdown": "reports/public-sample/safety-repair-candidate-design/safety_repair_candidate_design.md"
+  },
+  "evidence_kind": "safety_repair_candidate_design",
+  "execution_scope": {
+    "a100_job": false,
+    "adapter_release": false,
+    "candidate_seed_rows_materialized": false,
+    "checkpoint_release": false,
+    "design_only": true,
+    "dpo_pairs_generated": false,
+    "dpo_run": false,
+    "evaluator_metric_change": false,
+    "evaluator_relaxation": false,
+    "formal_public_sample_modified": false,
+    "grpo_run": false,
+    "llm_judge": false,
+    "local_private_corpus_modified": false,
+    "prediction_repair": false,
+    "prediction_replacement": false,
+    "prediction_run": false,
+    "prompt_change": false,
+    "semantic_equivalence_scoring": false,
+    "sft_run": false,
+    "train_dev_test_split_change": false,
+    "training_run": false
+  },
+  "generated_at": "2026-06-18T08:08:57.726964+00:00",
+  "source_artifacts": {
+    "layered_eval_dev": "reports/public-sample/layered-eval/dev/metrics.json",
+    "layered_eval_test": "reports/public-sample/layered-eval/test/metrics.json",
+    "public_test_gold": "reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/test/test_gold.jsonl",
+    "public_test_predictions": "reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/test/predictions.jsonl",
+    "remediation_target_selection": "reports/public-sample/remediation-target-selection/summary.json",
+    "residual_diagnosis": "reports/public-sample/residual-diagnosis/summary.json"
+  },
+  "summary": {
+    "candidate_count": 3,
+    "candidate_seed_rows_materialized": false,
+    "dpo_pairs_generated": false,
+    "formal_public_sample_modified": false,
+    "recommended_next_step": "review_safety_repair_candidates_before_materialization",
+    "unsafe_false_negative_count": 1,
+    "unsafe_false_negative_example_count": 1,
+    "unsafe_false_negative_example_count_matches_layered_count": true,
+    "unsafe_false_negative_row_ids": [
+      "family-clarify-test-1-aug-1"
+    ],
+    "unsafe_false_positive_count": 1,
+    "unsafe_gold_support": 234
+  }
+}
