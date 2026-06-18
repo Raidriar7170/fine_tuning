@@ -12,6 +12,7 @@
 | --- | --- |
 | Latest data evidence pack | `reports/public-sample/scaled-public-sample-merge/` |
 | Latest scaled-manifest prediction baseline evidence pack | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| Latest scaled-manifest residual diagnosis evidence pack | `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/` |
 | Prior blocked scaled-manifest baseline evidence pack | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/` |
 | Latest standalone scaled candidate evidence pack | `reports/public-sample/scaled-public-sample-candidate-materialization/` |
 | Latest readiness evidence pack | `reports/public-sample/current-123-train-split-sft-retry-readiness/` |
@@ -19,7 +20,7 @@
 | Prior current-123 model evidence pack | `reports/public-sample/a100-current-123-train-split-sft-retry/` |
 | Latest strategic-design evidence pack | `reports/public-sample/scaled-public-sample-and-tiered-eval-design/` |
 | Latest candidate-design evidence pack | `reports/public-sample/current-retry-confirmation-preservation-candidate-design/` |
-| Latest diagnosis evidence pack | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
+| Latest prior-manifest diagnosis evidence pack | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
 | Baseline evidence pack | `reports/public-sample/a100-formal-public-heldout-prediction-after-a100-recovery/` |
 | Current data manifest | `public-sample-20260617T152259Z` |
 | Current public sample | 240 seeds / 675 SFT rows / 2046 DPO pairs |
@@ -29,7 +30,8 @@
 | Latest run type | prediction-only retry on the scaled dev/test split using the existing `a100-current-train-split-sft-retry` private adapter |
 | Latest interpretation | `formal_public_heldout_partial_signal` |
 | Latest strategic-design interpretation | `scale_data_and_diagnose_by_tier_before_another_training_retry` |
-| Latest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
+| Latest scaled-manifest diagnosis interpretation | `scaled_current_123_residuals_slot_and_normalized_command_dominant` |
+| Latest prior-manifest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
 | Prior SFT v3 retry evidence | `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/` |
 
 最新模型证据绑定 `public-sample-20260617T152259Z`。它是 A100 恢复后的 prediction-only retry：使用已有的 private `a100-current-train-split-sft-retry` adapter，在 scaled dev/test split 上生成预测并用 strict evaluator 评估。没有训练、没有修 prediction、没有 normalize slot、没有改 prompt、没有放松 evaluator。adapter、checkpoint、raw log、private override 和远端缓存都没有发布。
@@ -48,6 +50,17 @@ A100 恢复后已完成 observed retry：
 - source adapter runtime: `a100-current-train-split-sft-retry`
 - source adapter manifest: `public-sample-20260617T045941Z`
 - status: observed, prediction-only, no training
+
+随后已完成 scaled-manifest residual-family diagnosis：
+
+- evidence: `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/formal_heldout_residual_family_diagnosis.md`
+- source evidence: `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/formal_public_heldout_prediction.json`
+- status: diagnosis-only；没有 A100 job、训练、prediction rerun、数据改动、prompt/evaluator 改动、slot normalization、prediction repair、adapter/checkpoint 发布或 recovery claim；
+- residual rows: 321 total = 156 dev / 165 test；
+- dominant residual fields: `slots=304`、`normalized_command=194`；
+- smaller residual fields: `task_type=13`、`route=13`、`safety=10`、`confirmation_required=6`；
+- tiered interpretation: schema/route/safety/confirmation 较强，strict slot 和 full-contract exact 仍弱；
+- recommended next bounded decision: `inspect_scaled_residual_clusters_before_data_or_training`。
 
 ## Formal Public Held-Out 指标（绑定 `public-sample-20260617T152259Z`）
 
@@ -68,7 +81,7 @@ A100 恢复后已完成 observed retry：
 
 本轮 scaled-manifest retry 是当前 manifest 下的第一份 observed prediction-only model evidence。它不是 paired training evidence，因为 source adapter 仍来自旧的 `public-sample-20260617T045941Z` train split。当前结论是 no strict recovery / partial signal：dev/test exact 分别是 `0.2464` / `0.2029`，schema、route 和 safety recall 稳定，但 strict slot F1 和 full-contract exact 明显偏低。
 
-随后完成的 trade-off diagnosis 进一步确认：dev safety recovered `4` rows / safety regressed `0` rows，但 confirmation regressed `5` dev rows 和 `2` test rows；dev exact 是 `2` recovered / `4` regressed，test exact 是 `7` recovered / `3` regressed。当前 dominant trade-off 是 `confirmation_regression_after_safety_recovery`，下一阶段应先设计 confirmation-preservation candidates，而不是直接继续训练或调整 evaluator。
+先前 current-train-split retry 的 trade-off diagnosis 进一步确认：dev safety recovered `4` rows / safety regressed `0` rows，但 confirmation regressed `5` dev rows 和 `2` test rows；dev exact 是 `2` recovered / `4` regressed，test exact 是 `7` recovered / `3` regressed。该 prior-manifest dominant trade-off 是 `confirmation_regression_after_safety_recovery`，其后续 confirmation-preservation design / materialization 已完成；当前最新诊断边界以上方 scaled-manifest residual diagnosis 为准。
 
 随后完成的 confirmation-preservation candidate design 将这个 trade-off 收束成 `2` 个 reviewable families：`unsafe_payment_confirmation_preservation` 覆盖 `5` 个 dev `blocked_payment` source rows，要求保留 `blocked/deny`、`unsafe_payment` 和 `confirmation_required=true`；`public_navigation_non_confirmation_preservation` 覆盖 `2` 个 test navigation source rows，要求保留 `navigate/open_url`、`public_readonly` 和 `confirmation_required=false`。这是 design-only evidence，没有 materialize seed rows、没有训练、没有 prediction，也不能宣称模型恢复。
 
@@ -102,10 +115,11 @@ A100 恢复后已完成 observed retry：
 
 ## 仍然存在的风险
 
-1. Full-contract exact match 仍未恢复：dev/test 为 0.4348 / 0.3768，离 strict recovery 很远。
-2. Route/task_type 仍有边界问题：dev/test 为 0.8841 / 0.9275。
-3. Slot exactness 仍是残差来源：dev slot failure 31 条，test slot failure 34 条；soft 指标只能辅助定位，不能对外过度表达。
-4. 仍需要 residual / trade-off diagnosis 才能判断下一次数据设计目标，不能直接从本轮 retry 推出继续训练方向。
+1. Full-contract exact match 仍未恢复：scaled-manifest dev/test 为 0.2464 / 0.2029，离 strict recovery 很远。
+2. Strict slot exactness 是当前最大残差来源：scaled residual diagnosis 记录 `slots=304` 个 strict residual fields。
+3. `normalized_command` strict string mismatch 也很重：scaled residual diagnosis 记录 `normalized_command=194` 个 residual fields。
+4. Route/task_type、safety、confirmation 相对更稳定，但仍有少量 residual fields：`task_type=13`、`route=13`、`safety=10`、`confirmation_required=6`。
+5. 仍需要 residual-cluster inspection 才能判断下一次数据设计目标，不能直接从本轮 retry 推出继续训练方向。
 
 ## 不应过度宣称
 
@@ -119,7 +133,18 @@ A100 恢复后已完成 observed retry：
 
 ## 推荐下一阶段
 
-formal held-out residual-family diagnosis 和 target selection 已经补完并归档到最新 manifest。
+当前最新推荐是先做 bounded scaled residual-cluster inspection：
+
+- 输入：`reports/public-sample/scaled-current-123-adapter-residual-diagnosis/`
+- 目的：把 `slots=304` 和 `normalized_command=194` 的 dominant residuals 拆成可行动 cluster；
+- 边界：只检查/归因，不 materialize 数据，不训练，不改 evaluator，不发布模型；
+- 产物：public-safe cluster report、下一步数据设计或训练 readiness 的明确证据边界。
+
+不建议直接启动 paired SFT retry。只有当 cluster inspection 给出明确、reviewable 的 data-design target 后，才应该进入下一阶段的数据设计/materialization 或训练 readiness。
+
+## 历史 prior-manifest 阶段
+
+formal held-out residual-family diagnosis 和 target selection 已经补完并归档到先前 manifest 边界。
 
 当前诊断结论：
 

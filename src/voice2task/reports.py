@@ -1889,15 +1889,13 @@ def write_formal_heldout_residual_family_report(
             "dpo_run": False,
         },
         "diagnostic_artifacts": {
-            "diagnosis": (
-                "reports/public-sample/formal-heldout-residual-family-diagnosis/"
-                "formal_heldout_residual_family_diagnosis.json"
+            "diagnosis": _public_report_artifact_path(
+                output_dir, "formal_heldout_residual_family_diagnosis.json"
             ),
-            "markdown": (
-                "reports/public-sample/formal-heldout-residual-family-diagnosis/"
-                "formal_heldout_residual_family_diagnosis.md"
+            "markdown": _public_report_artifact_path(
+                output_dir, "formal_heldout_residual_family_diagnosis.md"
             ),
-            "manifest": "reports/public-sample/formal-heldout-residual-family-diagnosis/manifest.json",
+            "manifest": _public_report_artifact_path(output_dir, "manifest.json"),
         },
     }
     write_json(manifest_path, manifest)

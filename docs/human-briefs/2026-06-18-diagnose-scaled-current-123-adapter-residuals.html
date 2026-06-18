@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Voice2Task 扩样本残差诊断简报</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; margin: 32px; color: #202124; }
+    main { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 1px 4px; border-radius: 4px; }
+    .claim { padding: 12px 14px; background: #eef6ff; border-left: 4px solid #2563eb; }
+    .warn { padding: 12px 14px; background: #fff7ed; border-left: 4px solid #f97316; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Voice2Task 扩样本残差诊断简报</h1>
+  <p class="claim">结论：scaled manifest 上的 residual diagnosis 已完成；当前主残差不是 JSON/route/safety，而是 strict slots 与 normalized_command。</p>
+
+  <h2>当前状态</h2>
+  <table>
+    <tr><th>项目</th><th>状态</th></tr>
+    <tr><td>OpenSpec change</td><td><code>diagnose-scaled-public-sample-current-123-adapter-residuals</code></td></tr>
+    <tr><td>阶段类型</td><td>diagnosis-only；不训练、不预测、不改数据、不改 prompt/evaluator</td></tr>
+    <tr><td>Source evidence</td><td><code>reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/</code></td></tr>
+    <tr><td>Target manifest</td><td><code>public-sample-20260617T152259Z</code></td></tr>
+    <tr><td>Diagnosis evidence</td><td><code>reports/public-sample/scaled-current-123-adapter-residual-diagnosis/</code></td></tr>
+    <tr><td>Recommended next decision</td><td><code>inspect_scaled_residual_clusters_before_data_or_training</code></td></tr>
+  </table>
+
+  <h2>本阶段做了什么</h2>
+  <ul>
+    <li>读取现有 scaled dev/test gold 与 prediction artifacts。</li>
+    <li>按 split、task family、source family、residual category 和 field path 聚合 strict residuals。</li>
+    <li>补充 tiered interpretation：只做诊断，不替代 strict metrics。</li>
+    <li>写入 public-safe manifest/report/leak-scan sidecars。</li>
+    <li>更新 <code>CONTEXT.md</code>、<code>reports/final_status.md</code> 和本简报。</li>
+  </ul>
+
+  <h2>核心残差</h2>
+  <table>
+    <tr><th>项目</th><th>值</th><th>含义</th></tr>
+    <tr><td>Residual rows</td><td>321 total = 156 dev / 165 test</td><td>full-contract exact 仍弱</td></tr>
+    <tr><td><code>slots</code></td><td>304 residual fields</td><td>最大 strict mismatch 来源</td></tr>
+    <tr><td><code>normalized_command</code></td><td>194 residual fields</td><td>第二大 strict string mismatch 来源</td></tr>
+    <tr><td><code>task_type</code></td><td>13 residual fields</td><td>相对较小</td></tr>
+    <tr><td><code>route</code></td><td>13 residual fields</td><td>相对较小</td></tr>
+    <tr><td><code>safety.allow/reason</code></td><td>10 residual fields</td><td>safety recall 仍强，但不是零残差</td></tr>
+    <tr><td><code>confirmation_required</code></td><td>6 residual fields</td><td>相对较小</td></tr>
+  </table>
+
+  <h2>分层解释</h2>
+  <table>
+    <tr><th>层级</th><th>状态</th></tr>
+    <tr><td>Schema validity</td><td>strong，dev/test json_valid_rate 都是 1.0000</td></tr>
+    <tr><td>Task / route</td><td>strong but not perfect，dev/test route_accuracy 为 0.9614 / 0.9758</td></tr>
+    <tr><td>Safety</td><td>strong with one test precision error，dev/test safety_recall 都是 1.0000</td></tr>
+    <tr><td>Confirmation</td><td>strong，dev/test confirmation_accuracy 为 0.9758 / 0.9952</td></tr>
+    <tr><td>Strict slot</td><td>weak，dev/test strict slot_f1 为 0.2874 / 0.2593</td></tr>
+    <tr><td>Full contract exact</td><td>weak，dev/test contract_exact_match 为 0.2464 / 0.2029</td></tr>
+  </table>
+
+  <h2>关键文件</h2>
+  <ul>
+    <li><code>reports/public-sample/scaled-current-123-adapter-residual-diagnosis/formal_heldout_residual_family_diagnosis.md</code></li>
+    <li><code>reports/public-sample/scaled-current-123-adapter-residual-diagnosis/formal_heldout_residual_family_diagnosis.json</code></li>
+    <li><code>reports/public-sample/scaled-current-123-adapter-residual-diagnosis/manifest.json</code></li>
+    <li><code>CONTEXT.md</code></li>
+    <li><code>reports/final_status.md</code></li>
+  </ul>
+
+  <h2>验证</h2>
+  <ul>
+    <li>Focused diagnosis test：以最终命令输出为准。</li>
+    <li>Full pytest / ruff / OpenSpec strict validation / leak scan / diff check：以最终命令输出为准。</li>
+  </ul>
+
+  <h2>剩余风险</h2>
+  <ul>
+    <li>这不是训练阶段，也不能宣称模型恢复。</li>
+    <li><code>slot_f1_soft</code> 仍只是 diagnostic-only，不是 semantic-equivalence 或主指标。</li>
+    <li>source adapter manifest 与 target scaled manifest 不同，所以本阶段只说明新边界下的残差形态。</li>
+  </ul>
+
+  <h2>推荐下一步</h2>
+  <p>开启 bounded residual-cluster inspection：把 <code>slots=304</code> 和 <code>normalized_command=194</code> 拆成具体 cluster，再决定是否做数据设计、materialization 或 paired SFT readiness。</p>
+
+  <p class="warn">不要从本诊断直接跳到训练；也不要把 schema/route/safety 稳定误写成 full-contract recovery。</p>
+</main>
+</body>
+</html>

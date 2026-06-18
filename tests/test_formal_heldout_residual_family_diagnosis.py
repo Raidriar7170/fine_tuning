@@ -15,6 +15,9 @@ from voice2task.reports import write_formal_heldout_residual_family_report
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FORMAL_DIR = REPO_ROOT / "reports" / "public-sample" / "a100-formal-public-heldout-prediction-after-a100-recovery"
 DIAGNOSIS_DIR = REPO_ROOT / "reports" / "public-sample" / "formal-heldout-residual-family-diagnosis"
+SCALED_DIAGNOSIS_DIR = (
+    REPO_ROOT / "reports" / "public-sample" / "scaled-current-123-adapter-residual-diagnosis"
+)
 
 
 def _rows(split: str) -> list[Any]:
@@ -144,3 +147,70 @@ def test_committed_formal_heldout_residual_family_evidence_is_bounded_and_public
     assert diagnosis["claims"]["production_readiness_claim"] is False
     assert diagnosis["claims"]["semantic_equivalence_primary_metric"] is False
     assert scan_paths([DIAGNOSIS_DIR]).ok is True
+
+
+def test_committed_scaled_current_123_adapter_residual_diagnosis_is_bounded() -> None:
+    manifest = read_json(SCALED_DIAGNOSIS_DIR / "manifest.json")
+    diagnosis = read_json(SCALED_DIAGNOSIS_DIR / "formal_heldout_residual_family_diagnosis.json")
+    report = (SCALED_DIAGNOSIS_DIR / "formal_heldout_residual_family_diagnosis.md").read_text(
+        encoding="utf-8"
+    )
+    leak_scan = read_json(SCALED_DIAGNOSIS_DIR / "final_leak_scan_result.json")
+
+    assert manifest["evidence_kind"] == "formal_heldout_residual_family_diagnosis"
+    assert manifest["source_formal_heldout_evidence"]["dataset_manifest_id"] == (
+        "public-sample-20260617T152259Z"
+    )
+    assert manifest["summary"]["strict_contract_exact_match"] == {
+        "dev": 0.2463768115942029,
+        "test": 0.2028985507246377,
+    }
+    assert manifest["summary"]["strict_slot_f1"] == {
+        "dev": 0.28743961352657005,
+        "test": 0.2592592592592593,
+    }
+    assert manifest["summary"]["residual_row_count"] == 321
+    assert manifest["summary"]["source_count_consistency"] == {
+        "ok": True,
+        "by_split": {
+            "dev": {"expected": 156, "computed": 156, "ok": True},
+            "test": {"expected": 165, "computed": 165, "ok": True},
+        },
+    }
+    assert manifest["summary"]["residual_field_counts"]["slots"] == 304
+    assert manifest["summary"]["residual_field_counts"]["normalized_command"] == 194
+    assert manifest["aggregates"]["by_split_residual_rows"] == {"dev": 156, "test": 165}
+    assert manifest["aggregates"]["by_task_family"][
+        "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity"
+    ] == 101
+    assert manifest["aggregates"]["by_task_family"][
+        "blocked|deny|unsafe_payment|confirm:true|slots:action,reason"
+    ] == 102
+
+    tiers = {entry["tier"]: entry for entry in manifest["tiered_interpretation"]["tiers"]}
+    assert manifest["tiered_interpretation"]["diagnostic_only"] is True
+    assert manifest["tiered_interpretation"]["does_not_replace_strict_metrics"] is True
+    assert tiers["schema_validity"]["status"] == "strong"
+    assert tiers["strict_slot"]["status"] == "weak"
+    assert tiers["strict_slot"]["residual_field_count"] == 304
+    assert tiers["full_contract_exact"]["status"] == "weak"
+    assert tiers["full_contract_exact"]["residual_row_count"] == 321
+    assert manifest["tiered_interpretation"]["next_decision"]["recommended_next_change"] == (
+        "inspect_scaled_residual_clusters_before_data_or_training"
+    )
+
+    assert diagnosis["source_artifacts"]["scaled_prediction_evidence"].endswith(
+        "a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/"
+        "formal_public_heldout_prediction.json"
+    )
+    assert diagnosis["claims"]["diagnosis_only"] is True
+    assert diagnosis["claims"]["held_out_recovery_claim"] is False
+    assert diagnosis["claims"]["model_recovery_claim"] is False
+    assert diagnosis["claims"]["soft_slot_f1_primary_metric"] is False
+    assert manifest["artifact_policy"]["training_run"] is False
+    assert manifest["artifact_policy"]["prediction_repair_or_replacement"] is False
+    assert leak_scan["ok"] is True
+    assert "Tiered Interpretation" in report
+    assert "diagnostic" in report
+    assert "does not replace `contract_exact_match`" in report
+    assert scan_paths([SCALED_DIAGNOSIS_DIR]).ok is True

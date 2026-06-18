@@ -6,36 +6,38 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-18, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has thirteen current layers:
+The public-facing truth surface has fourteen current layers:
 
 1. the scaled-manifest current-123 adapter prediction baseline recovery retry
    evidence under
    `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/`;
-2. the prior scaled-manifest current-123 adapter prediction baseline blocked evidence
+2. the scaled-manifest current-123 adapter residual-family diagnosis under
+   `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/`;
+3. the prior scaled-manifest current-123 adapter prediction baseline blocked evidence
    under
    `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/`;
-3. the scaled public-sample formal merge evidence under
+4. the scaled public-sample formal merge evidence under
    `reports/public-sample/scaled-public-sample-merge/`;
-4. the standalone scaled public-sample candidate materialization evidence under
+5. the standalone scaled public-sample candidate materialization evidence under
    `reports/public-sample/scaled-public-sample-candidate-materialization/`;
-5. the scaled public-sample and tiered-evaluation design evidence under
+6. the scaled public-sample and tiered-evaluation design evidence under
    `reports/public-sample/scaled-public-sample-and-tiered-eval-design/`;
-6. the current-123-row train-split SFT retry model evidence under
+7. the current-123-row train-split SFT retry model evidence under
    `reports/public-sample/a100-current-123-train-split-sft-retry/`;
-7. the current-123-row train-split SFT retry readiness evidence under
+8. the current-123-row train-split SFT retry readiness evidence under
    `reports/public-sample/current-123-train-split-sft-retry-readiness/`;
-8. the current-retry confirmation-preservation materialization and public merge
+9. the current-retry confirmation-preservation materialization and public merge
    under
    `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/`;
-9. the current-retry confirmation-preservation candidate design under
+10. the current-retry confirmation-preservation candidate design under
    `reports/public-sample/current-retry-confirmation-preservation-candidate-design/`;
-10. the current-train-split SFT retry trade-off diagnosis under
+11. the current-train-split SFT retry trade-off diagnosis under
    `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/`;
-11. the prior current-train-split SFT retry under
+12. the prior current-train-split SFT retry under
    `reports/public-sample/a100-current-train-split-sft-retry/`;
-12. the current-manifest SFT v3 prediction-only baseline under
+13. the current-manifest SFT v3 prediction-only baseline under
    `reports/public-sample/a100-current-manifest-sft-v3-prediction-baseline/`;
-13. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
+14. the bounded SFT v3 retry after SSH recovery, now a prior-manifest model
    source, under
    `reports/public-sample/a100-form-fill-remediation-sft-v3-retry-after-ssh-recovery/`.
 
@@ -52,14 +54,16 @@ Current formal public sample data boundary:
 | latest model evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
 | latest scaled-manifest prediction baseline | observed after A100 recovery; strict exact remains partial and lower than the prior-boundary adapter evidence |
 | latest scaled-manifest baseline evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| latest scaled-manifest residual diagnosis interpretation | `scaled_current_123_residuals_slot_and_normalized_command_dominant` |
+| latest scaled-manifest residual diagnosis evidence | `reports/public-sample/scaled-current-123-adapter-residual-diagnosis/` |
 | prior scaled-manifest blocked baseline evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline/` |
 | latest scaled merge evidence | `reports/public-sample/scaled-public-sample-merge/` |
 | latest standalone scaled candidate evidence | `reports/public-sample/scaled-public-sample-candidate-materialization/` |
 | latest standalone scaled candidate data | 138 candidate seeds / 414 candidate SFT rows / no DPO pairs |
 | latest strategic-design evidence | `reports/public-sample/scaled-public-sample-and-tiered-eval-design/` |
 | latest strategic-design interpretation | `scale_data_and_diagnose_by_tier_before_another_training_retry` |
-| latest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
-| latest diagnosis evidence | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
+| latest prior-manifest diagnosis interpretation | `current_sft_retry_tradeoff_diagnosis_confirmation_regression_after_safety_recovery` |
+| latest prior-manifest diagnosis evidence | `reports/public-sample/current-train-split-sft-retry-tradeoff-diagnosis/` |
 | latest candidate-design evidence | `reports/public-sample/current-retry-confirmation-preservation-candidate-design/` |
 | latest data-materialization evidence | `reports/public-sample/current-retry-confirmation-preservation-public-sample-merge/` |
 | latest readiness evidence | `reports/public-sample/current-123-train-split-sft-retry-readiness/` |
@@ -137,6 +141,21 @@ not strict recovery: dev/test exact are `0.2464` / `0.2029`, strict slot F1 are
 drop indicates that the prior adapter does not transfer cleanly to the scaled
 boundary; the next bounded phase should diagnose residual families on this
 manifest before any paired SFT retry.
+
+That scaled-manifest residual-family diagnosis is now complete under
+`reports/public-sample/scaled-current-123-adapter-residual-diagnosis/`. It is
+diagnosis-only: no A100 job, training, prediction rerun, data mutation, prompt
+change, evaluator relaxation, slot normalization, prediction repair, checkpoint
+release, adapter release, production-readiness claim, or live-browser benchmark
+claim was performed. The diagnosis found `321` strict residual rows (`156` dev /
+`165` test). Residual fields are dominated by `slots=304` and
+`normalized_command=194`, while task/route mismatches are much smaller
+(`task_type=13`, `route=13`), safety field mismatches are `10`, and
+confirmation mismatches are `6`. The tiered interpretation is therefore:
+schema validity, route, safety recall, and confirmation are comparatively
+strong; strict slot and full-contract exact remain weak. The next bounded phase,
+if the project continues, should inspect scaled residual clusters before data
+design or paired SFT retry.
 
 Claim boundaries:
 
