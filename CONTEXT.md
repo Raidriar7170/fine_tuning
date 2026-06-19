@@ -6,9 +6,10 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-19, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has twenty-seven current layers. The newest
-eight are the canonical slot-boundary formal-merge proposal/readiness evidence
-under
+The public-facing truth surface has twenty-eight current layers. The newest
+nine are the canonical slot-boundary row-level candidate materialization under
+`reports/public-sample/canonical-slot-boundary-row-level-candidates/`, the
+canonical slot-boundary formal-merge proposal/readiness evidence under
 `reports/public-sample/canonical-slot-boundary-formal-merge-proposal/`, the
 canonical slot-boundary candidate review under
 `reports/public-sample/canonical-slot-boundary-candidate-review/`, the
@@ -78,9 +79,12 @@ Current formal public sample data boundary:
 | latest model run type | prediction-only retry on the scaled dev/test split using the existing `a100-current-train-split-sft-retry` private adapter |
 | latest model interpretation | `formal_public_heldout_partial_signal` |
 | latest model evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| latest canonical slot-boundary row-level candidate materialization evidence | `reports/public-sample/canonical-slot-boundary-row-level-candidates/` |
+| latest canonical slot-boundary row-level candidate materialization result | 7 train-only standalone candidate seed rows in `data/public-samples/canonical_slot_boundary_seed_candidates.jsonl`; 21 report-local SFT preview rows; `standalone_not_formal_public_sample`; no formal data mutation |
+| latest canonical slot-boundary row-level candidate materialization recommended next step | a later formal merge review/apply phase can inspect this source; direct merge is not implemented now |
 | latest canonical slot-boundary formal-merge proposal evidence | `reports/public-sample/canonical-slot-boundary-formal-merge-proposal/` |
-| latest canonical slot-boundary formal-merge proposal result | proposal/readiness evidence only; `formal_merge_ready_now=false`, `formal_merge_readiness=not_ready_missing_row_level_candidate_source`, and `implemented_now=false` because no exact reviewed row-level canonical slot-boundary seed source exists yet |
-| latest canonical slot-boundary formal-merge proposal recommended next step | materialize exact row-level candidate source as `data/public-samples/canonical_slot_boundary_seed_candidates.jsonl`; do not direct-merge formal data |
+| latest canonical slot-boundary formal-merge proposal result | prior proposal/readiness evidence only; it failed closed with `formal_merge_ready_now=false` because the exact reviewed row-level source did not exist in that phase |
+| latest canonical slot-boundary formal-merge proposal recommended next step | now completed by the standalone row-level candidate materialization; do not retroactively treat the proposal as direct merge approval |
 | latest canonical slot-boundary candidate review evidence | `reports/public-sample/canonical-slot-boundary-candidate-review/` |
 | latest canonical slot-boundary candidate review result | review-only class decisions: slot-key aliases and conservative slot-value boundaries are eligible only for a later bounded formal-merge proposal; normalized-command examples remain diagnostic/display-only; excluded non-equivalence cases remain blocked or deferred |
 | latest canonical slot-boundary candidate review recommended next step | `propose-canonical-slot-boundary-formal-merge-after-review`, as a separate bounded OpenSpec proposal only |
@@ -283,6 +287,26 @@ A100, implement a postprocessor, relax strict exact, use an LLM judge, run
 semantic-equivalence scoring, repair predictions, or claim model improvement.
 The next bounded step is materializing exact reviewed row-level canonical
 slot-boundary seed candidates, not direct formal merge.
+
+The canonical slot-boundary row-level candidate materialization is now complete
+under
+`reports/public-sample/canonical-slot-boundary-row-level-candidates/`. It
+writes `data/public-samples/canonical_slot_boundary_seed_candidates.jsonl` as a
+standalone public-safe source with exactly seven train-only candidate rows:
+three from `slot_key_aliases` and four from `slot_value_boundaries`. It also
+publishes 21 report-local SFT preview rows, a manifest, machine-readable
+evidence, Markdown summary, leak-scan record, and a Human Brief. Every row is
+`standalone_not_formal_public_sample` and traces back to the source
+materialization, archived review, policy file/section, and manifest
+`public-sample-20260617T152259Z`. The phase keeps
+`normalized_command_display_diagnostic` and excluded non-equivalence cases out
+of the row-level source. It does not mutate formal public sample seed traces,
+replace formal SFT/DPO artifacts, rebuild formal manifests, change splits,
+alter evaluator definitions, run predictions, train, run on A100, implement a
+postprocessor, relax strict exact, use an LLM judge, run semantic-equivalence
+scoring, repair predictions, or claim model improvement. The next bounded step
+is a later formal merge review/apply phase that can inspect this source; direct
+formal merge is not implemented now.
 
 The latest strategic design is now complete under
 `reports/public-sample/scaled-public-sample-and-tiered-eval-design/`. It is a

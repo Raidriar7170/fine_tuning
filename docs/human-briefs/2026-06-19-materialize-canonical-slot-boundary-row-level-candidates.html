@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canonical Slot Boundary Row-Level Candidates</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2937;
+      --muted: #596579;
+      --line: #d7dce5;
+      --paper: #f6f7f9;
+      --panel: #ffffff;
+      --accent: #0f766e;
+      --warn: #9a3412;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 42px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.92em;
+    }
+    .status {
+      display: inline-flex;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+    }
+    .k {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .v {
+      margin-top: 4px;
+      font-weight: 650;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      font-size: 14px;
+    }
+    th {
+      background: #eef4f2;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .ok {
+      color: var(--accent);
+      font-weight: 650;
+    }
+    .warn {
+      color: var(--warn);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="status">状态：archived / standalone row-level source materialized</div>
+      <h1>Canonical Slot Boundary Row-Level Candidates</h1>
+      <p>结论：本阶段只把 reviewed eligible classes 物化为 7 条 train-only row-level candidate source；它仍然是 <code>standalone_not_formal_public_sample</code>，不直接 merge formal public sample。</p>
+    </header>
+
+    <section class="grid" aria-label="phase facts">
+      <div class="panel">
+        <div class="k">Candidate Source</div>
+        <div class="v"><code>data/public-samples/canonical_slot_boundary_seed_candidates.jsonl</code></div>
+      </div>
+      <div class="panel">
+        <div class="k">Report</div>
+        <div class="v"><code>reports/public-sample/canonical-slot-boundary-row-level-candidates/</code></div>
+      </div>
+      <div class="panel">
+        <div class="k">Rows</div>
+        <div class="v ok">7 seed / 21 report-local SFT preview</div>
+      </div>
+      <div class="panel">
+        <div class="k">Boundary</div>
+        <div class="v warn">no formal merge now</div>
+      </div>
+    </section>
+
+    <h2>本阶段改了什么</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>项目</th>
+          <th>结果</th>
+          <th>边界</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>row-level source</td>
+          <td class="ok">7 条 train-only rows</td>
+          <td>只来自 <code>slot_key_aliases</code> 和 <code>slot_value_boundaries</code>。</td>
+        </tr>
+        <tr>
+          <td>report-local SFT preview</td>
+          <td class="ok">21 rows</td>
+          <td>只放在 report 目录，不替换 formal <code>sft_public_sample.jsonl</code>。</td>
+        </tr>
+        <tr>
+          <td>excluded classes</td>
+          <td>kept out</td>
+          <td><code>normalized_command_display_diagnostic</code> 和 non-equivalence cases 不物化。</td>
+        </tr>
+        <tr>
+          <td>formal data</td>
+          <td class="ok">unchanged</td>
+          <td>没有 seed/SFT/DPO/manifest/split/evaluator/training/prediction/A100/postprocessor 变更。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>关键文件</h2>
+    <ul>
+      <li><code>tests/test_canonical_slot_boundary_row_level_candidate_materialization.py</code></li>
+      <li><code>data/public-samples/canonical_slot_boundary_seed_candidates.jsonl</code></li>
+      <li><code>reports/public-sample/canonical-slot-boundary-row-level-candidates/canonical_slot_boundary_row_level_candidate_materialization.json</code></li>
+      <li><code>reports/public-sample/canonical-slot-boundary-row-level-candidates/manifest.json</code></li>
+      <li><code>reports/public-sample/canonical-slot-boundary-row-level-candidates/leak_scan_result.json</code></li>
+    </ul>
+
+    <h2>验证</h2>
+    <ul>
+      <li><code>PYTHONPATH=src pytest -q tests/test_canonical_slot_boundary_row_level_candidate_materialization.py</code> 先红：4 failed / 1 passed，失败原因是缺少 candidate source 和 Human Brief。</li>
+      <li><code>PYTHONPATH=src pytest -q tests/test_canonical_slot_boundary_row_level_candidate_materialization.py</code> 变绿：5 passed。</li>
+      <li>旧 formal-merge proposal test 已更新为阶段序列兼容：proposal 仍是 readiness-only；后续 source 若存在也必须是 <code>standalone_not_formal_public_sample</code>。</li>
+      <li>Focused bundle：35 passed。</li>
+      <li><code>PYTHONPATH=src pytest -q</code>：488 passed。</li>
+      <li><code>OPENSPEC_TELEMETRY=0 openspec validate materialize-canonical-slot-boundary-row-level-candidates --strict</code>：valid。</li>
+      <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：6 passed / 0 failed。</li>
+      <li>Formal public dataset validate：ok=true，SFT 675 / DPO 2046；DPO check total_pairs=2046。</li>
+      <li>Leak scan over new source/report/Human Brief/status/change：ok=true，findings=[]；<code>git diff --check</code> passed。</li>
+    </ul>
+
+    <h2>不要过度宣称</h2>
+    <p>这不是 formal public sample merge、不是 held-out recovery、不是 model-quality improvement、不是 production readiness、不是 safety readiness，也不是 semantic-equivalence 或 <code>slot_f1_soft</code> recovery evidence。</p>
+
+    <h2>推荐下一步</h2>
+    <p>后续 very small formal merge review/apply phase 可以检查这个 source；本阶段不实现 direct merge。</p>
+  </main>
+</body>
+</html>

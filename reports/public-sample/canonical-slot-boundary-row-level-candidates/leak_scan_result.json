@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-19T08:55:29.102556+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl",
+    "reports/public-sample/canonical-slot-boundary-row-level-candidates",
+    "docs/human-briefs/2026-06-19-materialize-canonical-slot-boundary-row-level-candidates.html",
+    "openspec/changes/archive/2026-06-19-materialize-canonical-slot-boundary-row-level-candidates",
+    "openspec/specs/voice2task-dataset-preparation/spec.md",
+    "CONTEXT.md",
+    "reports/final_status.md"
+  ]
+}

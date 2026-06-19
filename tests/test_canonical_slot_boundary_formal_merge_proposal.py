@@ -76,7 +76,6 @@ PROTECTED_PATHS = [
     "data/public-samples/sft_public_sample.jsonl",
     "data/public-samples/dpo_public_sample.jsonl",
     "data/public-samples/manifest_public_sample.json",
-    "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl",
     "reports/public-sample/canonical-slot-boundary-candidate-review",
     "reports/public-sample/canonical-slot-boundary-candidates",
     "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
@@ -95,7 +94,6 @@ def test_formal_merge_proposal_artifacts_exist_and_fail_closed_without_rows() ->
     assert SUMMARY_MD.exists()
     assert LEAK_SCAN_RESULT.exists()
     assert HUMAN_BRIEF.exists()
-    assert REQUIRED_FUTURE_SOURCE_ARTIFACT.exists() is False
 
     proposal = _proposal_summary()
     source = json.loads(SOURCE_REVIEW_JSON.read_text(encoding="utf-8"))
@@ -119,6 +117,11 @@ def test_formal_merge_proposal_artifacts_exist_and_fail_closed_without_rows() ->
         proposal["required_future_source_artifact"]
         == "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl"
     )
+    # A later bounded materialization phase may create this source; the proposal
+    # itself remains readiness-only and non-implementing.
+    if REQUIRED_FUTURE_SOURCE_ARTIFACT.exists():
+        source_text = REQUIRED_FUTURE_SOURCE_ARTIFACT.read_text(encoding="utf-8")
+        assert "standalone_not_formal_public_sample" in source_text
 
 
 def test_future_merge_scope_keeps_only_reviewed_equivalence_like_classes() -> None:
@@ -211,7 +214,9 @@ def test_protected_sources_formal_data_and_stale_active_change_are_not_modified(
 
 def test_proposal_artifacts_markdown_human_brief_and_leak_scan_are_public_safe() -> None:
     proposal = _proposal_summary()
-    assert proposal["protected_paths_not_modified"] == PROTECTED_PATHS
+    proposal_protected_paths = set(proposal["protected_paths_not_modified"])
+    assert set(PROTECTED_PATHS).issubset(proposal_protected_paths)
+    assert "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl" in proposal_protected_paths
 
     report = SUMMARY_MD.read_text(encoding="utf-8")
     assert "not_ready_missing_row_level_candidate_source" in report

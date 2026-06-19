@@ -1,0 +1,75 @@
+{
+  "artifact_policy": {
+    "a100_execution": false,
+    "candidate_data_only": true,
+    "checkpoints_or_adapters_copied_to_git": false,
+    "formal_dpo_rebuilt": false,
+    "formal_manifest_rebuilt": false,
+    "formal_public_sample_files_modified": false,
+    "formal_sample_merge": false,
+    "formal_sft_rebuilt": false,
+    "host_details_omitted": true,
+    "private_paths_omitted": true,
+    "raw_logs_copied_to_git": false,
+    "report_local_sft_preview_only": true,
+    "ssh_details_omitted": true,
+    "standalone_only": true
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_improvement_claim": false,
+    "model_improvement_claim": false,
+    "production_readiness_claim": false,
+    "safety_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "slot_f1_soft_recovery_claim": false
+  },
+  "diagnostic_artifacts": {
+    "candidate_seed": "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl",
+    "candidate_sft_preview": "reports/public-sample/canonical-slot-boundary-row-level-candidates/sft_candidate_rows.jsonl",
+    "leak_scan": "reports/public-sample/canonical-slot-boundary-row-level-candidates/leak_scan_result.json",
+    "markdown": "reports/public-sample/canonical-slot-boundary-row-level-candidates/canonical_slot_boundary_row_level_candidate_materialization.md",
+    "materialization": "reports/public-sample/canonical-slot-boundary-row-level-candidates/canonical_slot_boundary_row_level_candidate_materialization.json"
+  },
+  "evidence_kind": "canonical_slot_boundary_row_level_candidate_materialization",
+  "execution_scope": {
+    "a100_job": false,
+    "checkpoint_or_adapter_release": false,
+    "deterministic_postprocessor_implemented": false,
+    "evaluator_definition_change": false,
+    "formal_manifest_rebuild": false,
+    "formal_public_sample_data_mutation": false,
+    "formal_sft_or_dpo_generation": false,
+    "llm_judge": false,
+    "local_static_artifact_materialization": true,
+    "prediction_repair": false,
+    "prediction_run": false,
+    "semantic_equivalence_scoring": false,
+    "split_change": false,
+    "standalone_candidate_data_only": true,
+    "strict_exact_relaxation": false,
+    "training_run": false
+  },
+  "generated_at": "2026-06-19T00:00:00Z",
+  "archived_at": "2026-06-19",
+  "openspec_archive": "openspec/changes/archive/2026-06-19-materialize-canonical-slot-boundary-row-level-candidates",
+  "materialization_status": "standalone_row_level_candidate_source_materialized",
+  "summary": {
+    "candidate_seed_rows": 7,
+    "candidate_sft_preview_rows": 21,
+    "eligible_source_class_counts": {
+      "slot_key_aliases": 3,
+      "slot_value_boundaries": 4
+    },
+    "formal_public_sample_modified": false,
+    "seed_split_counts": {
+      "train": 7
+    },
+    "sft_preview_split_counts": {
+      "train": 21
+    },
+    "source_manifest_id": "public-sample-20260617T152259Z"
+  }
+}

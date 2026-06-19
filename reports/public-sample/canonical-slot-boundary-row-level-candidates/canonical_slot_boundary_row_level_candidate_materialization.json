@@ -1,0 +1,119 @@
+{
+  "artifact_files": {
+    "candidate_seed": "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl",
+    "candidate_sft_preview": "reports/public-sample/canonical-slot-boundary-row-level-candidates/sft_candidate_rows.jsonl",
+    "leak_scan": "reports/public-sample/canonical-slot-boundary-row-level-candidates/leak_scan_result.json",
+    "manifest": "reports/public-sample/canonical-slot-boundary-row-level-candidates/manifest.json",
+    "markdown": "reports/public-sample/canonical-slot-boundary-row-level-candidates/canonical_slot_boundary_row_level_candidate_materialization.md",
+    "materialization": "reports/public-sample/canonical-slot-boundary-row-level-candidates/canonical_slot_boundary_row_level_candidate_materialization.json"
+  },
+  "claims": {
+    "adapter_release": false,
+    "checkpoint_release": false,
+    "held_out_recovery_claim": false,
+    "live_browser_benchmark_improvement_claim": false,
+    "model_improvement_claim": false,
+    "production_readiness_claim": false,
+    "safety_readiness_claim": false,
+    "semantic_equivalence_primary_metric": false,
+    "slot_f1_soft_recovery_claim": false
+  },
+  "comparison_boundary": {
+    "formal_sample_boundary_changed": false,
+    "future_formal_merge_requires_new_boundary": true,
+    "old_metrics_directly_comparable": true,
+    "warning": "standalone row-level candidates do not change the formal public sample; a later formal merge would need a new comparison boundary"
+  },
+  "evidence_kind": "canonical_slot_boundary_row_level_candidate_materialization",
+  "excluded_classes": [
+    "normalized_command_display_diagnostic",
+    "excluded_non_equivalence_cases"
+  ],
+  "excluded_source_candidate_ids": [
+    "normalized-command-display-search-template",
+    "normalized-command-display-safety-template",
+    "date_today_vs_tomorrow",
+    "city_origin_vs_destination",
+    "product_name_change",
+    "url_host_change",
+    "price_amount_change",
+    "product_name_vs_query",
+    "location_vs_destination",
+    "action_vs_reason"
+  ],
+  "execution_scope": {
+    "a100_job": false,
+    "checkpoint_or_adapter_release": false,
+    "deterministic_postprocessor_implemented": false,
+    "evaluator_definition_change": false,
+    "formal_manifest_rebuild": false,
+    "formal_public_sample_data_mutation": false,
+    "formal_sft_or_dpo_generation": false,
+    "llm_judge": false,
+    "local_static_artifact_materialization": true,
+    "prediction_repair": false,
+    "prediction_run": false,
+    "semantic_equivalence_scoring": false,
+    "split_change": false,
+    "standalone_candidate_data_only": true,
+    "strict_exact_relaxation": false,
+    "training_run": false
+  },
+  "formal_data_boundary": {
+    "formal_dpo_public_sample": "data/public-samples/dpo_public_sample.jsonl",
+    "formal_manifest": "data/public-samples/manifest_public_sample.json",
+    "formal_seed_traces": "data/public-samples/seed_traces.jsonl",
+    "formal_sft_public_sample": "data/public-samples/sft_public_sample.jsonl",
+    "modified": false
+  },
+  "generated_at": "2026-06-19T00:00:00Z",
+  "archived_at": "2026-06-19",
+  "openspec_archive": "openspec/changes/archive/2026-06-19-materialize-canonical-slot-boundary-row-level-candidates",
+  "materialization_status": "standalone_row_level_candidate_source_materialized",
+  "recommended_next_bounded_step": {
+    "operation": "formal_merge_review_or_apply_phase_can_inspect_this_source",
+    "direct_formal_merge_implemented_now": false
+  },
+  "source_materialization": {
+    "accepted_candidate_count": 9,
+    "artifact": "reports/public-sample/canonical-slot-boundary-candidates/summary.json",
+    "evidence_kind": "canonical_slot_boundary_candidate_materialization"
+  },
+  "source_policy": {
+    "artifact_dir": "reports/public-sample/slot-canonicalization-policy",
+    "source_manifest_id": "public-sample-20260617T152259Z"
+  },
+  "source_review": {
+    "artifact": "reports/public-sample/canonical-slot-boundary-candidate-review/summary.json",
+    "eligible_source_classes": [
+      "slot_key_aliases",
+      "slot_value_boundaries"
+    ],
+    "evidence_kind": "canonical_slot_boundary_candidate_review"
+  },
+  "summary": {
+    "candidate_seed_rows": 7,
+    "candidate_sft_preview_rows": 21,
+    "eligible_source_class_counts": {
+      "slot_key_aliases": 3,
+      "slot_value_boundaries": 4
+    },
+    "formal_public_sample_modified": false,
+    "seed_split_counts": {
+      "train": 7
+    },
+    "sft_preview_split_counts": {
+      "train": 21
+    },
+    "source_candidate_ids": [
+      "slot-key-alias-search-text-query",
+      "slot-key-alias-site-url",
+      "slot-key-alias-field-value",
+      "slot-value-boundary-whitespace-trim",
+      "slot-value-boundary-fullwidth-punctuation",
+      "slot-value-boundary-filler-removal",
+      "slot-value-boundary-url-email-casing"
+    ],
+    "source_manifest_id": "public-sample-20260617T152259Z"
+  }
+}
