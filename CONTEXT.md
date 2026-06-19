@@ -4,10 +4,13 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 ## Current Status Contract
 
-As of 2026-06-18, the first project phase is closed as an evidence-backed
+As of 2026-06-19, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has twenty-six current layers. The newest
-seven are the canonical slot-boundary candidate review under
+The public-facing truth surface has twenty-seven current layers. The newest
+eight are the canonical slot-boundary formal-merge proposal/readiness evidence
+under
+`reports/public-sample/canonical-slot-boundary-formal-merge-proposal/`, the
+canonical slot-boundary candidate review under
 `reports/public-sample/canonical-slot-boundary-candidate-review/`, the
 standalone canonical slot-boundary candidate materialization under
 `reports/public-sample/canonical-slot-boundary-candidates/`, the slot
@@ -75,6 +78,9 @@ Current formal public sample data boundary:
 | latest model run type | prediction-only retry on the scaled dev/test split using the existing `a100-current-train-split-sft-retry` private adapter |
 | latest model interpretation | `formal_public_heldout_partial_signal` |
 | latest model evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| latest canonical slot-boundary formal-merge proposal evidence | `reports/public-sample/canonical-slot-boundary-formal-merge-proposal/` |
+| latest canonical slot-boundary formal-merge proposal result | proposal/readiness evidence only; `formal_merge_ready_now=false`, `formal_merge_readiness=not_ready_missing_row_level_candidate_source`, and `implemented_now=false` because no exact reviewed row-level canonical slot-boundary seed source exists yet |
+| latest canonical slot-boundary formal-merge proposal recommended next step | materialize exact row-level candidate source as `data/public-samples/canonical_slot_boundary_seed_candidates.jsonl`; do not direct-merge formal data |
 | latest canonical slot-boundary candidate review evidence | `reports/public-sample/canonical-slot-boundary-candidate-review/` |
 | latest canonical slot-boundary candidate review result | review-only class decisions: slot-key aliases and conservative slot-value boundaries are eligible only for a later bounded formal-merge proposal; normalized-command examples remain diagnostic/display-only; excluded non-equivalence cases remain blocked or deferred |
 | latest canonical slot-boundary candidate review recommended next step | `propose-canonical-slot-boundary-formal-merge-after-review`, as a separate bounded OpenSpec proposal only |
@@ -259,6 +265,24 @@ manifests, change splits, alter evaluator definitions, run predictions, train,
 run on A100, implement a postprocessor, relax strict exact, use an LLM judge,
 run semantic-equivalence scoring, repair predictions, release
 adapters/checkpoints, or claim model improvement.
+
+The canonical slot-boundary formal-merge proposal/readiness phase is now
+complete under
+`reports/public-sample/canonical-slot-boundary-formal-merge-proposal/`. It
+reads the archived review evidence and fails closed:
+`formal_merge_ready_now=false`,
+`formal_merge_readiness=not_ready_missing_row_level_candidate_source`, and
+`implemented_now=false`. The only classes eligible for a later formal merge
+proposal remain `slot_key_aliases` and `slot_value_boundaries`;
+`normalized_command_display_diagnostic` and excluded non-equivalence cases stay
+outside future formal merge. This phase does not create
+`data/public-samples/canonical_slot_boundary_seed_candidates.jsonl`, mutate
+formal public sample seed traces, generate SFT/DPO rows, rebuild manifests,
+change splits, alter evaluator definitions, run predictions, train, run on
+A100, implement a postprocessor, relax strict exact, use an LLM judge, run
+semantic-equivalence scoring, repair predictions, or claim model improvement.
+The next bounded step is materializing exact reviewed row-level canonical
+slot-boundary seed candidates, not direct formal merge.
 
 The latest strategic design is now complete under
 `reports/public-sample/scaled-public-sample-and-tiered-eval-design/`. It is a

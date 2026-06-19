@@ -1,0 +1,154 @@
+{
+  "evidence_kind": "canonical_slot_boundary_formal_merge_proposal",
+  "proposal_status": "proposal_readiness_archived_not_ready_for_merge",
+  "generated_at": "2026-06-19",
+  "archived_at": "2026-06-19",
+  "openspec_archive": "openspec/changes/archive/2026-06-19-propose-canonical-slot-boundary-formal-merge-after-review",
+  "source_review": {
+    "artifact": "reports/public-sample/canonical-slot-boundary-candidate-review/summary.json",
+    "evidence_kind": "canonical_slot_boundary_candidate_review",
+    "review_status": "review_complete_archived",
+    "eligible_for_later_formal_merge_proposal_count": 2
+  },
+  "formal_merge_ready_now": false,
+  "formal_merge_readiness": "not_ready_missing_row_level_candidate_source",
+  "implemented_now": false,
+  "formal_public_sample_modified": false,
+  "required_future_source_artifact": "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl",
+  "eligible_future_merge_classes": [
+    "slot_key_aliases",
+    "slot_value_boundaries"
+  ],
+  "excluded_from_future_formal_merge": [
+    "normalized_command_display_diagnostic",
+    "excluded_non_equivalence_cases"
+  ],
+  "excluded_class_rationales": {
+    "normalized_command_display_diagnostic": {
+      "classification": "diagnostic_display_only",
+      "future_formal_merge_allowed": false,
+      "rationale": "Normalized-command examples are display diagnostics only; they do not define equivalence, scoring repair, or prediction repair.",
+      "alters_strict_exact": false,
+      "repairs_predictions": false
+    },
+    "excluded_non_equivalence_cases": {
+      "classification": "blocked_or_deferred_non_equivalence",
+      "future_formal_merge_allowed": false,
+      "rationale": "Date, city/location, product, URL host, price/amount, query/product, location/destination, and action/reason changes remain non-equivalence boundaries.",
+      "loosen_slot_value_policy": false
+    }
+  },
+  "future_acceptance_criteria": [
+    {
+      "id": "exact_reviewed_row_level_candidate_source",
+      "required": true,
+      "description": "Name and review the exact row-level candidate source before any formal public sample mutation."
+    },
+    {
+      "id": "public_safe_validation",
+      "required": true,
+      "description": "Run public-safety validation and leak scan on the row-level source and all generated proposal or merge artifacts."
+    },
+    {
+      "id": "duplicate_source_id_validation",
+      "required": true,
+      "description": "Reject duplicate seed IDs, duplicate source IDs, and ambiguous provenance before merge."
+    },
+    {
+      "id": "derived_sft_dpo_manifest_synchronization",
+      "required": true,
+      "description": "Regenerate and synchronize SFT rows, DPO pairs, and manifest metadata from the accepted seed boundary."
+    },
+    {
+      "id": "split_boundary_accounting",
+      "required": true,
+      "description": "Record train/dev/test split counts and whether split labels were preserved or intentionally changed."
+    },
+    {
+      "id": "comparison_boundary_warning",
+      "required": true,
+      "description": "Warn that old metrics cannot be compared directly after a future formal sample boundary change."
+    },
+    {
+      "id": "strict_exact_and_strict_slot_f1_authoritative",
+      "required": true,
+      "description": "Keep contract_exact_match and strict slot_f1 as the authoritative scoring surfaces."
+    },
+    {
+      "id": "slot_f1_soft_diagnostic_only",
+      "required": true,
+      "description": "Keep slot_f1_soft diagnostic only, not recovery, semantic-equivalence, or production-readiness evidence."
+    }
+  ],
+  "comparison_boundary": {
+    "required_for_future_merge": true,
+    "warning": "old_metrics_cannot_be_compared_directly_after_formal_sample_boundary_change"
+  },
+  "metric_boundary": {
+    "contract_exact_match": "authoritative_strict_metric",
+    "slot_f1": "authoritative_strict_metric",
+    "slot_f1_soft": "diagnostic_only_not_recovery_or_equivalence_evidence"
+  },
+  "execution_scope": {
+    "proposal_readiness_only": true,
+    "formal_public_sample_data_mutation": false,
+    "jsonl_seed_candidates_generated": false,
+    "sft_or_dpo_rows_generated": false,
+    "manifest_rebuilt": false,
+    "split_change": false,
+    "evaluator_definition_change": false,
+    "prediction_run": false,
+    "training_run": false,
+    "a100_job": false,
+    "deterministic_postprocessor_implemented": false,
+    "strict_exact_relaxation": false,
+    "llm_judge": false,
+    "semantic_equivalence_scoring": false,
+    "prediction_repair": false,
+    "checkpoint_or_adapter_release": false,
+    "blocked_operations": [
+      "formal_public_sample_data_mutation",
+      "jsonl_seed_candidate_generation",
+      "sft_or_dpo_row_generation",
+      "manifest_rebuild",
+      "split_change",
+      "evaluator_definition_change",
+      "prediction_run",
+      "training_run",
+      "a100_job",
+      "deterministic_postprocessor_implementation",
+      "strict_exact_relaxation",
+      "llm_judge",
+      "semantic_equivalence_scoring",
+      "prediction_repair",
+      "checkpoint_or_adapter_release",
+      "model_quality_claim"
+    ]
+  },
+  "protected_paths_not_modified": [
+    "data/public-samples/seed_traces.jsonl",
+    "data/public-samples/sft_public_sample.jsonl",
+    "data/public-samples/dpo_public_sample.jsonl",
+    "data/public-samples/manifest_public_sample.json",
+    "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl",
+    "reports/public-sample/canonical-slot-boundary-candidate-review",
+    "reports/public-sample/canonical-slot-boundary-candidates",
+    "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
+    "src/voice2task"
+  ],
+  "claims": {
+    "proposal_readiness_evidence_only": true,
+    "formal_merge_approval_claim": false,
+    "model_improvement_claim": false,
+    "held_out_recovery_claim": false,
+    "production_readiness_claim": false,
+    "safety_readiness_claim": false,
+    "live_browser_benchmark_improvement_claim": false
+  },
+  "recommended_next_bounded_step": {
+    "proposed_change_id": "materialize-canonical-slot-boundary-row-level-candidates",
+    "operation": "materialize_exact_row_level_candidate_source",
+    "target_artifact": "data/public-samples/canonical_slot_boundary_seed_candidates.jsonl",
+    "direct_formal_merge": false
+  }
+}

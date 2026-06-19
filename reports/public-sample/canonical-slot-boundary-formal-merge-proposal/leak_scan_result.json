@@ -1,0 +1,14 @@
+{
+  "findings": [],
+  "generated_at": "2026-06-19T08:29:48.387806+00:00",
+  "max_public_jsonl_rows": 5000,
+  "ok": true,
+  "scanned_paths": [
+    "reports/public-sample/canonical-slot-boundary-formal-merge-proposal",
+    "docs/human-briefs/2026-06-19-propose-canonical-slot-boundary-formal-merge-after-review.html",
+    "openspec/changes/archive/2026-06-19-propose-canonical-slot-boundary-formal-merge-after-review",
+    "openspec/specs/voice2task-dataset-preparation/spec.md",
+    "CONTEXT.md",
+    "reports/final_status.md"
+  ]
+}
