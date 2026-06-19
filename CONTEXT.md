@@ -6,8 +6,10 @@ Voice2Task Post-Training is a companion project for training and evaluating smal
 
 As of 2026-06-19, the first project phase is closed as an evidence-backed
 post-training and evaluation baseline, not as a production-ready model release.
-The public-facing truth surface has twenty-eight current layers. The newest
-nine are the canonical slot-boundary row-level candidate materialization under
+The public-facing truth surface has twenty-nine current layers. The newest
+ten are the canonical slot-boundary formal merge under
+`reports/public-sample/canonical-slot-boundary-formal-merge/`, the canonical
+slot-boundary row-level candidate materialization under
 `reports/public-sample/canonical-slot-boundary-row-level-candidates/`, the
 canonical slot-boundary formal-merge proposal/readiness evidence under
 `reports/public-sample/canonical-slot-boundary-formal-merge-proposal/`, the
@@ -72,19 +74,22 @@ Current formal public sample data boundary:
 
 | item | value |
 | --- | --- |
-| manifest | `public-sample-20260617T152259Z` |
-| public sample | 240 seeds / 675 SFT rows / 2046 DPO pairs |
-| split counts | train 261 / dev 207 / test 207 |
+| manifest | `public-sample-20260619T090925Z` |
+| public sample | 247 seeds / 696 SFT rows / 2100 DPO pairs |
+| split counts | train 282 / dev 207 / test 207 |
 | latest evaluated manifest | `public-sample-20260617T152259Z` |
 | latest model run type | prediction-only retry on the scaled dev/test split using the existing `a100-current-train-split-sft-retry` private adapter |
 | latest model interpretation | `formal_public_heldout_partial_signal` |
 | latest model evidence | `reports/public-sample/a100-scaled-public-sample-current-123-adapter-prediction-baseline-after-a100-recovery/` |
+| latest canonical slot-boundary formal merge evidence | `reports/public-sample/canonical-slot-boundary-formal-merge/` |
+| latest canonical slot-boundary formal merge result | promoted exactly 7 reviewed train-only canonical slot-boundary candidate seeds into the formal public sample; rebuilt formal seed/SFT/DPO/manifest artifacts to 247 / 696 / 2100; `comparison_boundary.changed=true`; no training, prediction, A100 execution, prompt change, postprocessor implementation, evaluator metric change, or model-quality claim |
+| latest canonical slot-boundary formal merge recommended next step | only a later bounded prediction-only or training phase may bind to `public-sample-20260619T090925Z`; old held-out metrics are not directly comparable |
 | latest canonical slot-boundary row-level candidate materialization evidence | `reports/public-sample/canonical-slot-boundary-row-level-candidates/` |
-| latest canonical slot-boundary row-level candidate materialization result | 7 train-only standalone candidate seed rows in `data/public-samples/canonical_slot_boundary_seed_candidates.jsonl`; 21 report-local SFT preview rows; `standalone_not_formal_public_sample`; no formal data mutation |
-| latest canonical slot-boundary row-level candidate materialization recommended next step | a later formal merge review/apply phase can inspect this source; direct merge is not implemented now |
+| latest canonical slot-boundary row-level candidate materialization result | 7 train-only standalone candidate seed rows in `data/public-samples/canonical_slot_boundary_seed_candidates.jsonl`; 21 report-local SFT preview rows; `standalone_not_formal_public_sample`; no formal data mutation in that phase |
+| latest canonical slot-boundary row-level candidate materialization recommended next step | completed by the later bounded formal merge phase; keep the phase sequence explicit |
 | latest canonical slot-boundary formal-merge proposal evidence | `reports/public-sample/canonical-slot-boundary-formal-merge-proposal/` |
 | latest canonical slot-boundary formal-merge proposal result | prior proposal/readiness evidence only; it failed closed with `formal_merge_ready_now=false` because the exact reviewed row-level source did not exist in that phase |
-| latest canonical slot-boundary formal-merge proposal recommended next step | now completed by the standalone row-level candidate materialization; do not retroactively treat the proposal as direct merge approval |
+| latest canonical slot-boundary formal-merge proposal recommended next step | completed by the standalone row-level candidate materialization and later formal merge; do not retroactively treat the proposal as direct merge approval |
 | latest canonical slot-boundary candidate review evidence | `reports/public-sample/canonical-slot-boundary-candidate-review/` |
 | latest canonical slot-boundary candidate review result | review-only class decisions: slot-key aliases and conservative slot-value boundaries are eligible only for a later bounded formal-merge proposal; normalized-command examples remain diagnostic/display-only; excluded non-equivalence cases remain blocked or deferred |
 | latest canonical slot-boundary candidate review recommended next step | `propose-canonical-slot-boundary-formal-merge-after-review`, as a separate bounded OpenSpec proposal only |
@@ -130,14 +135,15 @@ Current formal public sample data boundary:
 | prior SFT v3 retry manifest | `public-sample-20260616T074315Z` |
 | prior SFT v3 retry interpretation | `form_fill_sft_v3_partial_improvement_with_safety_regression_risk` |
 
-The metric table below is the latest observed model evidence, bound to
-`public-sample-20260617T152259Z`. It is a prediction-only A100 recovery retry
+The metric table below is still the latest observed model evidence, bound to
+`public-sample-20260617T152259Z`, not to the current
+`public-sample-20260619T090925Z` data boundary. It is a prediction-only A100 recovery retry
 using the existing private `a100-current-train-split-sft-retry` adapter trained
 on `public-sample-20260617T045941Z`. It did not train, repair predictions,
 normalize slots, change prompts, relax metrics, or publish a checkpoint/adapter.
-Because the source adapter and target evaluation manifest differ, this is a
-new-boundary baseline and not a clean improvement/regression comparison against
-the prior current-123 metrics.
+Because the source adapter, evaluated manifest, and current formal data boundary
+now differ, this remains historical model evidence and is not directly
+comparable to future metrics on the canonical slot-boundary merged manifest.
 
 Scaled-manifest current-123 adapter prediction-only metrics:
 

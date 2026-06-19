@@ -23,9 +23,9 @@ MERGE_EVIDENCE_DIR = (
 )
 
 EXPECTED_EXTENSION_IDS = {row["id"] for row in read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)}
-PRE_MERGE_COUNTS = {"dpo_pairs": 1938, "seed_rows": 228, "sft_rows": 663}
-EXPECTED_COUNTS = {"dpo_pairs": 2046, "seed_rows": 240, "sft_rows": 675}
-EXPECTED_SPLITS = {"dev": 207, "test": 207, "train": 261}
+PRE_MERGE_COUNTS = {"dpo_pairs": 1992, "seed_rows": 235, "sft_rows": 684}
+EXPECTED_COUNTS = {"dpo_pairs": 2100, "seed_rows": 247, "sft_rows": 696}
+EXPECTED_SPLITS = {"dev": 207, "test": 207, "train": 282}
 HISTORICAL_PRE_MERGE_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
 HISTORICAL_EXPECTED_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 HISTORICAL_EXPECTED_SPLITS = {"dev": 69, "test": 69, "train": 114}

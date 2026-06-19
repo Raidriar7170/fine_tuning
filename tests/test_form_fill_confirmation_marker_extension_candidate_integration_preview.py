@@ -31,12 +31,15 @@ COMMITTED_REPORT_DIR = (
     / "form-fill-confirmation-marker-extension-candidate-integration-preview"
 )
 PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 1938, "seed_rows": 228, "sft_rows": 663}
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 2046, "seed_rows": 240, "sft_rows": 675}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 2100, "seed_rows": 247, "sft_rows": 696}
 EXPECTED_PREVIEW_COUNTS = {"dpo_pairs": 2046, "seed_rows": 240, "sft_rows": 675}
 EXPECTED_PREVIEW_SPLITS = {"dev": 207, "test": 207, "train": 261}
 HISTORICAL_PRE_MERGE_FORMAL_COUNTS = {"dpo_pairs": 742, "seed_rows": 86, "sft_rows": 240}
 HISTORICAL_PREVIEW_COUNTS = {"dpo_pairs": 850, "seed_rows": 98, "sft_rows": 252}
 EXPECTED_CANDIDATE_IDS = {row["id"] for row in read_jsonl(FORM_FILL_EXTENSION_CANDIDATE_SEED)}
+CANONICAL_SLOT_BOUNDARY_IDS = {
+    row["id"] for row in read_jsonl(PUBLIC_SAMPLE_DIR / "canonical_slot_boundary_seed_candidates.jsonl")
+}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
@@ -46,7 +49,10 @@ def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:
 def _write_pre_merge_formal_seed(tmp_path: Path) -> Path:
     seed_path = tmp_path / "pre_merge_seed_traces.jsonl"
     seed_rows = [
-        row for row in read_jsonl(FORMAL_SEED) if row["id"] not in EXPECTED_CANDIDATE_IDS
+        row
+        for row in read_jsonl(FORMAL_SEED)
+        if row["id"] not in EXPECTED_CANDIDATE_IDS
+        and row["id"] not in CANONICAL_SLOT_BOUNDARY_IDS
     ]
     assert len(seed_rows) == PRE_MERGE_FORMAL_COUNTS["seed_rows"]
     write_jsonl(seed_path, seed_rows)

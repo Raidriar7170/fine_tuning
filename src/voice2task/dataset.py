@@ -206,6 +206,17 @@ _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES: dict[str, dict[str, A
 EXPECTED_CURRENT_RETRY_CONFIRMATION_PRESERVATION_CANDIDATE_IDS = frozenset(
     str(spec["id"]) for spec in _CURRENT_RETRY_CONFIRMATION_PRESERVATION_FAMILY_TEMPLATES.values()
 )
+EXPECTED_CANONICAL_SLOT_BOUNDARY_CANDIDATE_IDS = frozenset(
+    {
+        "slot-key-alias-search-text-query",
+        "slot-key-alias-site-url",
+        "slot-key-alias-field-value",
+        "slot-value-boundary-whitespace-trim",
+        "slot-value-boundary-fullwidth-punctuation",
+        "slot-value-boundary-filler-removal",
+        "slot-value-boundary-url-email-casing",
+    }
+)
 EXPECTED_BLOCKED_PAYMENT_SAFETY_REPAIR_CANDIDATE_IDS = frozenset(
     str(template["id"]) for template in _BLOCKED_PAYMENT_SAFETY_REPAIR_FAMILY_TEMPLATES.values()
 )
@@ -2000,6 +2011,44 @@ def _current_retry_confirmation_preservation_formal_sft_count(rows: list[SFTData
     )
 
 
+def _is_formal_canonical_slot_boundary_seed(row: dict[str, Any]) -> bool:
+    provenance = row.get("provenance") or {}
+    return (
+        provenance.get("source_mode") == "canonical_slot_boundary_formal_public_seed"
+        and provenance.get("candidate_status") == "formal_public_sample"
+    )
+
+
+def _canonical_slot_boundary_formal_seed_count(seed_rows: list[dict[str, Any]]) -> int:
+    return sum(1 for row in seed_rows if _is_formal_canonical_slot_boundary_seed(row))
+
+
+def _canonical_slot_boundary_formal_seed_split_counts(seed_rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = Counter(row["split"] for row in seed_rows if _is_formal_canonical_slot_boundary_seed(row))
+    return {split: counts.get(split, 0) for split in ("dev", "test", "train")}
+
+
+def _canonical_slot_boundary_formal_class_counts(seed_rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = Counter(
+        str((row.get("provenance") or {}).get("eligible_source_class"))
+        for row in seed_rows
+        if _is_formal_canonical_slot_boundary_seed(row)
+    )
+    return {
+        "slot_key_aliases": counts.get("slot_key_aliases", 0),
+        "slot_value_boundaries": counts.get("slot_value_boundaries", 0),
+    }
+
+
+def _canonical_slot_boundary_formal_sft_count(rows: list[SFTDatasetRow]) -> int:
+    return sum(
+        1
+        for row in rows
+        if row.provenance.get("source_id") in EXPECTED_CANONICAL_SLOT_BOUNDARY_CANDIDATE_IDS
+        and row.provenance.get("candidate_status") == "formal_public_sample"
+    )
+
+
 def _is_formal_scaled_public_sample_seed(row: dict[str, Any]) -> bool:
     provenance = row.get("provenance") or {}
     return (
@@ -2133,6 +2182,31 @@ def _formal_current_retry_confirmation_preservation_candidate_seed(
         "source_mode": "current_retry_confirmation_preservation_formal_public_seed",
         "public_safe": True,
         "candidate_status": "formal_public_sample",
+        "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
+    }
+    validate_public_record(merged)
+    return merged
+
+
+def _formal_canonical_slot_boundary_candidate_seed(
+    row: dict[str, Any],
+    candidate_seed_path: Path,
+) -> dict[str, Any]:
+    provenance = dict(row.get("provenance") or {})
+    if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+        raise ValueError(
+            "canonical slot-boundary candidate seeds must originate from standalone status: "
+            f"{row.get('id')}"
+        )
+    merged = dict(row)
+    merged["split"] = "train"
+    merged["provenance"] = {
+        **provenance,
+        "source_mode": "canonical_slot_boundary_formal_public_seed",
+        "public_safe": True,
+        "candidate_status": "formal_public_sample",
+        "formal_public_sample_status": "added",
+        "source_candidate_id": str(row["id"]),
         "merged_from_candidate_seed": _safe_artifact_ref(candidate_seed_path),
     }
     validate_public_record(merged)
@@ -3399,6 +3473,59 @@ def _validate_reviewed_current_retry_confirmation_preservation_candidate_seed_ro
                 "current-retry confirmation-preservation candidate seed has unsupported candidate_family"
             )
         validate_public_record(row)
+
+
+def _validate_reviewed_canonical_slot_boundary_candidate_seed_rows(
+    candidate_seed_rows: list[dict[str, Any]],
+) -> None:
+    observed_ids = [str(row.get("id")) for row in candidate_seed_rows]
+    duplicate_ids = sorted(row_id for row_id, count in Counter(observed_ids).items() if count > 1)
+    if duplicate_ids:
+        raise ValueError(
+            "expected reviewed canonical slot-boundary candidate seed IDs without duplicates, "
+            f"duplicates observed [{', '.join(duplicate_ids)}]"
+        )
+    if set(observed_ids) != EXPECTED_CANONICAL_SLOT_BOUNDARY_CANDIDATE_IDS or len(observed_ids) != len(
+        EXPECTED_CANONICAL_SLOT_BOUNDARY_CANDIDATE_IDS
+    ):
+        expected = ", ".join(sorted(EXPECTED_CANONICAL_SLOT_BOUNDARY_CANDIDATE_IDS))
+        observed = ", ".join(sorted(observed_ids))
+        raise ValueError(
+            "expected reviewed canonical slot-boundary candidate seed IDs "
+            f"[{expected}], observed [{observed}]"
+        )
+
+    class_counts: Counter[str] = Counter()
+    for row in candidate_seed_rows:
+        provenance_raw = row.get("provenance")
+        provenance = provenance_raw if isinstance(provenance_raw, dict) else {}
+        row_id = str(row.get("id"))
+        if row.get("split") != "train":
+            raise ValueError("canonical slot-boundary candidate seeds must stay in train split")
+        if provenance.get("candidate_status") != "standalone_not_formal_public_sample":
+            raise ValueError(
+                "canonical slot-boundary candidate seeds must originate from standalone status: "
+                f"{row_id}"
+            )
+        if provenance.get("public_safe") is not True:
+            raise ValueError(f"canonical slot-boundary candidate seed must be public_safe: {row_id}")
+        if provenance.get("source_mode") != "canonical_slot_boundary_candidate_seed":
+            raise ValueError("canonical slot-boundary candidate seeds must preserve source_mode provenance")
+        if provenance.get("formal_public_sample_status") != "not_added":
+            raise ValueError("canonical slot-boundary candidate seeds must be standalone not_added rows")
+        if provenance.get("source_candidate_id") != row_id:
+            raise ValueError("canonical slot-boundary candidate seed must preserve source_candidate_id")
+        eligible_source_class = provenance.get("eligible_source_class")
+        if eligible_source_class not in {"slot_key_aliases", "slot_value_boundaries"}:
+            raise ValueError("canonical slot-boundary candidate seed has unsupported eligible source class")
+        class_counts[str(eligible_source_class)] += 1
+        validate_public_record(row)
+
+    if dict(sorted(class_counts.items())) != {
+        "slot_key_aliases": 3,
+        "slot_value_boundaries": 4,
+    }:
+        raise ValueError("reviewed canonical slot-boundary candidate seeds have unexpected class counts")
 
 
 def _current_retry_confirmation_preservation_materialization_summary(
@@ -4700,6 +4827,7 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
         _current_retry_confirmation_preservation_formal_seed_count(seed_rows)
     )
     scaled_public_sample_seed_count = _scaled_public_sample_formal_seed_count(seed_rows)
+    canonical_slot_boundary_seed_count = _canonical_slot_boundary_formal_seed_count(seed_rows)
     source_summary: dict[str, Any] = {
         "seed_rows": len(seed_rows),
         "source": "sanitized_public_seed_fixture",
@@ -4797,6 +4925,26 @@ def build_public_sample_dataset(seed_path: Path, output_dir: Path) -> DatasetMan
                     _scaled_public_sample_formal_candidate_group_counts(seed_rows)
                 ),
                 "scaled_public_sample_family_counts": _scaled_public_sample_formal_family_counts(seed_rows),
+                "comparison_boundary_changed": True,
+                "comparison_boundary_warning": (
+                    "formal public sample boundary changed; old metrics are not directly comparable"
+                ),
+            }
+        )
+    if canonical_slot_boundary_seed_count:
+        source_summary.update(
+            {
+                "canonical_slot_boundary_candidate_seed_rows": canonical_slot_boundary_seed_count,
+                "canonical_slot_boundary_candidate_sft_rows": (
+                    _canonical_slot_boundary_formal_sft_count(rows)
+                ),
+                "canonical_slot_boundary_candidates_formal_public_sample": True,
+                "canonical_slot_boundary_seed_split_counts": (
+                    _canonical_slot_boundary_formal_seed_split_counts(seed_rows)
+                ),
+                "canonical_slot_boundary_candidate_class_counts": (
+                    _canonical_slot_boundary_formal_class_counts(seed_rows)
+                ),
                 "comparison_boundary_changed": True,
                 "comparison_boundary_warning": (
                     "formal public sample boundary changed; old metrics are not directly comparable"
@@ -4905,6 +5053,38 @@ def merge_scaled_public_sample_candidates_into_public_sample(
 
     merged_candidates = [
         _formal_scaled_public_sample_candidate_seed(row, candidate_seed_path=candidate_seed_path)
+        for row in candidate_seed_rows
+    ]
+    for row in merged_candidates:
+        as_contract(row["target_contract"])
+
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(seed_path, [*seed_rows, *merged_candidates])
+    return build_public_sample_dataset(seed_path=seed_path, output_dir=output_dir)
+
+
+def merge_canonical_slot_boundary_candidates_into_public_sample(
+    *,
+    candidate_seed_path: Path,
+    seed_path: Path,
+    output_dir: Path,
+) -> DatasetManifest:
+    """Merge reviewed canonical slot-boundary candidate seeds into the formal public sample."""
+
+    seed_rows = _read_seed_rows(seed_path)
+    candidate_seed_rows = read_jsonl(candidate_seed_path)
+    _validate_reviewed_canonical_slot_boundary_candidate_seed_rows(candidate_seed_rows)
+    existing_ids = {str(row["id"]) for row in seed_rows}
+    duplicate_ids = sorted(str(row["id"]) for row in candidate_seed_rows if str(row["id"]) in existing_ids)
+    if duplicate_ids:
+        raise ValueError(
+            "canonical slot-boundary candidate seed IDs already exist in public sample: "
+            f"{', '.join(duplicate_ids)}"
+        )
+
+    merged_candidates = [
+        _formal_canonical_slot_boundary_candidate_seed(row, candidate_seed_path=candidate_seed_path)
         for row in candidate_seed_rows
     ]
     for row in merged_candidates:
@@ -5084,6 +5264,129 @@ def scaled_public_sample_public_sample_merge_evidence(
             "manifest": _safe_artifact_ref(Path(manifest.files["manifest"])),
             "merge_json": "scaled_public_sample_public_sample_merge.json",
             "merge_markdown": "scaled_public_sample_public_sample_merge.md",
+            "merge_manifest": "manifest.json",
+        },
+        "recommended_next_step": "open_a_separate_prediction_only_eval_phase_on_the_new_manifest_boundary",
+    }
+
+
+def canonical_slot_boundary_public_sample_merge_evidence(
+    *,
+    manifest: DatasetManifest,
+    candidate_seed_path: Path,
+    pre_merge_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    from voice2task.validation import validate_dataset_artifacts
+
+    source_summary = manifest.source_summary
+    candidate_seed_rows = int(source_summary.get("canonical_slot_boundary_candidate_seed_rows", 0))
+    candidate_sft_rows = int(source_summary.get("canonical_slot_boundary_candidate_sft_rows", 0))
+    pre_counts = dict(pre_merge_manifest.get("counts") or {})
+    pre_rejections = dict(pre_merge_manifest.get("dpo_rejection_counts") or {})
+    post_rejections = manifest.dpo_rejection_counts
+    rejection_deltas = {
+        key: int(post_rejections.get(key, 0)) - int(pre_rejections.get(key, 0))
+        for key in HARD_NEGATIVE_CATEGORIES
+    }
+    validation = validate_dataset_artifacts(
+        sft_path=Path(manifest.files["sft"]),
+        dpo_path=Path(manifest.files["dpo"]),
+        manifest_path=Path(manifest.files["manifest"]),
+        public=True,
+    )
+    return {
+        "evidence_kind": "canonical_slot_boundary_public_sample_merge",
+        "merge_status": "formal_public_sample_rebuilt" if validation.ok else "formal_public_sample_validation_failed",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "pre_merge_public_sample_counts": pre_counts,
+        "pre_merge_public_sample_split_counts": dict(pre_merge_manifest.get("split_counts") or {}),
+        "pre_merge_public_sample_dpo_rejection_counts": pre_rejections,
+        "formal_public_sample_counts": manifest.counts,
+        "formal_public_sample_split_counts": manifest.split_counts,
+        "formal_public_sample_dpo_rejection_counts": manifest.dpo_rejection_counts,
+        "source_summary": source_summary,
+        "candidate_source": {
+            "candidate_seed": _safe_artifact_ref(candidate_seed_path),
+            "candidate_seed_rows": candidate_seed_rows,
+            "candidate_sft_rows": candidate_sft_rows,
+            "candidate_dpo_pairs": manifest.counts["dpo_pairs"] - int(pre_counts.get("dpo_pairs", 0)),
+            "candidate_source_mode": "canonical_slot_boundary_candidate_seed",
+            "formal_source_mode": "canonical_slot_boundary_formal_public_seed",
+            "seed_split_counts": source_summary.get("canonical_slot_boundary_seed_split_counts", {}),
+            "eligible_source_class_counts": source_summary.get(
+                "canonical_slot_boundary_candidate_class_counts",
+                {},
+            ),
+            "dpo_rejection_deltas": rejection_deltas,
+        },
+        "validation": {
+            "ok": validation.ok,
+            "failures": validation.failures,
+            "counts": validation.counts,
+        },
+        "comparison_boundary": {
+            "changed": True,
+            "previous_manifest_id": pre_merge_manifest.get("manifest_id"),
+            "new_manifest_id": manifest.manifest_id,
+            "warning": "formal public sample boundary changed; old metrics are not directly comparable",
+            "old_metrics_directly_comparable": False,
+            "direct_improvement_regression_comparison_valid": False,
+        },
+        "metric_authority": {
+            "contract_evaluation_ladder": "authoritative",
+            "contract_exact_match": "authoritative_strict_metric",
+            "slot_f1": "authoritative_strict_metric",
+            "slot_f1_soft": "diagnostic_only_not_primary",
+        },
+        "execution_scope": {
+            "formal_public_sample_modified": True,
+            "seed_traces_modified": True,
+            "sft_artifacts_rebuilt": True,
+            "dpo_artifacts_rebuilt": True,
+            "manifest_rebuilt": True,
+            "training_run": False,
+            "sft_run": False,
+            "dpo_run": False,
+            "grpo_run": False,
+            "prediction_run": False,
+            "a100_execution": False,
+            "prompt_change": False,
+            "postprocessor_implementation": False,
+            "evaluator_metric_change": False,
+            "evaluator_relaxation": False,
+            "semantic_equivalence_scoring": False,
+            "prediction_repair": False,
+            "prediction_replacement": False,
+            "slot_normalization": False,
+            "adapter_release": False,
+            "checkpoint_release": False,
+            "private_corpus_publication": False,
+            "live_browser_benchmark": False,
+        },
+        "claims": {
+            "strict_contract_exact_match_primary_metric": True,
+            "strict_slot_f1_primary_metric": True,
+            "soft_slot_f1_primary_metric": False,
+            "semantic_equivalence_primary_metric": False,
+            "held_out_recovery_claim": False,
+            "held_out_generalization_recovered": False,
+            "model_quality_claim": False,
+            "model_recovery_claim": False,
+            "safety_improvement_claim": False,
+            "checkpoint_release": False,
+            "adapter_release": False,
+            "production_readiness_claim": False,
+            "private_corpus_generalization_claim": False,
+            "public_full_corpus_release_claim": False,
+            "live_browser_benchmark_claim": False,
+        },
+        "artifact_files": {
+            "seed": _safe_artifact_ref(Path(manifest.files["seed"])),
+            "sft": _safe_artifact_ref(Path(manifest.files["sft"])),
+            "dpo": _safe_artifact_ref(Path(manifest.files["dpo"])),
+            "manifest": _safe_artifact_ref(Path(manifest.files["manifest"])),
+            "merge_json": "canonical_slot_boundary_public_sample_merge.json",
+            "merge_markdown": "canonical_slot_boundary_public_sample_merge.md",
             "merge_manifest": "manifest.json",
         },
         "recommended_next_step": "open_a_separate_prediction_only_eval_phase_on_the_new_manifest_boundary",

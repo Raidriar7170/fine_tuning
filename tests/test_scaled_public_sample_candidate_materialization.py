@@ -108,19 +108,19 @@ def test_materialize_scaled_public_sample_candidates_writes_standalone_artifacts
     assert evidence["evidence_kind"] == "scaled_public_sample_candidate_materialization"
     assert evidence["materialization_status"] == "candidate_dataset_materialized"
     assert evidence["summary"]["current_formal_public_sample_counts"] == {
-        "dpo_pairs": 2046,
-        "seed_rows": 240,
-        "sft_rows": 675,
+        "dpo_pairs": 2100,
+        "seed_rows": 247,
+        "sft_rows": 696,
     }
     assert evidence["summary"]["current_formal_public_sample_seed_split_counts"] == {
         "dev": 69,
         "test": 69,
-        "train": 102,
+        "train": 109,
     }
     assert evidence["summary"]["current_formal_public_sample_sft_split_counts"] == {
         "dev": 207,
         "test": 207,
-        "train": 261,
+        "train": 282,
     }
     assert evidence["summary"]["target_counts"] == {
         "core_seed_rows": 220,

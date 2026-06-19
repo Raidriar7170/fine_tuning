@@ -63,6 +63,10 @@ PROTECTED_PATHS = [
     "reports/public-sample/canonical-slot-boundary-candidates",
     "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
 ]
+STILL_PROTECTED_AFTER_FORMAL_MERGE_PATHS = [
+    "reports/public-sample/canonical-slot-boundary-candidates",
+    "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
+]
 
 
 def _review_summary() -> dict:
@@ -194,7 +198,7 @@ def test_review_execution_scope_records_no_data_training_or_evaluator_changes() 
 
 def test_protected_formal_data_and_stale_active_change_are_not_modified() -> None:
     result = subprocess.run(
-        ["git", "status", "--short", "--", *PROTECTED_PATHS],
+        ["git", "status", "--short", "--", *STILL_PROTECTED_AFTER_FORMAL_MERGE_PATHS],
         cwd=REPO_ROOT,
         check=True,
         text=True,

@@ -98,6 +98,13 @@ PROTECTED_PATHS = [
     "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
     "src/voice2task",
 ]
+STILL_PROTECTED_AFTER_FORMAL_MERGE_PATHS = [
+    "reports/public-sample/canonical-slot-boundary-candidates",
+    "reports/public-sample/canonical-slot-boundary-candidate-review",
+    "reports/public-sample/canonical-slot-boundary-formal-merge-proposal",
+    "reports/public-sample/slot-canonicalization-policy",
+    "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
+]
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -262,7 +269,7 @@ def test_report_local_preview_and_evidence_record_standalone_boundary() -> None:
 
 def test_protected_formal_sources_and_source_evidence_are_not_modified() -> None:
     result = subprocess.run(
-        ["git", "status", "--short", "--", *PROTECTED_PATHS],
+        ["git", "status", "--short", "--", *STILL_PROTECTED_AFTER_FORMAL_MERGE_PATHS],
         cwd=REPO_ROOT,
         check=True,
         text=True,

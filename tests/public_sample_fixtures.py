@@ -9,8 +9,8 @@ PRE_SCALED_PUBLIC_SAMPLE_MANIFEST_ID = "public-sample-20260617T045941Z"
 PRE_SCALED_PUBLIC_SAMPLE_COUNTS = {"seed_rows": 102, "sft_rows": 261, "dpo_pairs": 881}
 PRE_SCALED_PUBLIC_SAMPLE_SPLITS = {"train": 123, "dev": 69, "test": 69}
 SCALED_PUBLIC_SAMPLE_MANIFEST_ID = "public-sample-20260617T152259Z"
-SCALED_PUBLIC_SAMPLE_COUNTS = {"seed_rows": 240, "sft_rows": 675, "dpo_pairs": 2046}
-SCALED_PUBLIC_SAMPLE_SPLITS = {"train": 261, "dev": 207, "test": 207}
+SCALED_PUBLIC_SAMPLE_COUNTS = {"seed_rows": 247, "sft_rows": 696, "dpo_pairs": 2100}
+SCALED_PUBLIC_SAMPLE_SPLITS = {"train": 282, "dev": 207, "test": 207}
 
 
 def write_pre_scaled_public_sample_fixture(tmp_path: Path) -> Path:
@@ -21,7 +21,11 @@ def write_pre_scaled_public_sample_fixture(tmp_path: Path) -> Path:
     seed_rows = [
         row
         for row in read_jsonl(PUBLIC_SAMPLE_DIR / "seed_traces.jsonl")
-        if (row.get("provenance") or {}).get("source_mode") != "scaled_public_sample_formal_public_seed"
+        if (row.get("provenance") or {}).get("source_mode")
+        not in {
+            "scaled_public_sample_formal_public_seed",
+            "canonical_slot_boundary_formal_public_seed",
+        }
     ]
     write_jsonl(public_dir / "seed_traces.jsonl", seed_rows)
     manifest = build_public_sample_dataset(seed_path=public_dir / "seed_traces.jsonl", output_dir=public_dir)

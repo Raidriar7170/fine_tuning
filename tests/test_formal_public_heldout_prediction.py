@@ -120,6 +120,7 @@ def test_scaled_public_sample_current_123_adapter_prediction_configs_preserve_bo
 def test_scaled_public_sample_current_123_adapter_prediction_fixture_checks_dev_test_row_selection(
     tmp_path: Path,
 ) -> None:
+    current_manifest = read_json(PUBLIC_SAMPLE_MANIFEST)
     expected_counts = {"dev": 207, "test": 207}
     for split, expected_count in expected_counts.items():
         metadata = run_sft_prediction_export(
@@ -130,7 +131,7 @@ def test_scaled_public_sample_current_123_adapter_prediction_fixture_checks_dev_
             fixture_mode=True,
         )
 
-        assert metadata["dataset_manifest_id"] == SCALED_PUBLIC_SAMPLE_MANIFEST_ID
+        assert metadata["dataset_manifest_id"] == current_manifest["manifest_id"]
         assert metadata["prediction_split"] == split
         assert metadata["prediction_status"] == "fixture_predictions_written"
         assert metadata["prediction_source_kind"] == "public_sample_contract_fixture"

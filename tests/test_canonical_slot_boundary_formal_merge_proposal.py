@@ -81,6 +81,11 @@ PROTECTED_PATHS = [
     "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
     "src/voice2task",
 ]
+STILL_PROTECTED_AFTER_FORMAL_MERGE_PATHS = [
+    "reports/public-sample/canonical-slot-boundary-candidate-review",
+    "reports/public-sample/canonical-slot-boundary-candidates",
+    "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
+]
 
 
 def _proposal_summary() -> dict:
@@ -203,7 +208,7 @@ def test_execution_scope_blocks_data_training_evaluator_and_claim_changes() -> N
 
 def test_protected_sources_formal_data_and_stale_active_change_are_not_modified() -> None:
     result = subprocess.run(
-        ["git", "status", "--short", "--", *PROTECTED_PATHS],
+        ["git", "status", "--short", "--", *STILL_PROTECTED_AFTER_FORMAL_MERGE_PATHS],
         cwd=REPO_ROOT,
         check=True,
         text=True,

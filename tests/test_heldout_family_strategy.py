@@ -55,7 +55,7 @@ def test_heldout_family_strategy_diagnostic_separates_tiny_subset_from_dataset_c
         "seed-form-email",
         "seed-open-example",
     }.issubset(residuals)
-    assert residuals["seed-open-example"]["train_analog_row_count"] == 35
+    assert residuals["seed-open-example"]["train_analog_row_count"] == 41
     assert residuals["seed-open-example"]["tiny_subset_row_count"] == 0
     assert residuals["seed-open-example"]["train_analog_family_id"] == (
         "candidate-current-retry-public-navigation-non-confirmation-preservation"

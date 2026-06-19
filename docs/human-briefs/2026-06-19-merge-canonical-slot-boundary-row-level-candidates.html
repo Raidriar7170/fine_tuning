@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canonical Slot Boundary Formal Merge</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2937;
+      --muted: #5d6675;
+      --line: #d9dee7;
+      --paper: #f7f8fa;
+      --panel: #ffffff;
+      --accent: #0f766e;
+      --warn: #9a3412;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 42px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.92em;
+    }
+    .status {
+      display: inline-flex;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+    }
+    .k {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .v {
+      margin-top: 4px;
+      font-weight: 650;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      font-size: 14px;
+    }
+    th {
+      background: #eef4f2;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .ok {
+      color: var(--accent);
+      font-weight: 650;
+    }
+    .warn {
+      color: var(--warn);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="status">状态：archived / formal public sample rebuilt</div>
+      <h1>Canonical Slot Boundary Formal Merge</h1>
+      <p>结论：本阶段把 7 条 reviewed canonical slot-boundary train-only candidates 合入 formal public sample，并重建 seed/SFT/DPO/manifest；它改变的是数据边界，不是模型效果证据。</p>
+    </header>
+
+    <section class="grid" aria-label="phase facts">
+      <div class="panel">
+        <div class="k">New Manifest</div>
+        <div class="v"><code>public-sample-20260619T090925Z</code></div>
+      </div>
+      <div class="panel">
+        <div class="k">Formal Counts</div>
+        <div class="v ok">247 seed / 696 SFT / 2100 DPO</div>
+      </div>
+      <div class="panel">
+        <div class="k">Candidate Contribution</div>
+        <div class="v">7 seed / 21 SFT / 54 DPO</div>
+      </div>
+      <div class="panel">
+        <div class="k">Comparison Boundary</div>
+        <div class="v warn">old metrics not directly comparable</div>
+      </div>
+    </section>
+
+    <h2>本阶段改了什么</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>项目</th>
+          <th>结果</th>
+          <th>边界</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>formal seed</td>
+          <td class="ok">+7 train rows</td>
+          <td>只来自 <code>slot_key_aliases</code> 和 <code>slot_value_boundaries</code>。</td>
+        </tr>
+        <tr>
+          <td>formal SFT/DPO</td>
+          <td class="ok">+21 SFT / +54 DPO</td>
+          <td>由现有 public dataset builder 重建，不手写 derived artifacts。</td>
+        </tr>
+        <tr>
+          <td>manifest</td>
+          <td class="ok">records canonical counts</td>
+          <td>记录 candidate class counts、train-only split counts 和 comparison warning。</td>
+        </tr>
+        <tr>
+          <td>model evidence</td>
+          <td class="warn">unchanged</td>
+          <td>没有训练、prediction、A100、prompt、postprocessor 或 evaluator metric change。</td>
+        </tr>
+        <tr>
+          <td>runtime budget hygiene</td>
+          <td class="ok">URL examples shortened</td>
+          <td>仅把本阶段 formalized canonical URL examples 压缩到 reserved <code>.test</code> 域名，避免新增 SFT 行超过 2048 runtime sequence budget；不改变 prompt、evaluator 或 metric。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>关键文件</h2>
+    <ul>
+      <li><code>data/public-samples/seed_traces.jsonl</code></li>
+      <li><code>data/public-samples/sft_public_sample.jsonl</code></li>
+      <li><code>data/public-samples/dpo_public_sample.jsonl</code></li>
+      <li><code>data/public-samples/manifest_public_sample.json</code></li>
+      <li><code>reports/public-sample/canonical-slot-boundary-formal-merge/canonical_slot_boundary_public_sample_merge.json</code></li>
+      <li><code>reports/public-sample/canonical-slot-boundary-formal-merge/canonical_slot_boundary_public_sample_merge.md</code></li>
+      <li><code>tests/test_canonical_slot_boundary_public_sample_merge.py</code></li>
+    </ul>
+
+    <h2>验证</h2>
+    <ul>
+      <li><code>PYTHONPATH=src python -m pytest tests/test_formal_public_heldout_prediction.py::test_scaled_public_sample_current_123_adapter_prediction_fixture_checks_dev_test_row_selection tests/test_formatting_training.py::test_public_sample_sft_training_text_stays_within_runtime_sequence_budget tests/test_heldout_family_strategy.py::test_heldout_family_strategy_diagnostic_separates_tiny_subset_from_dataset_coverage tests/test_canonical_slot_boundary_public_sample_merge.py -q</code>：13 passed。</li>
+      <li><code>PYTHONPATH=src python -m pytest -q</code>：498 passed。</li>
+      <li><code>PYTHONPATH=src python -m voice2task.cli.data validate --sft data/public-samples/sft_public_sample.jsonl --dpo data/public-samples/dpo_public_sample.jsonl --manifest data/public-samples/manifest_public_sample.json --public</code>：ok=true，SFT 696 / DPO 2100。</li>
+      <li><code>PYTHONPATH=src python -m voice2task.cli.data dpo-check --dpo data/public-samples/dpo_public_sample.jsonl</code>：total_pairs=2100。</li>
+      <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：7 passed。</li>
+      <li><code>PYTHONPATH=src python -m voice2task.cli.report leak-scan ...</code>：ok=true，记录在 <code>reports/public-sample/canonical-slot-boundary-formal-merge/leak_scan_result.json</code>。</li>
+      <li><code>uv run ruff check .</code>：All checks passed。</li>
+      <li><code>git diff --check</code>：passed。</li>
+      <li>Reviewer Must Fix：已补 missing candidate row 与 duplicate candidate row 的 focused tests。</li>
+    </ul>
+
+    <h2>不要过度宣称</h2>
+    <p>这不是 held-out recovery、不是 model-quality improvement、不是 safety improvement、不是 adapter/checkpoint release、不是 production readiness，也不是 <code>slot_f1_soft</code> 或 semantic-equivalence recovery evidence。strict <code>contract_exact_match</code> 与 strict <code>slot_f1</code> 仍是后续评估的权威指标。</p>
+
+    <h2>推荐下一步</h2>
+    <p>后续如果继续模型证据，应另开 bounded prediction-only 或 training-readiness phase，显式绑定 <code>public-sample-20260619T090925Z</code>。</p>
+  </main>
+</body>
+</html>

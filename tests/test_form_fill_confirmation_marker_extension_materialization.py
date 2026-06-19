@@ -34,7 +34,7 @@ COMMITTED_REPORT_DIR = (
     / "public-sample"
     / "form-fill-confirmation-marker-extension-materialized-candidates"
 )
-CURRENT_FORMAL_COUNTS = {"dpo_pairs": 2046, "seed_rows": 240, "sft_rows": 675}
+CURRENT_FORMAL_COUNTS = {"dpo_pairs": 2100, "seed_rows": 247, "sft_rows": 696}
 
 
 def _sha256_by_path(paths: list[Path]) -> dict[Path, str]:

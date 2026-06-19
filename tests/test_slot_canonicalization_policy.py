@@ -5,7 +5,6 @@ from voice2task.layered_evaluation import normalize_slot_key
 from voice2task.leak_scan import scan_paths
 from voice2task.schemas import BrowserTaskContract, canonical_contract_json
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 POLICY_DIR = REPO_ROOT / "reports" / "public-sample" / "slot-canonicalization-policy"
 HUMAN_BRIEF = REPO_ROOT / "docs" / "human-briefs" / "2026-06-18-design-slot-canonicalization-policy.html"

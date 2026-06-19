@@ -21,9 +21,12 @@ SCALED_CANDIDATE_SEED = PUBLIC_SAMPLE_DIR / "scaled_public_sample_seed_candidate
 MERGE_EVIDENCE_DIR = REPO_ROOT / "reports" / "public-sample" / "scaled-public-sample-merge"
 
 EXPECTED_SCALED_IDS = {row["id"] for row in read_jsonl(SCALED_CANDIDATE_SEED)}
-PRE_MERGE_COUNTS = {"dpo_pairs": 881, "seed_rows": 102, "sft_rows": 261}
-EXPECTED_COUNTS = {"dpo_pairs": 2046, "seed_rows": 240, "sft_rows": 675}
-EXPECTED_SPLITS = {"dev": 207, "test": 207, "train": 261}
+PRE_MERGE_COUNTS = {"dpo_pairs": 935, "seed_rows": 109, "sft_rows": 282}
+EXPECTED_COUNTS = {"dpo_pairs": 2100, "seed_rows": 247, "sft_rows": 696}
+EXPECTED_SPLITS = {"dev": 207, "test": 207, "train": 282}
+HISTORICAL_PRE_MERGE_COUNTS = {"dpo_pairs": 881, "seed_rows": 102, "sft_rows": 261}
+HISTORICAL_EXPECTED_COUNTS = {"dpo_pairs": 2046, "seed_rows": 240, "sft_rows": 675}
+HISTORICAL_EXPECTED_SPLITS = {"dev": 207, "test": 207, "train": 261}
 EXPECTED_SEED_SPLITS = {"dev": 46, "test": 46, "train": 46}
 EXPECTED_GROUP_COUNTS = {
     "confirmation_boundary_overlay": 20,
@@ -276,15 +279,15 @@ def test_committed_scaled_public_sample_merge_evidence_is_public_safe() -> None:
     evidence_manifest = read_json(MERGE_EVIDENCE_DIR / "manifest.json")
 
     assert evidence["evidence_kind"] == "scaled_public_sample_public_sample_merge"
-    assert evidence["pre_merge_public_sample_counts"] == PRE_MERGE_COUNTS
+    assert evidence["pre_merge_public_sample_counts"] == HISTORICAL_PRE_MERGE_COUNTS
     assert evidence["execution_scope"]["training_run"] is False
     assert evidence["execution_scope"]["prediction_run"] is False
     assert evidence["execution_scope"]["a100_execution"] is False
     assert evidence["execution_scope"]["prompt_change"] is False
     assert evidence["execution_scope"]["slot_normalization"] is False
     assert evidence["candidate_source"]["candidate_dpo_pairs"] == 1165
-    assert evidence_manifest["formal_public_sample_counts"] == EXPECTED_COUNTS
-    assert evidence_manifest["formal_public_sample_split_counts"] == EXPECTED_SPLITS
+    assert evidence_manifest["formal_public_sample_counts"] == HISTORICAL_EXPECTED_COUNTS
+    assert evidence_manifest["formal_public_sample_split_counts"] == HISTORICAL_EXPECTED_SPLITS
     assert evidence_manifest["claims"]["held_out_generalization_recovered"] is False
     assert evidence_manifest["claims"]["model_quality_claim"] is False
     assert evidence_manifest["claims"]["adapter_release"] is False

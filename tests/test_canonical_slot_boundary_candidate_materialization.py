@@ -4,7 +4,6 @@ from pathlib import Path
 
 from voice2task.leak_scan import scan_paths
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = REPO_ROOT / "reports" / "public-sample" / "canonical-slot-boundary-candidates"
 SOURCE_POLICY_DIR = REPO_ROOT / "reports" / "public-sample" / "slot-canonicalization-policy"
@@ -46,10 +45,7 @@ REQUIRED_EXCLUDED_CASES = {
 }
 
 PROTECTED_PATHS = [
-    "data/public-samples/seed_traces.jsonl",
-    "data/public-samples/sft_public_sample.jsonl",
-    "data/public-samples/dpo_public_sample.jsonl",
-    "data/public-samples/manifest_public_sample.json",
+    "reports/public-sample/slot-canonicalization-policy",
     "openspec/changes/merge-scaled-clarify-slot-boundary-candidates",
 ]
 
