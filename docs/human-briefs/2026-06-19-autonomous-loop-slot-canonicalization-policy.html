@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opsx Auto Loop Closeout</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2937;
+      --muted: #5d6675;
+      --line: #d9dee7;
+      --paper: #f7f8fa;
+      --panel: #ffffff;
+      --accent: #0f766e;
+      --warn: #9a3412;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 32px 20px 44px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin: 26px 0 10px;
+      font-size: 18px;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.92em;
+    }
+    .status {
+      display: inline-flex;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+    }
+    .k {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .v {
+      margin-top: 4px;
+      font-weight: 650;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      font-size: 14px;
+    }
+    th {
+      background: #eef4f2;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .ok {
+      color: var(--accent);
+      font-weight: 650;
+    }
+    .warn {
+      color: var(--warn);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="status">状态：stopped / explicit user stop</div>
+      <h1>Opsx Auto Loop Closeout</h1>
+      <p>结论：本轮已完成 slot canonicalization policy 到 canonical formal merge，再到当前 manifest prediction-only blocked baseline 的一组 OpenSpec 阶段；最后一步只读评估确认 scaled clarify merge 仍可继续，但按用户要求在当前步骤结束后收尾。</p>
+      <p><strong>End condition: explicit_user_stop - 用户明确要求“当前步骤结束后收尾”。</strong></p>
+    </header>
+
+    <section class="grid" aria-label="loop facts">
+      <div class="panel">
+        <div class="k">Current Manifest</div>
+        <div class="v"><code>public-sample-20260619T090925Z</code></div>
+      </div>
+      <div class="panel">
+        <div class="k">Formal Counts</div>
+        <div class="v ok">247 seed / 696 SFT / 2100 DPO</div>
+      </div>
+      <div class="panel">
+        <div class="k">Latest Current-Boundary Model Evidence</div>
+        <div class="v warn">blocked before prediction</div>
+      </div>
+      <div class="panel">
+        <div class="k">Next Action Executed</div>
+        <div class="v warn">no - blocked by explicit_user_stop</div>
+      </div>
+    </section>
+
+    <h2>本轮完成阶段</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>阶段</th>
+          <th>结果</th>
+          <th>提交</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Slot canonicalization policy</td>
+          <td>建立 slot key/value/normalized_command 边界，作为后续候选设计来源。</td>
+          <td><code>3467fc1</code></td>
+        </tr>
+        <tr>
+          <td>Canonical slot-boundary candidate materialization</td>
+          <td>生成 public-safe report-local canonical candidates，不合入 formal data。</td>
+          <td><code>c742d79</code></td>
+        </tr>
+        <tr>
+          <td>Canonical candidate review</td>
+          <td>确认 slot-key aliases 和保守 slot-value boundaries 只可进入后续 bounded merge proposal。</td>
+          <td><code>93f476b</code></td>
+        </tr>
+        <tr>
+          <td>Formal-merge proposal/readiness</td>
+          <td>失败关闭旧 proposal，因为当时缺少 exact reviewed row-level source。</td>
+          <td><code>fc7d72d</code></td>
+        </tr>
+        <tr>
+          <td>Row-level canonical candidate materialization</td>
+          <td>生成 7 条 train-only standalone seed candidates 和 21 条 report-local SFT preview rows。</td>
+          <td><code>9da7ee1</code></td>
+        </tr>
+        <tr>
+          <td>Canonical formal merge</td>
+          <td>把 7 条 reviewed canonical seeds 合入 formal public sample，重建为 247 / 696 / 2100。</td>
+          <td><code>879494d</code></td>
+        </tr>
+        <tr>
+          <td>Current canonical-boundary prediction baseline</td>
+          <td>绑定当前 manifest，sanitized read-only A100 preflight 超时；发布 blocked evidence，无 predictions/metrics。</td>
+          <td><code>68eeae1</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>当前步骤结果</h2>
+    <p>只读 Explorer 评估了 active change <code>merge-scaled-clarify-slot-boundary-candidates</code>。结论：该 change 仍可安全应用，但必须先刷新 stale pre-merge boundary：从旧 <code>public-sample-20260617T152259Z</code> / 240 / 675 / 2046 更新为当前 <code>public-sample-20260619T090925Z</code> / 247 / 696 / 2100。</p>
+    <table>
+      <thead>
+        <tr>
+          <th>如果后续执行 scaled clarify merge</th>
+          <th>预计结果</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Post-merge counts</td>
+          <td>256 seed / 723 SFT / 2181 DPO</td>
+        </tr>
+        <tr>
+          <td>Post-merge SFT split counts</td>
+          <td>train 291 / dev 216 / test 216</td>
+        </tr>
+        <tr>
+          <td>Candidate contribution</td>
+          <td>9 seed / 27 SFT / 81 DPO；9 个 clarify hard-negative categories 各 +9。</td>
+        </tr>
+        <tr>
+          <td>下一步状态</td>
+          <td class="warn">未执行；用户要求当前步骤结束后收尾。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>CONTEXT.md Goal Matrix</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>目标 / 约束</th>
+          <th>当前证据</th>
+          <th>状态</th>
+          <th>剩余缺口</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>保持 public/private 和指标边界</td>
+          <td>所有新 evidence 均保留 no training、no prediction repair、no evaluator relaxation、no adapter/checkpoint release；leak scan 通过。</td>
+          <td class="ok">closed for completed phases</td>
+          <td>后续 runtime observed 阶段仍需 fresh preflight 和 leak scan。</td>
+        </tr>
+        <tr>
+          <td>把 canonical slot-boundary candidates 合入 formal public sample</td>
+          <td><code>reports/public-sample/canonical-slot-boundary-formal-merge/</code>；manifest <code>public-sample-20260619T090925Z</code>。</td>
+          <td class="ok">closed</td>
+          <td>无；后续不能把该 data merge 包装成 model recovery。</td>
+        </tr>
+        <tr>
+          <td>当前 manifest model evidence</td>
+          <td><code>reports/public-sample/a100-current-canonical-boundary-prediction-baseline/</code> 是 blocked evidence。</td>
+          <td class="warn">open</td>
+          <td>仍缺 observed dev/test predictions 和 strict metrics，因为 A100 preflight timeout。</td>
+        </tr>
+        <tr>
+          <td>scaled clarify standalone candidates 的 formal merge</td>
+          <td>Explorer 确认 9 条候选仍未合入，change 仍可安全应用。</td>
+          <td class="warn">open</td>
+          <td>需刷新 stale boundary 后执行 active OpenSpec change。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>项目阶段进度</h2>
+    <ul>
+      <li>当前 project-stage target：<code>not explicitly defined</code>；本轮依据 <code>CONTEXT.md</code> 和 OpenSpec artifacts 推进 evidence ladder。</li>
+      <li>本轮推进：policy -> candidates -> review -> row-level source -> formal data merge -> current-boundary blocked prediction evidence。</li>
+      <li>剩余能力缺口：scaled clarify formal merge 尚未应用；当前 manifest 尚无 observed model metrics。</li>
+      <li>剩余证据缺口：A100 prediction-only observed run 需要可达的远端 preflight、idle GPU、private adapter 验证和 sanitized metrics。</li>
+      <li>下一阶段计划：恢复时优先处理 <code>merge-scaled-clarify-slot-boundary-candidates</code>，先刷新 stale boundary，再按 TDD/Reviewer/validation/archive 执行。</li>
+    </ul>
+
+    <h2>验证摘要</h2>
+    <ul>
+      <li>Canonical formal merge closeout：focused tests、full pytest、ruff、OpenSpec all、public data validate、DPO check、leak scan、<code>git diff --check</code> 均通过。</li>
+      <li>Current-boundary prediction baseline closeout：<code>PYTHONPATH=src python -m pytest -q</code> 501 passed；<code>uv run ruff check .</code> passed；OpenSpec all 6 passed after archive；public data validate ok=true；DPO total_pairs=2100；leak scans passed；<code>git diff --check</code> passed。</li>
+      <li>当前只读评估步骤：未修改文件；确认 active scaled clarify change strict validate 通过，预计 post-merge counts 为 256 / 723 / 2181。</li>
+    </ul>
+
+    <h2>Human Briefs</h2>
+    <ul>
+      <li><code>docs/human-briefs/2026-06-18-design-slot-canonicalization-policy.html</code></li>
+      <li><code>docs/human-briefs/2026-06-18-materialize-canonical-slot-boundary-candidates.html</code></li>
+      <li><code>docs/human-briefs/2026-06-18-review-canonical-slot-boundary-candidates-before-merge.html</code></li>
+      <li><code>docs/human-briefs/2026-06-19-propose-canonical-slot-boundary-formal-merge-after-review.html</code></li>
+      <li><code>docs/human-briefs/2026-06-19-materialize-canonical-slot-boundary-row-level-candidates.html</code></li>
+      <li><code>docs/human-briefs/2026-06-19-merge-canonical-slot-boundary-row-level-candidates.html</code></li>
+      <li><code>docs/human-briefs/2026-06-19-run-current-canonical-boundary-prediction-baseline.html</code></li>
+    </ul>
+
+    <h2>Integration / Review</h2>
+    <ul>
+      <li>Auto integration：本轮本地提交到 <code>main</code>；未 push、未开 PR、未发布。</li>
+      <li>最新提交：<code>68eeae1</code>、<code>879494d</code>、<code>9da7ee1</code>、<code>fc7d72d</code>、<code>93f476b</code>、<code>c742d79</code>、<code>3467fc1</code>。</li>
+      <li>External review：未使用；没有发送 repo 内容到外部 reviewer。</li>
+      <li>当前 git 状态：收尾报告生成前为 clean；本报告是 closeout artifact。</li>
+    </ul>
+
+    <h2>不要过度宣称</h2>
+    <ul>
+      <li>当前 canonical formal merge 是数据边界更新，不是 held-out recovery。</li>
+      <li>当前-boundary prediction baseline 是 blocked evidence，不是 model-quality evidence。</li>
+      <li>旧 observed metrics 绑定 <code>public-sample-20260617T152259Z</code>，不能和当前 manifest 直接比较。</li>
+      <li><code>slot_f1_soft</code> 仍是 diagnostic-only；strict <code>contract_exact_match</code> 和 strict <code>slot_f1</code> 仍是权威指标。</li>
+    </ul>
+
+    <h2>收尾</h2>
+    <p><strong>Next action executed: no - blocked by explicit_user_stop.</strong></p>
+    <p><strong>End condition: explicit_user_stop - 用户明确要求“当前步骤结束后收尾”。</strong></p>
+  </main>
+</body>
+</html>
