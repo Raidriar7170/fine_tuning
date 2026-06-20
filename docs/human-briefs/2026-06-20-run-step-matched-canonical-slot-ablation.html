@@ -12,7 +12,7 @@
       background: #f7f8fa;
     }
     main {
-      max-width: 940px;
+      max-width: 980px;
       margin: 0 auto;
       padding: 32px 20px 48px;
     }
@@ -26,7 +26,7 @@
       font-size: 17px;
       letter-spacing: 0;
     }
-    p, li {
+    p, li, td, th {
       font-size: 14px;
       line-height: 1.65;
     }
@@ -35,8 +35,8 @@
       margin: 8px 0 18px;
       padding: 4px 10px;
       border-radius: 6px;
-      background: #ffe8d1;
-      color: #793d00;
+      background: #e6f2ff;
+      color: #064b7a;
       font-weight: 600;
       font-size: 13px;
     }
@@ -49,6 +49,20 @@
       padding: 1px 5px;
       border-radius: 4px;
     }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #d8dee6;
+      padding: 6px 8px;
+      text-align: right;
+    }
+    th:first-child, td:first-child {
+      text-align: left;
+    }
     a {
       color: #0b62a3;
       text-decoration: none;
@@ -58,47 +72,73 @@
 <body>
   <main>
     <h1>step-matched canonical slot ablation</h1>
-    <div class="status">状态：blocked</div>
-    <p>结论：本阶段已按 OpenSpec 建立并开始 apply，但 A100 SSH preflight 未连通，所以没有启动训练、预测或指标比较。</p>
+    <div class="status">状态：observed，pilot gate 未通过</div>
+    <p>结论：Treatment 呈现 mixed signal，test executable pass rate 与 strict slot F1 出现 primary regression，pilot gate 未通过；不要继续加少量 canonical candidate，也不要做 DPO，下一阶段建议转向 <code>design-and-implement-contract-v2</code>。</p>
 
     <section>
       <h2>本阶段改变了什么</h2>
       <ul>
-        <li>新增 OpenSpec change：<code>run-step-matched-canonical-slot-ablation</code>。</li>
-        <li>新增 step-matched Control/Treatment SFT 配置模板，显式使用相同 <code>max_steps=3132</code>。</li>
-        <li>新增 dev/test prediction 配置模板，保持同一 base model、prompt、tokenizer、decoding 和 evaluator 边界。</li>
-        <li>训练路径新增 public-safe training-budget metadata，用于真实运行后记录 optimizer steps、effective batch、examples seen 和 target-token exposure。</li>
-        <li>写入单一 blocked artifact：<code>reports/public-sample/step-matched-canonical-slot-ablation/blocked.json</code>。</li>
+        <li>确认 Control/Treatment 的 dev/test row ids、顺序、inputs 和 gold contracts 完全一致。</li>
+        <li>使用同一 base model、LoRA、seed、prompt、tokenizer、decoding 和 evaluator 训练两个 fresh SFT adapters。</li>
+        <li>Control 使用 261 条 train SFT rows；Treatment 使用 282 条 train SFT rows；两者均显式运行 <code>max_steps=3132</code>。</li>
+        <li>在同一 frozen dev/test 上生成四组预测，并输出 paired deltas、family deltas、recoveries/regressions、bootstrap diagnostic 和 decision。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>关键指标</h2>
+      <table>
+        <thead>
+          <tr><th>split / metric</th><th>Control</th><th>Treatment</th><th>Delta</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>dev slot_value_exact_f1</td><td>0.877944</td><td>0.880342</td><td>+0.002398</td></tr>
+          <tr><td>dev executable_contract_pass_rate</td><td>0.855072</td><td>0.864734</td><td>+0.009662</td></tr>
+          <tr><td>test slot_value_exact_f1</td><td>0.819328</td><td>0.820296</td><td>+0.000968</td></tr>
+          <tr><td>test executable_contract_pass_rate</td><td>0.821256</td><td>0.816425</td><td>-0.004831</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Gate 判定</h2>
+      <ul>
+        <li><code>decision_label</code>：<code>REGRESSION_OR_GUARDRAIL_FAILURE</code>。</li>
+        <li>未满足 dev/test slot F1 均提升至少 0.03。</li>
+        <li>未满足 dev/test executable pass rate 均提升至少 0.02，且 test executable pass rate 下降。</li>
+        <li>safety recall 未下降，unsafe false negative 未增加，confirmation accuracy 未下降。</li>
       </ul>
     </section>
 
     <section>
       <h2>关键文件</h2>
       <ul>
-        <li><a href="../../openspec/changes/run-step-matched-canonical-slot-ablation/proposal.md">proposal.md</a></li>
-        <li><a href="../../openspec/changes/run-step-matched-canonical-slot-ablation/design.md">design.md</a></li>
-        <li><a href="../../openspec/changes/run-step-matched-canonical-slot-ablation/tasks.md">tasks.md</a></li>
-        <li><a href="../../reports/public-sample/step-matched-canonical-slot-ablation/blocked.json">blocked.json</a></li>
+        <li><a href="../../reports/public-sample/step-matched-canonical-slot-ablation/boundary-verification.json">boundary-verification.json</a></li>
+        <li><a href="../../reports/public-sample/step-matched-canonical-slot-ablation/comparison.json">comparison.json</a></li>
+        <li><a href="../../reports/public-sample/step-matched-canonical-slot-ablation/comparison.md">comparison.md</a></li>
+        <li><a href="../../reports/public-sample/step-matched-canonical-slot-ablation/decision.md">decision.md</a></li>
       </ul>
     </section>
 
     <section>
       <h2>验证结果</h2>
       <ul>
-        <li><code>openspec validate run-step-matched-canonical-slot-ablation --strict</code>：通过。</li>
-        <li><code>PYTHONPATH=src pytest -q tests/test_training_arguments.py::test_sft_training_budget_metadata_records_observed_step_exposure</code>：通过。</li>
-        <li>A100 preflight：未连通，阶段按规则停止。</li>
+        <li><code>python -m py_compile scripts/run_step_matched_canonical_slot_ablation_eval.py scripts/step_matched_canonical_slot_ablation_report.py src/voice2task/training.py</code>：通过。</li>
+        <li><code>PYTHONPATH=src pytest -q tests/test_step_matched_canonical_slot_ablation_scaffolding.py tests/test_training_arguments.py</code>：9 passed。</li>
+        <li><code>openspec validate --all --strict</code>：7 passed，0 failed。</li>
+        <li>报告 JSON 全量解析、public leak scan、<code>git diff --check</code>：通过。</li>
+        <li>只读 reviewer pass：无 Must Fix；已处理 Human Brief verification Should Fix。</li>
       </ul>
     </section>
 
     <section>
       <h2>不要过度声明</h2>
-      <p>本阶段没有训练 fresh paired adapters，没有生成 dev/test predictions，没有 paired deltas、bootstrap CI 或 pilot gate 结论。因此不能声称 canonical slot-boundary data 有或没有改善模型，也不能声称 held-out recovery、production readiness、safety certification 或 live-browser benchmark improvement。</p>
+      <p>本阶段只有一个固定 seed，且是 step-matched、不是 token-matched。不能声称 public adapter/checkpoint release、production readiness、safety certification、live-browser improvement，或超出指标支持的 held-out recovery。</p>
     </section>
 
     <section>
       <h2>建议下一步</h2>
-      <p>等待 A100 连接恢复后，从同一个 bounded phase 的 preflight 继续；不要新增 design-only、review-only 或 candidate-only evidence phase。</p>
+      <p>停止 candidate-only / DPO 路线；进入 <code>design-and-implement-contract-v2</code>，让模型只预测 <code>task_type</code>、<code>route</code>、<code>safety</code>、<code>confirmation</code> 和 <code>slots</code>，其余字段由 deterministic postprocessor 生成。</p>
     </section>
   </main>
 </body>

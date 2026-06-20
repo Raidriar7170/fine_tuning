@@ -1,0 +1,42 @@
+{
+  "adapter_release_status": "not_released",
+  "arm": "treatment",
+  "base_model_public_id": "Qwen/Qwen2.5-7B-Instruct",
+  "checkpoint_release_status": "not_released",
+  "configured_max_steps": 3132,
+  "effective_batch_size": 1,
+  "learning_rate": 5e-05,
+  "lora": {
+    "alpha": 32,
+    "dropout": 0.05,
+    "r": 16,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj"
+    ]
+  },
+  "observed_optimizer_steps": 3132,
+  "phase": "run-step-matched-canonical-slot-ablation",
+  "previous_control_step_budget": {
+    "optimizer_steps": 3132,
+    "prior_control_gradient_accumulation_steps": 1,
+    "prior_control_num_train_epochs": 12,
+    "prior_control_per_device_train_batch_size": 1,
+    "prior_control_train_rows": 261,
+    "source_type": "reconstructed_from_prior_control_config"
+  },
+  "raw_private_paths_copied_to_git": false,
+  "sanitized_for_public_evidence": true,
+  "scheduler_step_count": 3132,
+  "seed": 7170,
+  "step_matched_not_token_matched": true,
+  "target_tokens_seen": 187287,
+  "target_tokens_seen_status": "estimated_from_label_tokens_and_step_budget",
+  "theoretical_examples_seen": 3132,
+  "train_sft_rows": 282,
+  "trainer": "trl.SFTTrainer",
+  "training_manifest_id": "public-sample-20260619T090925Z",
+  "training_status": "training_completed"
+}

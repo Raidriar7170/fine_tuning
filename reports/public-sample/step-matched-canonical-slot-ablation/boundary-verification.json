@@ -1,0 +1,63 @@
+{
+  "causal_training_allowed": true,
+  "comparison_method": "git_snapshot_content_hashes_by_split",
+  "control": {
+    "manifest_id": "public-sample-20260617T152259Z",
+    "ref": "c25a09874ae10c052364aaf5bfa55ee45b819e9a",
+    "train_sft_rows": 261
+  },
+  "dev_test_gold_boundary_identical": true,
+  "interpretation": "dev/test sample ids, order, inputs, and gold contracts are identical",
+  "phase": "run-step-matched-canonical-slot-ablation",
+  "splits": {
+    "dev": {
+      "control_count": 207,
+      "equal": true,
+      "gold_contract_hash": {
+        "control": "6086ab1aacafec12c1219e3e6353beb93caecc22dab22a2e283f992b710a8d5b",
+        "treatment": "6086ab1aacafec12c1219e3e6353beb93caecc22dab22a2e283f992b710a8d5b"
+      },
+      "gold_contracts_equal": true,
+      "input_content_hash": {
+        "control": "5ce0bdacab45c743fa21a071f1a70aa910e7f993309daec067ecee82e0a8e678",
+        "treatment": "5ce0bdacab45c743fa21a071f1a70aa910e7f993309daec067ecee82e0a8e678"
+      },
+      "input_text_equal": true,
+      "mismatch_examples": [],
+      "row_id_order_hash": {
+        "control": "053b9242e4129b73d3b710955848a4687ca9b8bc56168c2f6ba4e4b66167294f",
+        "treatment": "053b9242e4129b73d3b710955848a4687ca9b8bc56168c2f6ba4e4b66167294f"
+      },
+      "row_order_equal": true,
+      "treatment_count": 207
+    },
+    "test": {
+      "control_count": 207,
+      "equal": true,
+      "gold_contract_hash": {
+        "control": "593f7d167e5698ee3687c2177bba7731cf91740f2d623b7c8966b4063855bc2c",
+        "treatment": "593f7d167e5698ee3687c2177bba7731cf91740f2d623b7c8966b4063855bc2c"
+      },
+      "gold_contracts_equal": true,
+      "input_content_hash": {
+        "control": "084643e77bd6fa8cfb312bccba73f8bfc8aaa107a951d9dce3b755dc8b5d55d5",
+        "treatment": "084643e77bd6fa8cfb312bccba73f8bfc8aaa107a951d9dce3b755dc8b5d55d5"
+      },
+      "input_text_equal": true,
+      "mismatch_examples": [],
+      "row_id_order_hash": {
+        "control": "f66e9a9de8f86e54d227ecc7e1d5288d0387764d26facc757dd0c1625176ccc9",
+        "treatment": "f66e9a9de8f86e54d227ecc7e1d5288d0387764d26facc757dd0c1625176ccc9"
+      },
+      "row_order_equal": true,
+      "treatment_count": 207
+    }
+  },
+  "status": "passed",
+  "train_only_delta_sft_rows": 21,
+  "treatment": {
+    "manifest_id": "public-sample-20260619T090925Z",
+    "ref": "115d060823ca6e90c2f9a3de37fc41eb7a08fa85",
+    "train_sft_rows": 282
+  }
+}

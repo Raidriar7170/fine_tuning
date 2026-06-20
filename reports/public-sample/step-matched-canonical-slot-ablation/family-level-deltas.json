@@ -1,0 +1,139 @@
+{
+  "phase": "run-step-matched-canonical-slot-ablation",
+  "splits": {
+    "dev": [
+      {
+        "count": 30,
+        "exact_delta": 0.033333333333333326,
+        "executable_delta": 0.06666666666666665,
+        "family": "search|search_web|public_readonly|confirm:false|slots:query",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": 0.06666666666666665,
+        "slot_value_exact_f1_delta": 0.06666666666666665,
+        "task_type_accuracy_delta": 0.0
+      },
+      {
+        "count": 42,
+        "exact_delta": 0.0,
+        "executable_delta": 0.023809523809523836,
+        "family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+        "route_accuracy_delta": -0.023809523809523836,
+        "slot_exact_delta": 0.023809523809523836,
+        "slot_value_exact_f1_delta": 0.023809523809523836,
+        "task_type_accuracy_delta": -0.023809523809523836
+      },
+      {
+        "count": 45,
+        "exact_delta": -0.022222222222222143,
+        "executable_delta": -0.022222222222222143,
+        "family": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+        "route_accuracy_delta": 0.022222222222222254,
+        "slot_exact_delta": -0.022222222222222143,
+        "slot_value_exact_f1_delta": -0.022222222222222143,
+        "task_type_accuracy_delta": 0.022222222222222254
+      },
+      {
+        "count": 27,
+        "exact_delta": 0.0,
+        "executable_delta": 0.0,
+        "family": "blocked|deny|unsafe_payment|confirm:true|slots:action,reason",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": 0.0,
+        "slot_value_exact_f1_delta": -0.0185185185185186,
+        "task_type_accuracy_delta": 0.0
+      },
+      {
+        "count": 36,
+        "exact_delta": 0.0,
+        "executable_delta": 0.0,
+        "family": "extract|extract_page|public_readonly|confirm:false|slots:target",
+        "route_accuracy_delta": 0.02777777777777779,
+        "slot_exact_delta": 0.0,
+        "slot_value_exact_f1_delta": 0.0,
+        "task_type_accuracy_delta": 0.02777777777777779
+      },
+      {
+        "count": 27,
+        "exact_delta": 0.0,
+        "executable_delta": 0.0,
+        "family": "navigate|open_url|public_readonly|confirm:false|slots:url",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": 0.0,
+        "slot_value_exact_f1_delta": 0.0,
+        "task_type_accuracy_delta": 0.0
+      }
+    ],
+    "test": [
+      {
+        "count": 27,
+        "exact_delta": 0.07407407407407407,
+        "executable_delta": 0.07407407407407407,
+        "family": "search|search_web|public_readonly|confirm:false|slots:query",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": 0.07407407407407407,
+        "slot_value_exact_f1_delta": 0.07407407407407407,
+        "task_type_accuracy_delta": 0.0
+      },
+      {
+        "count": 45,
+        "exact_delta": -0.04444444444444451,
+        "executable_delta": -0.06666666666666665,
+        "family": "form_fill|fill_form|requires_confirmation|confirm:true|slots:field",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": -0.06666666666666665,
+        "slot_value_exact_f1_delta": -0.06666666666666665,
+        "task_type_accuracy_delta": 0.0
+      },
+      {
+        "count": 3,
+        "exact_delta": 0.3333333333333333,
+        "executable_delta": 0.0,
+        "family": "blocked|deny|unsafe_payment|confirm:true|slots:reason",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": 0.3333333333333333,
+        "slot_value_exact_f1_delta": 0.11111111111111116,
+        "task_type_accuracy_delta": 0.0
+      },
+      {
+        "count": 33,
+        "exact_delta": 0.030303030303030276,
+        "executable_delta": 0.030303030303030276,
+        "family": "extract|extract_page|public_readonly|confirm:false|slots:target",
+        "route_accuracy_delta": 0.030303030303030276,
+        "slot_exact_delta": 0.030303030303030276,
+        "slot_value_exact_f1_delta": 0.030303030303030276,
+        "task_type_accuracy_delta": 0.030303030303030276
+      },
+      {
+        "count": 42,
+        "exact_delta": -0.023809523809523836,
+        "executable_delta": -0.023809523809523836,
+        "family": "clarify|clarify|ambiguous_request|confirm:true|slots:ambiguity",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": -0.023809523809523836,
+        "slot_value_exact_f1_delta": -0.023809523809523836,
+        "task_type_accuracy_delta": 0.0
+      },
+      {
+        "count": 30,
+        "exact_delta": 0.0,
+        "executable_delta": 0.0,
+        "family": "blocked|deny|unsafe_payment|confirm:true|slots:action,reason",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": 0.0,
+        "slot_value_exact_f1_delta": 0.0,
+        "task_type_accuracy_delta": 0.0
+      },
+      {
+        "count": 27,
+        "exact_delta": 0.07407407407407407,
+        "executable_delta": 0.0,
+        "family": "navigate|open_url|public_readonly|confirm:false|slots:url",
+        "route_accuracy_delta": 0.0,
+        "slot_exact_delta": 0.0,
+        "slot_value_exact_f1_delta": 0.0,
+        "task_type_accuracy_delta": 0.0
+      }
+    ]
+  }
+}

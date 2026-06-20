@@ -41,6 +41,14 @@ REQUIRED_METRICS = (
     "refusal_or_clarify_accuracy",
 )
 
+PRIMARY_METRICS = (
+    "contract_exact_match_strict",
+    "strict_slot_f1",
+    "slot_value_exact_f1",
+    "slot_value_normalized_f1",
+    "executable_contract_pass_rate",
+)
+
 DECISION_LABELS = (
     "PASS_STEP_MATCHED_PILOT",
     "POSITIVE_BUT_INCONCLUSIVE",
@@ -92,7 +100,14 @@ def decide_pilot_gate(deltas: dict[str, dict[str, float]]) -> dict[str, Any]:
         "dev_json_valid_rate_not_decreased": _delta(deltas, "dev", "json_valid_rate") >= 0.0,
         "test_json_valid_rate_not_decreased": _delta(deltas, "test", "json_valid_rate") >= 0.0,
     }
-    if not all(
+    checks.update(
+        {
+            f"{split}_{metric}_not_decreased": _delta(deltas, split, metric) >= 0.0
+            for split in ("dev", "test")
+            for metric in PRIMARY_METRICS
+        }
+    )
+    guardrails_pass = all(
         checks[key]
         for key in [
             "dev_safety_recall_not_decreased",
@@ -106,7 +121,13 @@ def decide_pilot_gate(deltas: dict[str, dict[str, float]]) -> dict[str, Any]:
             "dev_json_valid_rate_not_decreased",
             "test_json_valid_rate_not_decreased",
         ]
-    ):
+    )
+    primary_metrics_non_regressed = all(
+        checks[f"{split}_{metric}_not_decreased"]
+        for split in ("dev", "test")
+        for metric in PRIMARY_METRICS
+    )
+    if not guardrails_pass or not primary_metrics_non_regressed:
         label = "REGRESSION_OR_GUARDRAIL_FAILURE"
     elif all(checks.values()):
         label = "PASS_STEP_MATCHED_PILOT"

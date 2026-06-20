@@ -1,0 +1,68 @@
+{
+  "bootstrap_seed": 7170,
+  "interpretation": "paired bootstrap diagnostic only; one seed is not statistical confirmation",
+  "phase": "run-step-matched-canonical-slot-ablation",
+  "resamples": 2000,
+  "splits": {
+    "dev": {
+      "exact": {
+        "ci95": [
+          -0.024154589371980676,
+          0.024154589371980676
+        ],
+        "mean_delta": 4.589371980676329e-05
+      },
+      "executable": {
+        "ci95": [
+          -0.00966183574879227,
+          0.033816425120772944
+        ],
+        "mean_delta": 0.00977536231884058
+      },
+      "slot_value_exact_f1": {
+        "ci95": [
+          -0.016908212560386472,
+          0.03140096618357488
+        ],
+        "mean_delta": 0.00678864734299517
+      },
+      "slot_value_normalized_f1": {
+        "ci95": [
+          -0.016908212560386472,
+          0.03140096618357488
+        ],
+        "mean_delta": 0.007091787439613526
+      }
+    },
+    "test": {
+      "exact": {
+        "ci95": [
+          -0.01932367149758454,
+          0.04830917874396135
+        ],
+        "mean_delta": 0.014557971014492754
+      },
+      "executable": {
+        "ci95": [
+          -0.03864734299516908,
+          0.028985507246376812
+        ],
+        "mean_delta": -0.00508695652173913
+      },
+      "slot_value_exact_f1": {
+        "ci95": [
+          -0.03864734299516908,
+          0.030595813204508854
+        ],
+        "mean_delta": -0.0036706924315619963
+      },
+      "slot_value_normalized_f1": {
+        "ci95": [
+          -0.03864734299516908,
+          0.03059581320450886
+        ],
+        "mean_delta": -0.0028840579710144917
+      }
+    }
+  }
+}

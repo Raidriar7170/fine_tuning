@@ -13,37 +13,34 @@
   base model policy.
 - [x] Add training-budget metadata capture for fresh SFT runs so observed
   optimizer steps and target-token exposure can be summarized safely.
-- [ ] Add public-safe reporting helper(s) for boundary verification,
+- [x] Add public-safe reporting helper(s) for boundary verification,
   training-budget provenance, paired row deltas, family deltas, bootstrap
-  diagnostics, comparison, and bounded decision output. Blocked by A100
-  preflight in this run before metrics existed.
-- [x] Add focused training-budget metadata test. Report/gate tests remain
-  pending because the phase blocked before observed metrics were available.
+  diagnostics, comparison, and bounded decision output.
+- [x] Add focused training-budget metadata test.
 
 ## 3. Runtime Execution
 
 - [x] Inspect A100 connectivity before launching work.
-- [ ] Inspect GPU occupancy before launching work. Blocked because A100 SSH
-  preflight did not connect.
-- [ ] Recover the previous control run's optimizer-step budget from actual or
+- [x] Inspect GPU occupancy before launching work.
+- [x] Recover the previous control run's optimizer-step budget from actual or
   reconstructed training evidence; block if it cannot be recovered honestly.
-- [ ] Verify control/treatment dev/test boundary by row ids, order, inputs, and
+- [x] Verify control/treatment dev/test boundary by row ids, order, inputs, and
   gold contract hashes; block if the held-out boundary is not comparable.
-- [ ] Train fresh control and treatment adapters using the same explicit
+- [x] Train fresh control and treatment adapters using the same explicit
   `max_steps`, batch, gradient accumulation, scheduler steps, seed, prompt,
   tokenizer, LoRA policy, and base model.
-- [ ] Generate sanitized dev/test predictions for both arms on the same frozen
+- [x] Generate sanitized dev/test predictions for both arms on the same frozen
   dev/test rows.
-- [ ] Evaluate primary and guardrail metrics with the existing evaluator.
+- [x] Evaluate primary and guardrail metrics with the existing evaluator.
 
 ## 4. Evidence and Validation
 
-- [x] Write blocked artifact under
+- [x] Write observed comparison artifacts under
   `reports/public-sample/step-matched-canonical-slot-ablation/`.
-- [ ] Write `docs/human-briefs/2026-06-20-run-step-matched-canonical-slot-ablation.html`.
-- [ ] Run focused tests, strict OpenSpec validation, leak/public-safety checks,
+- [x] Write `docs/human-briefs/2026-06-20-run-step-matched-canonical-slot-ablation.html`.
+- [x] Run focused tests, strict OpenSpec validation, leak/public-safety checks,
   and whitespace checks.
-- [ ] Run a read-only reviewer pass over the diff and fix Must Fix findings
+- [x] Run a read-only reviewer pass over the diff and fix Must Fix findings
   within scope.
-- [ ] Report changed files, validation results, decision label, and remaining
+- [x] Report changed files, validation results, decision label, and remaining
   risks.

@@ -1,0 +1,37 @@
+{
+  "base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "dataset_manifest_id": "public-sample-20260619T090925Z",
+  "dataset_split": "train",
+  "dpo_or_grpo_allowed": false,
+  "expected_train_sft_rows": 282,
+  "gradient_accumulation_steps": 1,
+  "learning_rate": 5e-05,
+  "lora": {
+    "alpha": 32,
+    "dropout": 0.05,
+    "r": 16,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj"
+    ]
+  },
+  "max_seq_length": 2048,
+  "max_steps": 3132,
+  "num_train_epochs": 12,
+  "per_device_train_batch_size": 1,
+  "scheduler_step_count": 3132,
+  "seed": 7170,
+  "step_budget": {
+    "prior_control_expected_train_sft_rows": 261,
+    "prior_control_gradient_accumulation_steps": 1,
+    "prior_control_num_train_epochs": 12,
+    "prior_control_per_device_train_batch_size": 1,
+    "reconstructed_optimizer_steps": 3132,
+    "source_type": "reconstructed_from_prior_control_config"
+  },
+  "step_matched_not_token_matched": true,
+  "target_token_exposure_policy": "record_only_not_matched",
+  "trainer": "trl.SFTTrainer"
+}

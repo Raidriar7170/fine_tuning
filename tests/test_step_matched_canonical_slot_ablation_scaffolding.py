@@ -156,6 +156,13 @@ def test_step_matched_required_artifact_contract_uses_public_evidence_root() -> 
         "requires_confirmation_accuracy",
         "refusal_or_clarify_accuracy",
     )
+    assert helper.PRIMARY_METRICS == (
+        "contract_exact_match_strict",
+        "strict_slot_f1",
+        "slot_value_exact_f1",
+        "slot_value_normalized_f1",
+        "executable_contract_pass_rate",
+    )
 
 
 def test_step_matched_pilot_gate_labels_are_exact_and_thresholded() -> None:
@@ -207,6 +214,13 @@ def test_step_matched_pilot_gate_labels_are_exact_and_thresholded() -> None:
     schema_drop = json.loads(json.dumps(passing))
     schema_drop["test"]["schema_validity"] = -0.001
     assert helper.decide_pilot_gate(schema_drop)["decision_label"] == "REGRESSION_OR_GUARDRAIL_FAILURE"
+
+    mixed_primary_regression = json.loads(json.dumps(passing))
+    mixed_primary_regression["test"]["executable_contract_pass_rate"] = -0.001
+    assert (
+        helper.decide_pilot_gate(mixed_primary_regression)["decision_label"]
+        == "REGRESSION_OR_GUARDRAIL_FAILURE"
+    )
 
 
 def test_blocked_artifact_is_public_safe_and_does_not_fabricate_metrics() -> None:
