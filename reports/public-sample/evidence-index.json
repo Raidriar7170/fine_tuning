@@ -25,6 +25,19 @@
       "superseded_by": null
     },
     {
+      "id": "internal-contract-v2-core",
+      "status": "CURRENT",
+      "phase": "implement-internal-contract-v2-core-and-v1-compatible-envelope",
+      "path": "reports/public-sample/internal-contract-v2-core/summary.json",
+      "manifest_id": "public-sample-20260619T090925Z",
+      "model_run_id": null,
+      "boundary": "Internal ContractCoreV2 boundary over current committed public-safe V1 contracts.",
+      "summary": "Decision INTERNAL_V2_CORE_READY_RENDERER_PARTIAL; preserve_legacy V1 roundtrip exact 1.0; V1 evaluator metrics zero delta; derive_display support 99.77% with 5 unsupported cases.",
+      "conclusion": "Internal architecture implementation evidence only; external BrowserTaskContract V1, training target, evaluator, predictions, and downstream runtime remain unchanged.",
+      "current_claim_allowed": true,
+      "superseded_by": null
+    },
+    {
       "id": "contract-v2-projection-rerun",
       "status": "CURRENT",
       "phase": "rerun-contract-v2-projection-with-recovered-inputs",

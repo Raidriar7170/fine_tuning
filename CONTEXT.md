@@ -28,7 +28,9 @@ No model weights changed during the Contract V2 projection. No training, predict
 
 strict exact remains canonical diagnostic. The Contract V2 projection only reduces derived/display-field burden, mainly `normalized_command`; it does not repair core slot errors and does not improve executable contract pass. The main engineering bottleneck is still slot representation / slot error mechanisms, not whether another small canonical candidate loop should be run.
 
-Contract V2 should not be packaged as model improvement. It is a possible schema/postprocessor implementation question only if a later bounded phase decides the small exact-match gain is worth the engineering scope despite no executable-pass gain and the persistent slot bottleneck.
+Projection follow-up `decide-contract-v2-core-implementation-scope` is now closed by an internal boundary implementation. The internal Contract V2 Core status is `INTERNAL_V2_CORE_READY_RENDERER_PARTIAL`: 2185 current public-safe V1 contracts passed preserve_legacy roundtrip with exact V1 compatibility, safety preservation, confirmation preservation, and slot preservation all at 1.0; V1 evaluator metric deltas are all 0. The derive_display renderer remains partial at 99.77% support with 5 unsupported cases, so it is not the default path.
+
+Contract V2 should not be packaged as model improvement. The external schema remains BrowserTaskContract V1, the training target remains V1, downstream runtime remains V1, and the internal Core boundary exists only as a shadow-compatible engineering boundary.
 
 ## 6. Current Claim Boundaries
 
@@ -38,7 +40,7 @@ Do not merge metrics across manifests. Do not treat JSON validity, executable sm
 
 ## 7. Current Recommended Next Change
 
-The single recommended next technical change is `decide-contract-v2-core-implementation-scope`. That phase should decide the minimal Contract V2 core implementation scope, then move engineering focus toward slot representation and slot error mechanisms. This cleanup does not run that change.
+The single recommended next technical change is `analyze-slot-error-mechanisms-and-design-slot-representation`. That future phase should analyze missing key, extra key, wrong key, wrong entity, copy error, normalization error, clarify ambiguity error, and family-specific slot error mechanisms. Do not start it automatically from the internal Contract V2 Core closeout.
 
 ## 8. Evidence Index Link
 

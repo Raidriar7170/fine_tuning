@@ -10,6 +10,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SUMMARY_PATH = REPO_ROOT / "reports/public-sample/contract-v2-projection/rerun-with-recovered-inputs/summary.json"
+INTERNAL_SUMMARY_PATH = REPO_ROOT / "reports/public-sample/internal-contract-v2-core/summary.json"
 MANIFEST_PATH = REPO_ROOT / "data/public-samples/manifest_public_sample.json"
 INDEX_JSON_PATH = REPO_ROOT / "reports/public-sample/evidence-index.json"
 INDEX_MD_PATH = REPO_ROOT / "reports/public-sample/EVIDENCE_INDEX.md"
@@ -166,6 +167,7 @@ def _check_index(errors: list[str]) -> list[dict[str, Any]]:
 
 def _check_current_docs(errors: list[str]) -> None:
     summary = _load_json(SUMMARY_PATH)
+    internal_summary = _load_json(INTERNAL_SUMMARY_PATH)
     manifest = _load_json(MANIFEST_PATH)
     required_questions = summary["required_questions"]
     contribution = summary["failure_contribution_overall"]
@@ -193,6 +195,11 @@ def _check_current_docs(errors: list[str]) -> None:
         _format_percent(renderer["supported_rate"]),
         str(required_questions["deterministic_roundtrip_rate"]),
         required_questions["recommended_next_change"],
+        internal_summary["decision_label"],
+        _format_percent(internal_summary["derive_display_supported_rate"]),
+        f"{internal_summary['derive_display_unsupported_count']} unsupported",
+        internal_summary["recommended_next_change"],
+        internal_summary["default_external_schema"],
         "strict exact remains canonical",
         "reports/public-sample/EVIDENCE_INDEX.md",
     }
@@ -227,6 +234,7 @@ def validate() -> list[str]:
     errors: list[str] = []
     required_paths = [
         SUMMARY_PATH,
+        INTERNAL_SUMMARY_PATH,
         MANIFEST_PATH,
         INDEX_JSON_PATH,
         INDEX_MD_PATH,

@@ -1,0 +1,72 @@
+{
+  "cannot_claim": [
+    "model improvement",
+    "executable quality improvement",
+    "slot error solution",
+    "public production V2 schema",
+    "V2 training target",
+    "downstream runtime migration",
+    "production readiness",
+    "safety readiness"
+  ],
+  "claims": {
+    "adapter_or_checkpoint_release": false,
+    "data_mutation_performed": false,
+    "decoding_change_performed": false,
+    "downstream_runtime_migrated": false,
+    "evaluator_relaxation_performed": false,
+    "executable_quality_improvement_claim": false,
+    "external_v1_schema_changed": false,
+    "llm_judge_used": false,
+    "model_improvement_claim": false,
+    "prediction_repair_performed": false,
+    "prediction_rerun_performed": false,
+    "prompt_change_performed": false,
+    "safety_or_production_readiness_claim": false,
+    "semantic_equivalence_scoring_used": false,
+    "split_change_performed": false,
+    "training_performed": false,
+    "v2_training_target_enabled": false
+  },
+  "confirmation_preservation_rate": 1.0,
+  "core_fields": [
+    "task_type",
+    "route",
+    "safety",
+    "confirmation_required",
+    "slots"
+  ],
+  "decision_label": "INTERNAL_V2_CORE_READY_RENDERER_PARTIAL",
+  "default_external_schema": "BrowserTaskContract V1",
+  "derive_display_supported_rate": 0.9977116704805492,
+  "derive_display_unsupported_count": 5,
+  "downstream_runtime_changed": false,
+  "envelope_metadata_fields": [
+    "normalized_command",
+    "language",
+    "contract_version",
+    "normalized_command_provenance"
+  ],
+  "evidence_kind": "internal_contract_v2_core_summary",
+  "execution_smoke_unchanged": true,
+  "generated_at": "2026-06-21T15:26:19.743329+00:00",
+  "normalized_command_provenance_internal_only": true,
+  "preserve_roundtrip_exact_rate": 1.0,
+  "recommended_next_change": "analyze-slot-error-mechanisms-and-design-slot-representation",
+  "repo_root": ".",
+  "report_artifacts": {
+    "compatibility_matrix": "reports/public-sample/internal-contract-v2-core/compatibility-matrix.json",
+    "decision": "reports/public-sample/internal-contract-v2-core/decision.md",
+    "evaluator_regression": "reports/public-sample/internal-contract-v2-core/evaluator-regression.json"
+  },
+  "safety_preservation_rate": 1.0,
+  "slots_preservation_rate": 1.0,
+  "source_artifacts": {
+    "execution_smoke_fixture": "data/public-samples/execution_smoke_target.json",
+    "formal_seed_contracts": "data/public-samples/seed_traces.jsonl",
+    "recovered_raw_inputs": "reports/public-sample/step-matched-canonical-slot-ablation/raw-inputs",
+    "sft_target_contracts": "data/public-samples/sft_public_sample.jsonl"
+  },
+  "training_target_changed": false,
+  "v1_evaluator_metrics_zero_delta": true
+}

@@ -36,6 +36,8 @@ def test_evidence_index_classifies_current_superseded_blocked_and_raw_inputs() -
     items = json.loads(INDEX_JSON.read_text(encoding="utf-8"))["items"]
     by_id = {item["id"]: item for item in items}
 
+    assert by_id["internal-contract-v2-core"]["status"] == "CURRENT"
+    assert by_id["internal-contract-v2-core"]["path"] == "reports/public-sample/internal-contract-v2-core/summary.json"
     assert by_id["contract-v2-projection-rerun"]["status"] == "CURRENT"
     assert by_id["step-matched-canonical-slot-ablation"]["status"] == "CURRENT"
     assert by_id["contract-v2-projection-blocked"]["status"] == "BLOCKED"
@@ -66,6 +68,10 @@ def test_public_current_docs_are_compact_and_no_overclaim() -> None:
         "1.0",
         "68.79%",
         "decide-contract-v2-core-implementation-scope",
+        "INTERNAL_V2_CORE_READY_RENDERER_PARTIAL",
+        "99.77%",
+        "5 unsupported",
+        "analyze-slot-error-mechanisms-and-design-slot-representation",
         "strict exact remains canonical",
     ]
     for fragment in required_fragments:

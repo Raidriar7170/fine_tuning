@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Internal Contract V2 Core Human Brief</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172026; background: #f7f9fb; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 10px; }
+    p, li { line-height: 1.65; }
+    .lede { font-size: 17px; color: #334155; }
+    .status { display: inline-block; padding: 4px 10px; border-radius: 6px; background: #e8f3ef; color: #0f5132; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+    .metric { background: white; border: 1px solid #d9e2ec; border-radius: 8px; padding: 14px; }
+    .metric strong { display: block; font-size: 20px; margin-bottom: 4px; }
+    code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; }
+    a { color: #0f5c8c; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Internal Contract V2 Core 阶段简报</h1>
+  <p class="lede">结论：内部 ContractCoreV2 + V1-compatible deterministic envelope 已实现；preserve 路径保持 V1 行为不变，derive_display 仍是 partial，不作为默认路径。</p>
+  <p><span class="status">applying / ready to archive after validation</span></p>
+
+  <h2>本阶段改变了什么</h2>
+  <ul>
+    <li>新增内部 <code>ContractCoreV2</code>，只包含 <code>task_type</code>、<code>route</code>、<code>safety</code>、<code>confirmation_required</code>、<code>slots</code>。</li>
+    <li>新增 envelope metadata，把 <code>normalized_command</code>、<code>language</code>、<code>contract_version</code> 和内部 provenance 从 core 解耦。</li>
+    <li>新增 <code>preserve_legacy</code> 和 <code>derive_display</code> 两种 envelope build mode；默认仍保持 V1。</li>
+    <li>新增 shadow compatibility report 和 <code>voice2task-eval contract-core-v2-check</code>。</li>
+  </ul>
+
+  <h2>关键证据</h2>
+  <div class="grid">
+    <div class="metric"><strong>2185</strong>V1 contracts checked</div>
+    <div class="metric"><strong>1.0</strong>preserve roundtrip exact</div>
+    <div class="metric"><strong>1.0</strong>safety / confirmation / slots preserved</div>
+    <div class="metric"><strong>0</strong>V1 evaluator metric deltas</div>
+    <div class="metric"><strong>99.77%</strong>derive_display support</div>
+    <div class="metric"><strong>5</strong>unsupported renderer cases</div>
+  </div>
+
+  <h2>核心文件</h2>
+  <ul>
+    <li><a href="../../src/voice2task/contract_core_v2.py">src/voice2task/contract_core_v2.py</a></li>
+    <li><a href="../../reports/public-sample/internal-contract-v2-core/summary.json">reports/public-sample/internal-contract-v2-core/summary.json</a></li>
+    <li><a href="../../reports/public-sample/internal-contract-v2-core/evaluator-regression.json">reports/public-sample/internal-contract-v2-core/evaluator-regression.json</a></li>
+    <li><a href="../contract-core-v2.md">docs/contract-core-v2.md</a></li>
+  </ul>
+
+  <h2>验证命令</h2>
+  <ul>
+    <li><code>PYTHONPATH=src pytest -q</code></li>
+    <li><code>PYTHONPATH=src ruff check src tests</code></li>
+    <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code></li>
+    <li><code>PYTHONPATH=src python scripts/check_current_truth_surface.py</code></li>
+    <li><code>git diff --check</code> 和 public leak scan</li>
+  </ul>
+
+  <h2>不能过度声称</h2>
+  <p>不能说 Contract V2 提升了模型、提升了 executable pass、解决了 slot errors、成为 public production schema、成为当前训练 target、迁移了 downstream runtime，或证明 production / safety readiness。</p>
+
+  <h2>推荐下一步</h2>
+  <p>停止本阶段。后续若继续，应另开 <code>analyze-slot-error-mechanisms-and-design-slot-representation</code>，专门拆解 slot error mechanisms。</p>
+</main>
+</body>
+</html>

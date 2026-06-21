@@ -1,0 +1,53 @@
+{
+  "claims": {
+    "adapter_or_checkpoint_release": false,
+    "data_mutation_performed": false,
+    "decoding_change_performed": false,
+    "downstream_runtime_migrated": false,
+    "evaluator_relaxation_performed": false,
+    "executable_quality_improvement_claim": false,
+    "external_v1_schema_changed": false,
+    "llm_judge_used": false,
+    "model_improvement_claim": false,
+    "prediction_repair_performed": false,
+    "prediction_rerun_performed": false,
+    "prompt_change_performed": false,
+    "safety_or_production_readiness_claim": false,
+    "semantic_equivalence_scoring_used": false,
+    "split_change_performed": false,
+    "training_performed": false,
+    "v2_training_target_enabled": false
+  },
+  "confirmation_preservation_rate": 1.0,
+  "contract_version_preservation_rate": 1.0,
+  "core_projection_success_count": 2185,
+  "derive_display_supported_count": 2180,
+  "derive_display_supported_rate": 0.9977116704805492,
+  "derive_display_unsupported_count": 5,
+  "derive_display_unsupported_reasons": {
+    "missing_field_slot": 4,
+    "missing_query_slot": 1
+  },
+  "evidence_kind": "internal_contract_v2_core_compatibility_matrix",
+  "execution_smoke_fixture": "data/public-samples/execution_smoke_target.json",
+  "execution_smoke_fixture_covered": true,
+  "failures_by_reason": {},
+  "language_preservation_rate": 1.0,
+  "normalized_command_preservation_rate": 1.0,
+  "preserve_roundtrip_exact_count": 2185,
+  "preserve_roundtrip_exact_rate": 1.0,
+  "safety_preservation_rate": 1.0,
+  "slots_preservation_rate": 1.0,
+  "source_counts": {
+    "control_dev_prediction": 207,
+    "control_test_prediction": 207,
+    "dev_gold": 207,
+    "formal_seed_target": 247,
+    "sft_target": 696,
+    "test_gold": 207,
+    "treatment_dev_prediction": 207,
+    "treatment_test_prediction": 207
+  },
+  "total_contracts_checked": 2185,
+  "v1_valid_count": 2185
+}

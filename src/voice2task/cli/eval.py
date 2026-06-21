@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
+from voice2task.contract_core_v2 import generate_internal_contract_v2_core_report
 from voice2task.evaluation import (
     assess_form_fill_confirmation_marker_coverage,
     define_form_fill_confirmation_field_policy,
@@ -387,6 +388,9 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--predictions", type=Path, required=True)
     smoke.add_argument("--target", type=Path, required=True)
     smoke.add_argument("--output", type=Path)
+    core_v2 = subcommands.add_parser("contract-core-v2-check")
+    core_v2.add_argument("--repo-root", type=Path, default=Path.cwd())
+    core_v2.add_argument("--output", type=Path, default=Path("reports/public-sample/internal-contract-v2-core"))
     return parser
 
 
@@ -786,6 +790,10 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(output)
         return 0 if smoke_result.failed == 0 else 1
+    if args.command == "contract-core-v2-check":
+        result = generate_internal_contract_v2_core_report(repo_root=args.repo_root, output_dir=args.output)
+        print(json.dumps({"ok": True, **result}, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if not result["decision_label"].endswith("BLOCKED") else 1
     raise AssertionError(f"unhandled command: {args.command}")
 
 
