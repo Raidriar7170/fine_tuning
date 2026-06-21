@@ -26,9 +26,11 @@ Voice2Task Post-Training is an evidence-first project for Chinese voice-to-brows
 - Projection follow-up `decide-contract-v2-core-implementation-scope` is closed as an internal implementation boundary.
 - Internal Contract V2 Core: `INTERNAL_V2_CORE_READY_RENDERER_PARTIAL`; preserve_legacy V1 roundtrip, safety, confirmation, and slots all remain 1.0; V1 evaluator metric deltas are all 0.
 - Internal derive_display support is 99.77%, with 5 unsupported renderer cases; it is not the default path.
-- Current recommendation: `analyze-slot-error-mechanisms-and-design-slot-representation`.
+- Completed internal-core recommendation: `analyze-slot-error-mechanisms-and-design-slot-representation`.
+- Slot mechanism analysis: `MIXED_SLOT_REPRESENTATION_REQUIRED`; exact/normalized source-copyable gold slots 50.53%; typed-derivable slots 0.00%; generation-required slots 49.47%; prediction unsupported-by-source 32.17%.
+- Current recommendation: `design-hybrid-slot-representation-v1`.
 
-No model weights changed during the Contract V2 projection. strict exact remains canonical diagnostic. Prior metrics are historical unless marked `CURRENT` in the evidence index.
+No model weights changed during the Contract V2 projection or slot mechanism analysis. strict exact remains canonical diagnostic. Prior metrics are historical unless marked `CURRENT` in the evidence index.
 
 ## Current Evidence
 
@@ -36,6 +38,7 @@ No model weights changed during the Contract V2 projection. strict exact remains
 | --- | --- |
 | [`reports/public-sample/contract-v2-projection/rerun-with-recovered-inputs/summary.json`](reports/public-sample/contract-v2-projection/rerun-with-recovered-inputs/summary.json) | Current Contract V2 projection result: `PARTIAL_SCHEMA_BENEFIT`. |
 | [`reports/public-sample/internal-contract-v2-core/summary.json`](reports/public-sample/internal-contract-v2-core/summary.json) | Internal Contract V2 Core boundary is V1-compatible in preserve mode; derive_display remains partial. |
+| [`reports/public-sample/slot-error-mechanism-analysis/summary.json`](reports/public-sample/slot-error-mechanism-analysis/summary.json) | Slot mechanism analysis result: `MIXED_SLOT_REPRESENTATION_REQUIRED`; next change is `design-hybrid-slot-representation-v1`. |
 | [`reports/public-sample/step-matched-canonical-slot-ablation/comparison.json`](reports/public-sample/step-matched-canonical-slot-ablation/comparison.json) | Latest model experiment: mixed / inconclusive; no stable broad canonical-slot benefit. |
 | [`data/public-samples/manifest_public_sample.json`](data/public-samples/manifest_public_sample.json) | Current formal sample boundary: 247 seeds / 696 SFT rows / 2100 DPO pairs. |
 | [`reports/public-sample/EVIDENCE_INDEX.md`](reports/public-sample/EVIDENCE_INDEX.md) | Unified current / historical / superseded / blocked / design-only / raw-input / archived evidence map. |
@@ -44,7 +47,7 @@ No model weights changed during the Contract V2 projection. strict exact remains
 
 Current evidence cannot claim model improvement. It cannot claim executable quality improvement. It cannot claim production readiness. It cannot claim safety readiness. It cannot claim held-out recovery. It cannot claim live-browser benchmark gain. It cannot claim checkpoint release. It cannot claim adapter release. It cannot claim DPO justification. It cannot claim another canonical-candidate loop.
 
-The Contract V2 projection is offline schema-burden evidence only: it removes derived/display-field burden from strict exact comparison, but it does not claim model improvement. The internal Contract V2 Core boundary now exists behind a V1-compatible deterministic envelope; it does not change the public V1 schema, V1 evaluator, training target, predictions, or downstream runtime.
+The Contract V2 projection is offline schema-burden evidence only: it removes derived/display-field burden from strict exact comparison, but it does not claim model improvement. The internal Contract V2 Core boundary now exists behind a V1-compatible deterministic envelope; it does not change the public V1 schema, V1 evaluator, training target, predictions, or downstream runtime. The slot mechanism analysis is read-only design evidence: it does not implement a new slot representation, train, rerun predictions, or claim model/executable improvement.
 
 ## Repository Role
 

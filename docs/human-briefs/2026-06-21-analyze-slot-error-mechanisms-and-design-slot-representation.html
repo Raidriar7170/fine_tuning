@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Slot Error Mechanism Analysis Human Brief</title>
+  <style>
+    :root { color-scheme: light; --ink:#18212f; --muted:#5f6b7a; --line:#d9e0e8; --bg:#f7f9fb; --panel:#ffffff; --accent:#0b6e69; --warn:#9a5b00; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+    main { max-width: 1040px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { margin: 0 0 12px; font-size: 28px; letter-spacing: 0; }
+    h2 { margin: 28px 0 12px; font-size: 18px; }
+    p, li { line-height: 1.62; }
+    code { background: #edf2f7; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 0.92em; }
+    .lead { font-size: 18px; line-height: 1.65; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+    .metric strong { display: block; font-size: 22px; margin-bottom: 4px; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .status { display: inline-block; border: 1px solid #9ec7c3; color: var(--accent); border-radius: 999px; padding: 4px 10px; font-weight: 650; font-size: 13px; }
+    .note { border-left: 4px solid var(--warn); background: #fff8e8; padding: 12px 14px; }
+    ul { padding-left: 20px; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="status">applied analysis/design</span>
+    <h1>Slot Error Mechanism Analysis</h1>
+    <p class="lead">一句话结论：本阶段把 recovered step-matched slot residual 拆成 deterministic mechanism、source support 和 representation feasibility，最终选择 <code>MIXED_SLOT_REPRESENTATION_REQUIRED</code>；唯一推荐下一阶段是 <code>design-hybrid-slot-representation-v1</code>。</p>
+
+    <div class="grid">
+      <div class="metric"><strong>50.53%</strong><span>gold exact/normalized source-copyable</span></div>
+      <div class="metric"><strong>0.00%</strong><span>typed-derivable in current inputs</span></div>
+      <div class="metric"><strong>49.47%</strong><span>source absent or generation required</span></div>
+      <div class="metric"><strong>32.17%</strong><span>prediction unsupported by source</span></div>
+    </div>
+
+    <h2>当前状态</h2>
+    <p>OpenSpec change 已进入 apply 收口；分析报告写入 <code>reports/public-sample/slot-error-mechanism-analysis/</code>，设计说明写入 <code>docs/slot-representation.md</code>。本阶段没有训练、没有 prediction rerun、没有 evaluator/schema/runtime/ContractCoreV2 改动。</p>
+
+    <h2>本阶段改变了什么</h2>
+    <ul>
+      <li>新增 deterministic read-only analyzer：验证 recovered 输入边界，按 sample/slot path 对齐 Control/Treatment/Gold。</li>
+      <li>输出 slot mechanism、source support、prediction provenance、Control/Treatment paired movement 和 representation feasibility。</li>
+      <li>报告 Control/Treatment paired movement：persistent=70，recovered=10，regressed=12，net=-2。</li>
+      <li>新增 design-only slot representation boundary，建议下一阶段先设计 hybrid slot representation，而不是直接实现训练目标或 runtime schema。</li>
+    </ul>
+
+    <h2>关键文件</h2>
+    <ul>
+      <li><code>src/voice2task/slot_error_analysis.py</code></li>
+      <li><code>scripts/analyze_slot_error_mechanisms.py</code></li>
+      <li><code>reports/public-sample/slot-error-mechanism-analysis/summary.json</code></li>
+      <li><code>reports/public-sample/slot-error-mechanism-analysis/recommended-next-change.md</code></li>
+      <li><code>docs/slot-representation.md</code></li>
+    </ul>
+
+    <h2>验证命令</h2>
+    <ul>
+      <li><code>PYTHONPATH=src pytest -q tests/test_slot_error_analysis.py</code>：8 passed。</li>
+      <li><code>PYTHONPATH=src pytest -q</code>：552 passed。</li>
+      <li><code>PYTHONPATH=src ruff check src tests</code>：passed。</li>
+      <li><code>OPENSPEC_TELEMETRY=0 openspec validate --all --strict</code>：7 passed。</li>
+      <li><code>python scripts/check_current_truth_surface.py</code>：passed。</li>
+      <li><code>git diff --check</code> 与 public leak scan：passed。</li>
+    </ul>
+
+    <h2>剩余风险</h2>
+    <p class="note">这不是 model improvement 证据。当前 strict exact 仍是 canonical diagnostic；alias-key evidence 只做诊断，不修复 strict match；hybrid representation 只是下一阶段设计建议，尚未实现。</p>
+
+    <h2>推荐下一步</h2>
+    <p>停止在本阶段。唯一推荐 next change：<code>design-hybrid-slot-representation-v1</code>。不要自动实现新的 slot representation、训练、扩数据、建立 challenge set 或修改 schema。</p>
+  </main>
+</body>
+</html>

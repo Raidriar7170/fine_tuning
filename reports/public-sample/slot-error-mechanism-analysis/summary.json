@@ -1,0 +1,870 @@
+{
+  "change_id": "analyze-slot-error-mechanisms-and-design-slot-representation",
+  "claims": {
+    "adapter_or_checkpoint_release": false,
+    "browser_task_contract_v1_changed": false,
+    "contract_core_v2_changed": false,
+    "evaluator_relaxation_performed": false,
+    "live_browser_claim": false,
+    "model_improvement_claim": false,
+    "prediction_repair_performed": false,
+    "prediction_rerun_performed": false,
+    "production_readiness_claim": false,
+    "slot_representation_implemented": false,
+    "training_performed": false
+  },
+  "decision_label": "MIXED_SLOT_REPRESENTATION_REQUIRED",
+  "evidence_kind": "slot_error_mechanism_analysis",
+  "heuristics": {
+    "partial_span": {
+      "claim_boundary": "heuristic diagnostic only; it does not repair or relax strict slot matching",
+      "description": "After NFKC, case folding, and whitespace/punctuation removal, a partial span is flagged when either side contains the other or unique-character overlap reaches the threshold.",
+      "minimum_folded_length": 2,
+      "substring_match_allowed": true,
+      "unique_character_overlap_threshold": "max(2, min(unique_folded_value_chars, 4))"
+    }
+  },
+  "recommended_next_change": {
+    "acceptance_criteria": [
+      "keeps BrowserTaskContract V1 externally compatible",
+      "preserves strict slot matching as the reported metric boundary",
+      "uses deterministic copy, normalization, typed, and structure evidence only"
+    ],
+    "change_id": "design-hybrid-slot-representation-v1",
+    "claim_boundaries": [
+      "No training, prediction rerun, data mutation, evaluator relaxation, schema migration, or runtime migration occurred.",
+      "Alias-key evidence is diagnostic only and does not repair strict matches.",
+      "The report explains existing recovered Control/Treatment outputs only."
+    ],
+    "decision_label": "MIXED_SLOT_REPRESENTATION_REQUIRED",
+    "metrics_to_watch": [
+      "strict_slot_f1",
+      "slot_value_exact_f1",
+      "slot_value_normalized_f1",
+      "executable_contract_pass_rate"
+    ],
+    "migration_risks": [
+      "internal representation could drift from V1 contract serialization",
+      "typed normalization could be mistaken for evaluator relaxation"
+    ],
+    "non_goals": [
+      "no DPO or GRPO",
+      "no LLM judge",
+      "no automatic alias repair",
+      "no checkpoint or adapter release"
+    ],
+    "scope": "Design-only next OpenSpec change; no training, prediction rerun, evaluator relaxation, or runtime migration.",
+    "target_slot_paths": [
+      "city",
+      "reason",
+      "query",
+      "ambiguity",
+      "field"
+    ],
+    "target_task_families": [
+      "blocked:deny",
+      "clarify:clarify",
+      "extract:extract_page",
+      "form_fill:fill_form",
+      "navigate:open_url",
+      "search:search_web"
+    ],
+    "top_evidence": [
+      "Representation candidates by slot path: {'copy_or_normalize': 4, 'mixed_slot_value_representation': 3, 'task_slot_schema_constraints': 1}",
+      "Confidence distribution: {'HIGH': 5, 'LOW': 1, 'MEDIUM': 2}",
+      "Paired movement: persistent=70, recovered=10, regressed=12",
+      "Top pressure slot paths: city, reason, query, ambiguity, field"
+    ]
+  },
+  "source_boundary": {
+    "approved_raw_inputs": "reports/public-sample/step-matched-canonical-slot-ablation/raw-inputs",
+    "blocking_reasons": [],
+    "control_treatment_ids_match": true,
+    "decision_label": "SLOT_ANALYSIS_INPUT_BOUNDARY_PASSED",
+    "gold_ids_match": true,
+    "metric_reproduction_status": "reproduced",
+    "prediction_contract_used_for_analysis": true,
+    "projection_inputs_ready": true,
+    "raw_model_output_used_for_analysis": false,
+    "recovered_provenance_valid": true,
+    "recovery_method": "recovered_from_existing_artifacts",
+    "splits": {
+      "dev": {
+        "control_row_count": 207,
+        "row_count": 207,
+        "sample_ids_match": true,
+        "treatment_row_count": 207
+      },
+      "test": {
+        "control_row_count": 207,
+        "row_count": 207,
+        "sample_ids_match": true,
+        "treatment_row_count": 207
+      }
+    },
+    "superseded_adapter_outputs_used": false
+  },
+  "source_support_breakdowns": {
+    "gold_values": {
+      "by_route": {
+        "clarify": {
+          "counts": {
+            "source_absent_or_generation_required": 87
+          },
+          "event_count": 87,
+          "rates": {
+            "source_absent_or_generation_required": 1.0
+          }
+        },
+        "deny": {
+          "counts": {
+            "exact_source_supported": 46,
+            "source_absent_or_generation_required": 71
+          },
+          "event_count": 117,
+          "rates": {
+            "exact_source_supported": 0.39316239316239315,
+            "source_absent_or_generation_required": 0.6068376068376068
+          }
+        },
+        "extract_page": {
+          "counts": {
+            "exact_source_supported": 59,
+            "source_absent_or_generation_required": 10
+          },
+          "event_count": 69,
+          "rates": {
+            "exact_source_supported": 0.855072463768116,
+            "source_absent_or_generation_required": 0.14492753623188406
+          }
+        },
+        "fill_form": {
+          "counts": {
+            "exact_source_supported": 78,
+            "source_absent_or_generation_required": 9
+          },
+          "event_count": 87,
+          "rates": {
+            "exact_source_supported": 0.896551724137931,
+            "source_absent_or_generation_required": 0.10344827586206896
+          }
+        },
+        "open_url": {
+          "counts": {
+            "normalized_source_supported": 8,
+            "source_absent_or_generation_required": 46
+          },
+          "event_count": 54,
+          "rates": {
+            "normalized_source_supported": 0.14814814814814814,
+            "source_absent_or_generation_required": 0.8518518518518519
+          }
+        },
+        "search_web": {
+          "counts": {
+            "exact_source_supported": 47,
+            "source_absent_or_generation_required": 10
+          },
+          "event_count": 57,
+          "rates": {
+            "exact_source_supported": 0.8245614035087719,
+            "source_absent_or_generation_required": 0.17543859649122806
+          }
+        }
+      },
+      "by_slot_path": {
+        "action": {
+          "counts": {
+            "exact_source_supported": 46,
+            "source_absent_or_generation_required": 11
+          },
+          "event_count": 57,
+          "rates": {
+            "exact_source_supported": 0.8070175438596491,
+            "source_absent_or_generation_required": 0.19298245614035087
+          }
+        },
+        "ambiguity": {
+          "counts": {
+            "source_absent_or_generation_required": 87
+          },
+          "event_count": 87,
+          "rates": {
+            "source_absent_or_generation_required": 1.0
+          }
+        },
+        "field": {
+          "counts": {
+            "exact_source_supported": 78,
+            "source_absent_or_generation_required": 9
+          },
+          "event_count": 87,
+          "rates": {
+            "exact_source_supported": 0.896551724137931,
+            "source_absent_or_generation_required": 0.10344827586206896
+          }
+        },
+        "query": {
+          "counts": {
+            "exact_source_supported": 47,
+            "source_absent_or_generation_required": 10
+          },
+          "event_count": 57,
+          "rates": {
+            "exact_source_supported": 0.8245614035087719,
+            "source_absent_or_generation_required": 0.17543859649122806
+          }
+        },
+        "reason": {
+          "counts": {
+            "source_absent_or_generation_required": 60
+          },
+          "event_count": 60,
+          "rates": {
+            "source_absent_or_generation_required": 1.0
+          }
+        },
+        "target": {
+          "counts": {
+            "exact_source_supported": 59,
+            "source_absent_or_generation_required": 10
+          },
+          "event_count": 69,
+          "rates": {
+            "exact_source_supported": 0.855072463768116,
+            "source_absent_or_generation_required": 0.14492753623188406
+          }
+        },
+        "url": {
+          "counts": {
+            "normalized_source_supported": 8,
+            "source_absent_or_generation_required": 46
+          },
+          "event_count": 54,
+          "rates": {
+            "normalized_source_supported": 0.14814814814814814,
+            "source_absent_or_generation_required": 0.8518518518518519
+          }
+        }
+      },
+      "by_split": {
+        "dev": {
+          "counts": {
+            "exact_source_supported": 114,
+            "normalized_source_supported": 5,
+            "source_absent_or_generation_required": 115
+          },
+          "event_count": 234,
+          "rates": {
+            "exact_source_supported": 0.48717948717948717,
+            "normalized_source_supported": 0.021367521367521368,
+            "source_absent_or_generation_required": 0.49145299145299143
+          }
+        },
+        "test": {
+          "counts": {
+            "exact_source_supported": 116,
+            "normalized_source_supported": 3,
+            "source_absent_or_generation_required": 118
+          },
+          "event_count": 237,
+          "rates": {
+            "exact_source_supported": 0.48945147679324896,
+            "normalized_source_supported": 0.012658227848101266,
+            "source_absent_or_generation_required": 0.4978902953586498
+          }
+        }
+      },
+      "by_task_type": {
+        "blocked": {
+          "counts": {
+            "exact_source_supported": 46,
+            "source_absent_or_generation_required": 71
+          },
+          "event_count": 117,
+          "rates": {
+            "exact_source_supported": 0.39316239316239315,
+            "source_absent_or_generation_required": 0.6068376068376068
+          }
+        },
+        "clarify": {
+          "counts": {
+            "source_absent_or_generation_required": 87
+          },
+          "event_count": 87,
+          "rates": {
+            "source_absent_or_generation_required": 1.0
+          }
+        },
+        "extract": {
+          "counts": {
+            "exact_source_supported": 59,
+            "source_absent_or_generation_required": 10
+          },
+          "event_count": 69,
+          "rates": {
+            "exact_source_supported": 0.855072463768116,
+            "source_absent_or_generation_required": 0.14492753623188406
+          }
+        },
+        "form_fill": {
+          "counts": {
+            "exact_source_supported": 78,
+            "source_absent_or_generation_required": 9
+          },
+          "event_count": 87,
+          "rates": {
+            "exact_source_supported": 0.896551724137931,
+            "source_absent_or_generation_required": 0.10344827586206896
+          }
+        },
+        "navigate": {
+          "counts": {
+            "normalized_source_supported": 8,
+            "source_absent_or_generation_required": 46
+          },
+          "event_count": 54,
+          "rates": {
+            "normalized_source_supported": 0.14814814814814814,
+            "source_absent_or_generation_required": 0.8518518518518519
+          }
+        },
+        "search": {
+          "counts": {
+            "exact_source_supported": 47,
+            "source_absent_or_generation_required": 10
+          },
+          "event_count": 57,
+          "rates": {
+            "exact_source_supported": 0.8245614035087719,
+            "source_absent_or_generation_required": 0.17543859649122806
+          }
+        }
+      },
+      "denominator_name": "gold_slot_events",
+      "event_unit": "one non-missing gold slot value",
+      "overall": {
+        "counts": {
+          "exact_source_supported": 230,
+          "normalized_source_supported": 8,
+          "source_absent_or_generation_required": 233
+        },
+        "event_count": 471,
+        "rates": {
+          "exact_source_supported": 0.4883227176220807,
+          "normalized_source_supported": 0.016985138004246284,
+          "source_absent_or_generation_required": 0.49469214437367304
+        }
+      }
+    },
+    "predicted_values": {
+      "by_route": {
+        "clarify": {
+          "counts": {
+            "exact_span_from_source": 2,
+            "partial_span_from_source": 121,
+            "unsupported_by_source": 53
+          },
+          "event_count": 176,
+          "rates": {
+            "exact_span_from_source": 0.011363636363636364,
+            "partial_span_from_source": 0.6875,
+            "unsupported_by_source": 0.30113636363636365
+          }
+        },
+        "deny": {
+          "counts": {
+            "exact_span_from_source": 96,
+            "partial_span_from_source": 7,
+            "unsupported_by_source": 129
+          },
+          "event_count": 232,
+          "rates": {
+            "exact_span_from_source": 0.41379310344827586,
+            "partial_span_from_source": 0.03017241379310345,
+            "unsupported_by_source": 0.5560344827586207
+          }
+        },
+        "extract_page": {
+          "counts": {
+            "exact_span_from_source": 124,
+            "partial_span_from_source": 2,
+            "unsupported_by_source": 12
+          },
+          "event_count": 138,
+          "rates": {
+            "exact_span_from_source": 0.8985507246376812,
+            "partial_span_from_source": 0.014492753623188406,
+            "unsupported_by_source": 0.08695652173913043
+          }
+        },
+        "fill_form": {
+          "counts": {
+            "exact_span_from_source": 153,
+            "partial_span_from_source": 4,
+            "unsupported_by_source": 17
+          },
+          "event_count": 174,
+          "rates": {
+            "exact_span_from_source": 0.8793103448275862,
+            "partial_span_from_source": 0.022988505747126436,
+            "unsupported_by_source": 0.09770114942528736
+          }
+        },
+        "open_url": {
+          "counts": {
+            "normalized_span_from_source": 16,
+            "unsupported_by_source": 92
+          },
+          "event_count": 108,
+          "rates": {
+            "normalized_span_from_source": 0.14814814814814814,
+            "unsupported_by_source": 0.8518518518518519
+          }
+        },
+        "search_web": {
+          "counts": {
+            "exact_span_from_source": 97,
+            "partial_span_from_source": 17
+          },
+          "event_count": 114,
+          "rates": {
+            "exact_span_from_source": 0.8508771929824561,
+            "partial_span_from_source": 0.14912280701754385
+          }
+        }
+      },
+      "by_run_role": {
+        "control": {
+          "counts": {
+            "exact_span_from_source": 235,
+            "normalized_span_from_source": 8,
+            "partial_span_from_source": 77,
+            "unsupported_by_source": 152
+          },
+          "event_count": 472,
+          "rates": {
+            "exact_span_from_source": 0.4978813559322034,
+            "normalized_span_from_source": 0.01694915254237288,
+            "partial_span_from_source": 0.163135593220339,
+            "unsupported_by_source": 0.3220338983050847
+          }
+        },
+        "treatment": {
+          "counts": {
+            "exact_span_from_source": 237,
+            "normalized_span_from_source": 8,
+            "partial_span_from_source": 74,
+            "unsupported_by_source": 151
+          },
+          "event_count": 470,
+          "rates": {
+            "exact_span_from_source": 0.5042553191489362,
+            "normalized_span_from_source": 0.01702127659574468,
+            "partial_span_from_source": 0.1574468085106383,
+            "unsupported_by_source": 0.32127659574468087
+          }
+        }
+      },
+      "by_slot_path": {
+        "action": {
+          "counts": {
+            "exact_span_from_source": 96,
+            "partial_span_from_source": 8,
+            "unsupported_by_source": 10
+          },
+          "event_count": 114,
+          "rates": {
+            "exact_span_from_source": 0.8421052631578947,
+            "partial_span_from_source": 0.07017543859649122,
+            "unsupported_by_source": 0.08771929824561403
+          }
+        },
+        "ambiguity": {
+          "counts": {
+            "partial_span_from_source": 120,
+            "unsupported_by_source": 45
+          },
+          "event_count": 165,
+          "rates": {
+            "partial_span_from_source": 0.7272727272727273,
+            "unsupported_by_source": 0.2727272727272727
+          }
+        },
+        "city": {
+          "counts": {
+            "unsupported_by_source": 1
+          },
+          "event_count": 1,
+          "rates": {
+            "unsupported_by_source": 1.0
+          }
+        },
+        "field": {
+          "counts": {
+            "exact_span_from_source": 155,
+            "partial_span_from_source": 4,
+            "unsupported_by_source": 18
+          },
+          "event_count": 177,
+          "rates": {
+            "exact_span_from_source": 0.8757062146892656,
+            "partial_span_from_source": 0.022598870056497175,
+            "unsupported_by_source": 0.1016949152542373
+          }
+        },
+        "query": {
+          "counts": {
+            "exact_span_from_source": 98,
+            "partial_span_from_source": 18,
+            "unsupported_by_source": 3
+          },
+          "event_count": 119,
+          "rates": {
+            "exact_span_from_source": 0.8235294117647058,
+            "partial_span_from_source": 0.15126050420168066,
+            "unsupported_by_source": 0.025210084033613446
+          }
+        },
+        "reason": {
+          "counts": {
+            "unsupported_by_source": 123
+          },
+          "event_count": 123,
+          "rates": {
+            "unsupported_by_source": 1.0
+          }
+        },
+        "target": {
+          "counts": {
+            "exact_span_from_source": 123,
+            "partial_span_from_source": 1,
+            "unsupported_by_source": 10
+          },
+          "event_count": 134,
+          "rates": {
+            "exact_span_from_source": 0.917910447761194,
+            "partial_span_from_source": 0.007462686567164179,
+            "unsupported_by_source": 0.07462686567164178
+          }
+        },
+        "url": {
+          "counts": {
+            "normalized_span_from_source": 16,
+            "unsupported_by_source": 93
+          },
+          "event_count": 109,
+          "rates": {
+            "normalized_span_from_source": 0.14678899082568808,
+            "unsupported_by_source": 0.8532110091743119
+          }
+        }
+      },
+      "by_split": {
+        "dev": {
+          "counts": {
+            "exact_span_from_source": 239,
+            "normalized_span_from_source": 10,
+            "partial_span_from_source": 74,
+            "unsupported_by_source": 144
+          },
+          "event_count": 467,
+          "rates": {
+            "exact_span_from_source": 0.5117773019271948,
+            "normalized_span_from_source": 0.021413276231263382,
+            "partial_span_from_source": 0.15845824411134904,
+            "unsupported_by_source": 0.3083511777301927
+          }
+        },
+        "test": {
+          "counts": {
+            "exact_span_from_source": 233,
+            "normalized_span_from_source": 6,
+            "partial_span_from_source": 77,
+            "unsupported_by_source": 159
+          },
+          "event_count": 475,
+          "rates": {
+            "exact_span_from_source": 0.4905263157894737,
+            "normalized_span_from_source": 0.01263157894736842,
+            "partial_span_from_source": 0.16210526315789472,
+            "unsupported_by_source": 0.33473684210526317
+          }
+        }
+      },
+      "by_task_type": {
+        "blocked": {
+          "counts": {
+            "exact_span_from_source": 96,
+            "partial_span_from_source": 7,
+            "unsupported_by_source": 129
+          },
+          "event_count": 232,
+          "rates": {
+            "exact_span_from_source": 0.41379310344827586,
+            "partial_span_from_source": 0.03017241379310345,
+            "unsupported_by_source": 0.5560344827586207
+          }
+        },
+        "clarify": {
+          "counts": {
+            "exact_span_from_source": 2,
+            "partial_span_from_source": 121,
+            "unsupported_by_source": 53
+          },
+          "event_count": 176,
+          "rates": {
+            "exact_span_from_source": 0.011363636363636364,
+            "partial_span_from_source": 0.6875,
+            "unsupported_by_source": 0.30113636363636365
+          }
+        },
+        "extract": {
+          "counts": {
+            "exact_span_from_source": 124,
+            "partial_span_from_source": 2,
+            "unsupported_by_source": 12
+          },
+          "event_count": 138,
+          "rates": {
+            "exact_span_from_source": 0.8985507246376812,
+            "partial_span_from_source": 0.014492753623188406,
+            "unsupported_by_source": 0.08695652173913043
+          }
+        },
+        "form_fill": {
+          "counts": {
+            "exact_span_from_source": 153,
+            "partial_span_from_source": 4,
+            "unsupported_by_source": 17
+          },
+          "event_count": 174,
+          "rates": {
+            "exact_span_from_source": 0.8793103448275862,
+            "partial_span_from_source": 0.022988505747126436,
+            "unsupported_by_source": 0.09770114942528736
+          }
+        },
+        "navigate": {
+          "counts": {
+            "normalized_span_from_source": 16,
+            "unsupported_by_source": 92
+          },
+          "event_count": 108,
+          "rates": {
+            "normalized_span_from_source": 0.14814814814814814,
+            "unsupported_by_source": 0.8518518518518519
+          }
+        },
+        "search": {
+          "counts": {
+            "exact_span_from_source": 97,
+            "partial_span_from_source": 17
+          },
+          "event_count": 114,
+          "rates": {
+            "exact_span_from_source": 0.8508771929824561,
+            "partial_span_from_source": 0.14912280701754385
+          }
+        }
+      },
+      "denominator_name": "prediction_slot_events",
+      "event_unit": "one non-missing prediction slot value per run_role",
+      "overall": {
+        "counts": {
+          "exact_span_from_source": 472,
+          "normalized_span_from_source": 16,
+          "partial_span_from_source": 151,
+          "unsupported_by_source": 303
+        },
+        "event_count": 942,
+        "rates": {
+          "exact_span_from_source": 0.5010615711252654,
+          "normalized_span_from_source": 0.016985138004246284,
+          "partial_span_from_source": 0.1602972399150743,
+          "unsupported_by_source": 0.321656050955414
+        }
+      }
+    }
+  },
+  "summary_metric_denominators": {
+    "exact_copyable_rate": "gold_slot_events",
+    "extra_slot_key_rate": "mechanism_events",
+    "generation_required_rate": "gold_slot_events",
+    "gold_exact_or_normalized_source_copyable_rate": "gold_slot_events",
+    "missing_slot_key_rate": "mechanism_events",
+    "normalization_only_error_rate": "mechanism_events",
+    "normalized_copyable_rate": "gold_slot_events",
+    "partial_span_rate": "prediction_slot_events",
+    "persistent_error_rate": "paired_slot_events",
+    "predicted_source_supported_rate": "prediction_slot_events",
+    "prediction_unsupported_by_source_rate": "prediction_slot_events",
+    "typed_derivable_rate": "gold_slot_events",
+    "unsupported_analysis_rate": "gold_slot_events",
+    "wrong_entity_rate": "mechanism_events"
+  },
+  "summary_metrics": {
+    "exact_copyable_rate": 0.4883227176220807,
+    "extra_slot_key_count": 23,
+    "extra_slot_key_rate": 0.02383419689119171,
+    "generation_required_rate": 0.49469214437367304,
+    "gold_exact_or_normalized_source_copyable_rate": 0.505307855626327,
+    "gold_slot_events": 471,
+    "missing_slot_key_count": 21,
+    "missing_slot_key_rate": 0.021761658031088083,
+    "net_slot_movement": -2,
+    "normalization_only_error_rate": 0.0,
+    "normalized_copyable_rate": 0.016985138004246284,
+    "partial_span_rate": 0.1602972399150743,
+    "persistent_error_count": 70,
+    "persistent_error_rate": 0.1440329218106996,
+    "predicted_source_supported_rate": 0.5180467091295117,
+    "prediction_slot_events": 942,
+    "prediction_unsupported_by_source_rate": 0.321656050955414,
+    "sample_count": 414,
+    "treatment_recovery_count": 10,
+    "treatment_regression_count": 12,
+    "typed_derivable_rate": 0.0,
+    "unsupported_analysis_rate": 0.0,
+    "wrong_entity_rate": 0.0
+  },
+  "top_introduced_mechanisms": [
+    {
+      "count": 5,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "count": 2,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "SOURCE_COPY_FAILURE"
+    },
+    {
+      "count": 2,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "count": 2,
+      "movement": "SLOT_ADDED_INCORRECTLY",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "count": 1,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "NORMALIZATION_FAILURE"
+    }
+  ],
+  "top_mechanisms": [
+    {
+      "count": 798,
+      "label": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "count": 83,
+      "label": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "count": 23,
+      "label": "EXTRA_SLOT_KEY"
+    },
+    {
+      "count": 21,
+      "label": "MISSING_SLOT_KEY"
+    },
+    {
+      "count": 19,
+      "label": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "count": 14,
+      "label": "NORMALIZATION_FAILURE"
+    },
+    {
+      "count": 5,
+      "label": "SOURCE_COPY_FAILURE"
+    },
+    {
+      "count": 2,
+      "label": "WRONG_SLOT_KEY_SEMANTIC"
+    }
+  ],
+  "top_persistent_mechanisms": [
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "count": 34,
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "count": 8,
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "count": 6,
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "NORMALIZATION_FAILURE",
+      "count": 6,
+      "treatment_primary_mechanism": "NORMALIZATION_FAILURE"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "count": 6,
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "count": 3,
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "count": 3,
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "count": 2,
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    }
+  ],
+  "top_prediction_provenance": [
+    {
+      "count": 472,
+      "label": "exact_span_from_source"
+    },
+    {
+      "count": 303,
+      "label": "unsupported_by_source"
+    },
+    {
+      "count": 151,
+      "label": "partial_span_from_source"
+    },
+    {
+      "count": 30,
+      "label": "unavailable"
+    },
+    {
+      "count": 16,
+      "label": "normalized_span_from_source"
+    }
+  ],
+  "top_source_support": [
+    {
+      "count": 233,
+      "label": "source_absent_or_generation_required"
+    },
+    {
+      "count": 230,
+      "label": "exact_source_supported"
+    },
+    {
+      "count": 8,
+      "label": "normalized_source_supported"
+    }
+  ]
+}

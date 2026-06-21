@@ -1,0 +1,872 @@
+{
+  "claim_boundary": "Explains existing Control/Treatment outputs only; does not rejudge canonical treatment success.",
+  "compact_non_correct_events": [
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-blocked_payment-dev-2",
+      "slot_path": "action",
+      "split": "dev",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-dev-2",
+      "slot_path": "reason",
+      "split": "dev",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-dev-2-aug-1",
+      "slot_path": "action",
+      "split": "dev",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-blocked_payment-dev-2-aug-1",
+      "slot_path": "reason",
+      "split": "dev",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-dev-2-aug-2",
+      "slot_path": "action",
+      "split": "dev",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-dev-2-aug-2",
+      "slot_path": "reason",
+      "split": "dev",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-clarify-dev-2",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "SLOT_REMOVED_CORRECTLY",
+      "sample_id": "family-clarify-dev-2",
+      "slot_path": "url",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "SLOT_CORRECT_ABSENT"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-clarify-dev-2-aug-1",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-dev-2-aug-2",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-dev-3",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-dev-3",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-dev-3-aug-1",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-dev-3-aug-1",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-dev-3-aug-2",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-dev-3-aug-2",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-confirmation-dev-2",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "SOURCE_COPY_FAILURE"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-confirmation-dev-2-aug-2",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_ABSENT",
+      "movement": "SLOT_ADDED_INCORRECTLY",
+      "sample_id": "family-confirmation-dev-2-aug-2",
+      "slot_path": "reason",
+      "split": "dev",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "SOURCE_COPY_FAILURE",
+      "movement": "RECOVERED_BY_TREATMENT",
+      "sample_id": "family-confirmation-dev-3-aug-2",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-extract-dev-1-aug-2",
+      "slot_path": "target",
+      "split": "dev",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "SLOT_REMOVED_CORRECTLY",
+      "sample_id": "family-extract-dev-2-aug-1",
+      "slot_path": "query",
+      "split": "dev",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "SLOT_CORRECT_ABSENT"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-extract-dev-2-aug-1",
+      "slot_path": "target",
+      "split": "dev",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-extract-dev-2-aug-2",
+      "slot_path": "target",
+      "split": "dev",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "RECOVERED_BY_TREATMENT",
+      "sample_id": "family-form_fill-dev-1-aug-2",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-form_fill-dev-3-aug-2",
+      "slot_path": "field",
+      "split": "dev",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "NORMALIZATION_FAILURE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-navigation-dev-2",
+      "slot_path": "url",
+      "split": "dev",
+      "task_family": "navigate:open_url",
+      "treatment_primary_mechanism": "NORMALIZATION_FAILURE"
+    },
+    {
+      "control_primary_mechanism": "NORMALIZATION_FAILURE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-navigation-dev-2-aug-2",
+      "slot_path": "url",
+      "split": "dev",
+      "task_family": "navigate:open_url",
+      "treatment_primary_mechanism": "NORMALIZATION_FAILURE"
+    },
+    {
+      "control_primary_mechanism": "NORMALIZATION_FAILURE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-navigation-dev-3-aug-1",
+      "slot_path": "url",
+      "split": "dev",
+      "task_family": "navigate:open_url",
+      "treatment_primary_mechanism": "NORMALIZATION_FAILURE"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-search-dev-1-aug-1",
+      "slot_path": "query",
+      "split": "dev",
+      "task_family": "search:search_web",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-search-dev-2-aug-1",
+      "slot_path": "query",
+      "split": "dev",
+      "task_family": "search:search_web",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-search-dev-2-aug-2",
+      "slot_path": "query",
+      "split": "dev",
+      "task_family": "search:search_web",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "RECOVERED_BY_TREATMENT",
+      "sample_id": "family-search-dev-3-aug-1",
+      "slot_path": "query",
+      "split": "dev",
+      "task_family": "search:search_web",
+      "treatment_primary_mechanism": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-search-dev-3-aug-2",
+      "slot_path": "query",
+      "split": "dev",
+      "task_family": "search:search_web",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "RECOVERED_BY_TREATMENT",
+      "sample_id": "scaled-public-sample-core-search-014-aug-1",
+      "slot_path": "query",
+      "split": "dev",
+      "task_family": "search:search_web",
+      "treatment_primary_mechanism": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "seed-clarify-ambiguous",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "seed-clarify-ambiguous-aug-1",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "seed-clarify-ambiguous-aug-2",
+      "slot_path": "ambiguity",
+      "split": "dev",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-1",
+      "slot_path": "action",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-1",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-blocked_payment-test-1-aug-1",
+      "slot_path": "action",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-1-aug-1",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-blocked_payment-test-1-aug-2",
+      "slot_path": "action",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-1-aug-2",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-2",
+      "slot_path": "action",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-2",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-2-aug-1",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-2-aug-2",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-3",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-blocked_payment-test-3-aug-1",
+      "slot_path": "action",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-3-aug-1",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-blocked_payment-test-3-aug-2",
+      "slot_path": "action",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-blocked_payment-test-3-aug-2",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "blocked:deny",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "RECOVERED_BY_TREATMENT",
+      "sample_id": "family-clarify-test-1",
+      "slot_path": "ambiguity",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-test-1-aug-1",
+      "slot_path": "ambiguity",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_ABSENT",
+      "movement": "SLOT_ADDED_INCORRECTLY",
+      "sample_id": "family-clarify-test-1-aug-1",
+      "slot_path": "city",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "SLOT_REMOVED_CORRECTLY",
+      "sample_id": "family-clarify-test-1-aug-1",
+      "slot_path": "query",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "SLOT_CORRECT_ABSENT"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-test-2-aug-1",
+      "slot_path": "action",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-test-2-aug-1",
+      "slot_path": "ambiguity",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-test-2-aug-1",
+      "slot_path": "reason",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-clarify-test-3",
+      "slot_path": "ambiguity",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-clarify-test-3-aug-2",
+      "slot_path": "ambiguity",
+      "split": "test",
+      "task_family": "clarify:clarify",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-confirmation-test-1-aug-1",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "SOURCE_COPY_FAILURE",
+      "movement": "RECOVERED_BY_TREATMENT",
+      "sample_id": "family-confirmation-test-2-aug-1",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-confirmation-test-2-aug-2",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-confirmation-test-3-aug-1",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-confirmation-test-3-aug-2",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-extract-test-1-aug-1",
+      "slot_path": "query",
+      "split": "test",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "WRONG_SLOT_KEY_SEMANTIC",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-extract-test-1-aug-1",
+      "slot_path": "target",
+      "split": "test",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "WRONG_SLOT_KEY_SEMANTIC"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-extract-test-1-aug-2",
+      "slot_path": "target",
+      "split": "test",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "SLOT_REMOVED_CORRECTLY",
+      "sample_id": "family-extract-test-2-aug-1",
+      "slot_path": "query",
+      "split": "test",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "SLOT_CORRECT_ABSENT"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_DIFFERENT_MECHANISM",
+      "sample_id": "family-extract-test-2-aug-1",
+      "slot_path": "target",
+      "split": "test",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "SOURCE_COPY_FAILURE",
+      "movement": "RECOVERED_BY_TREATMENT",
+      "sample_id": "family-extract-test-2-aug-2",
+      "slot_path": "target",
+      "split": "test",
+      "task_family": "extract:extract_page",
+      "treatment_primary_mechanism": "SLOT_CORRECT_EXACT"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-form_fill-test-1-aug-1",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-form_fill-test-1-aug-2",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-form_fill-test-2",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "SOURCE_COPY_FAILURE"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-form_fill-test-2-aug-1",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "SLOT_CORRECT_EXACT",
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "sample_id": "family-form_fill-test-2-aug-2",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-form_fill-test-3-aug-2",
+      "slot_path": "ambiguity",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "movement": "ERROR_IN_BOTH_SAME_MECHANISM",
+      "sample_id": "family-form_fill-test-3-aug-2",
+      "slot_path": "field",
+      "split": "test",
+      "task_family": "form_fill:fill_form",
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    }
+  ],
+  "movement_counts": {
+    "CORRECT_IN_BOTH": 389,
+    "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 9,
+    "ERROR_IN_BOTH_SAME_MECHANISM": 61,
+    "INTRODUCED_BY_TREATMENT": 10,
+    "RECOVERED_BY_TREATMENT": 10,
+    "SLOT_ADDED_INCORRECTLY": 2,
+    "SLOT_REMOVED_CORRECTLY": 5
+  },
+  "net_slot_movement": -2,
+  "persistent_error_count": 70,
+  "persistent_error_rate": 0.1440329218106996,
+  "split_distribution": {
+    "dev": {
+      "CORRECT_IN_BOTH": 202,
+      "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 4,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 24,
+      "INTRODUCED_BY_TREATMENT": 3,
+      "RECOVERED_BY_TREATMENT": 4,
+      "SLOT_ADDED_INCORRECTLY": 1,
+      "SLOT_REMOVED_CORRECTLY": 2
+    },
+    "test": {
+      "CORRECT_IN_BOTH": 187,
+      "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 5,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 37,
+      "INTRODUCED_BY_TREATMENT": 7,
+      "RECOVERED_BY_TREATMENT": 6,
+      "SLOT_ADDED_INCORRECTLY": 1,
+      "SLOT_REMOVED_CORRECTLY": 3
+    }
+  },
+  "task_family_distribution": {
+    "blocked:deny": {
+      "CORRECT_IN_BOTH": 95,
+      "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 5,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 17,
+      "INTRODUCED_BY_TREATMENT": 1,
+      "SLOT_REMOVED_CORRECTLY": 1
+    },
+    "clarify:clarify": {
+      "CORRECT_IN_BOTH": 72,
+      "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 1,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 15,
+      "INTRODUCED_BY_TREATMENT": 3,
+      "RECOVERED_BY_TREATMENT": 1,
+      "SLOT_ADDED_INCORRECTLY": 1,
+      "SLOT_REMOVED_CORRECTLY": 2
+    },
+    "extract:extract_page": {
+      "CORRECT_IN_BOTH": 62,
+      "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 2,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 5,
+      "RECOVERED_BY_TREATMENT": 1,
+      "SLOT_REMOVED_CORRECTLY": 2
+    },
+    "form_fill:fill_form": {
+      "CORRECT_IN_BOTH": 71,
+      "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 1,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 8,
+      "INTRODUCED_BY_TREATMENT": 5,
+      "RECOVERED_BY_TREATMENT": 3,
+      "SLOT_ADDED_INCORRECTLY": 1
+    },
+    "navigate:open_url": {
+      "CORRECT_IN_BOTH": 46,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 6,
+      "INTRODUCED_BY_TREATMENT": 1,
+      "RECOVERED_BY_TREATMENT": 1
+    },
+    "search:search_web": {
+      "CORRECT_IN_BOTH": 43,
+      "ERROR_IN_BOTH_SAME_MECHANISM": 10,
+      "RECOVERED_BY_TREATMENT": 4
+    }
+  },
+  "top_introduced_mechanisms": [
+    {
+      "count": 5,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "count": 2,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "SOURCE_COPY_FAILURE"
+    },
+    {
+      "count": 2,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "count": 2,
+      "movement": "SLOT_ADDED_INCORRECTLY",
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "count": 1,
+      "movement": "INTRODUCED_BY_TREATMENT",
+      "treatment_primary_mechanism": "NORMALIZATION_FAILURE"
+    }
+  ],
+  "top_persistent_mechanisms": [
+    {
+      "control_primary_mechanism": "PARTIAL_VALUE_SPAN",
+      "count": 34,
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "EXTRA_SLOT_KEY",
+      "count": 8,
+      "treatment_primary_mechanism": "EXTRA_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "count": 6,
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "NORMALIZATION_FAILURE",
+      "count": 6,
+      "treatment_primary_mechanism": "NORMALIZATION_FAILURE"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "count": 6,
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "count": 3,
+      "treatment_primary_mechanism": "PARTIAL_VALUE_SPAN"
+    },
+    {
+      "control_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE",
+      "count": 3,
+      "treatment_primary_mechanism": "MISSING_SLOT_KEY"
+    },
+    {
+      "control_primary_mechanism": "MISSING_SLOT_KEY",
+      "count": 2,
+      "treatment_primary_mechanism": "UNSUPPORTED_OR_HALLUCINATED_VALUE"
+    }
+  ],
+  "treatment_recovery_count": 10,
+  "treatment_regression_count": 12
+}

@@ -32,6 +32,8 @@ Projection follow-up `decide-contract-v2-core-implementation-scope` is now close
 
 Contract V2 should not be packaged as model improvement. The external schema remains BrowserTaskContract V1, the training target remains V1, downstream runtime remains V1, and the internal Core boundary exists only as a shadow-compatible engineering boundary.
 
+The internal-core recommendation `analyze-slot-error-mechanisms-and-design-slot-representation` is now completed as read-only analysis/design evidence under `reports/public-sample/slot-error-mechanism-analysis/summary.json`. Decision: `MIXED_SLOT_REPRESENTATION_REQUIRED`. Gold exact/normalized source-copyable slots are 50.53%; typed-derivable slots are 0.00%; source-absent or generation-required slots are 49.47%; prediction unsupported-by-source is 32.17%. Control/Treatment paired movement is persistent=70, recovered=10, regressed=12, net=-2. This does not change BrowserTaskContract V1, ContractCoreV2, evaluators, training targets, predictions, data, or downstream runtime.
+
 ## 6. Current Claim Boundaries
 
 Current evidence cannot claim model improvement. It cannot claim executable quality improvement. It cannot claim production readiness. It cannot claim safety readiness. It cannot claim held-out recovery. It cannot claim live-browser benchmark gain. It cannot claim checkpoint release. It cannot claim adapter release. It cannot claim DPO justification. It cannot claim another canonical-candidate loop.
@@ -40,7 +42,9 @@ Do not merge metrics across manifests. Do not treat JSON validity, executable sm
 
 ## 7. Current Recommended Next Change
 
-The single recommended next technical change is `analyze-slot-error-mechanisms-and-design-slot-representation`. That future phase should analyze missing key, extra key, wrong key, wrong entity, copy error, normalization error, clarify ambiguity error, and family-specific slot error mechanisms. Do not start it automatically from the internal Contract V2 Core closeout.
+The single recommended next technical change is `design-hybrid-slot-representation-v1`. It should be a design-only OpenSpec phase unless explicitly expanded: define how copyable span fields, bounded structured generated fields, task slot-key constraints, and normalization provenance can coexist internally while BrowserTaskContract V1 remains the external schema.
+
+Do not automatically implement the new slot representation, train, expand data, build a challenge set, modify schema, modify ContractCoreV2, change evaluators, or claim model/executable improvement.
 
 ## 8. Evidence Index Link
 

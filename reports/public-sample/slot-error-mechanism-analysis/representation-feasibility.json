@@ -1,0 +1,430 @@
+{
+  "confidence_counts": {
+    "HIGH": 5,
+    "LOW": 1,
+    "MEDIUM": 2
+  },
+  "confidence_thresholds": {
+    "HIGH": "sample_count >= 60 and persistent_or_changed_error_count >= 5",
+    "LOW": "below MEDIUM threshold",
+    "MEDIUM": "sample_count >= 15"
+  },
+  "decision_label": "MIXED_SLOT_REPRESENTATION_REQUIRED",
+  "paired_movement_summary": {
+    "net_slot_movement": -2,
+    "persistent_error_count": 70,
+    "treatment_recovery_count": 10,
+    "treatment_regression_count": 12
+  },
+  "recommended_next_change": {
+    "acceptance_criteria": [
+      "keeps BrowserTaskContract V1 externally compatible",
+      "preserves strict slot matching as the reported metric boundary",
+      "uses deterministic copy, normalization, typed, and structure evidence only"
+    ],
+    "change_id": "design-hybrid-slot-representation-v1",
+    "claim_boundaries": [
+      "No training, prediction rerun, data mutation, evaluator relaxation, schema migration, or runtime migration occurred.",
+      "Alias-key evidence is diagnostic only and does not repair strict matches.",
+      "The report explains existing recovered Control/Treatment outputs only."
+    ],
+    "decision_label": "MIXED_SLOT_REPRESENTATION_REQUIRED",
+    "metrics_to_watch": [
+      "strict_slot_f1",
+      "slot_value_exact_f1",
+      "slot_value_normalized_f1",
+      "executable_contract_pass_rate"
+    ],
+    "migration_risks": [
+      "internal representation could drift from V1 contract serialization",
+      "typed normalization could be mistaken for evaluator relaxation"
+    ],
+    "non_goals": [
+      "no DPO or GRPO",
+      "no LLM judge",
+      "no automatic alias repair",
+      "no checkpoint or adapter release"
+    ],
+    "scope": "Design-only next OpenSpec change; no training, prediction rerun, evaluator relaxation, or runtime migration.",
+    "target_slot_paths": [
+      "city",
+      "reason",
+      "query",
+      "ambiguity",
+      "field"
+    ],
+    "target_task_families": [
+      "blocked:deny",
+      "clarify:clarify",
+      "extract:extract_page",
+      "form_fill:fill_form",
+      "navigate:open_url",
+      "search:search_web"
+    ],
+    "top_evidence": [
+      "Representation candidates by slot path: {'copy_or_normalize': 4, 'mixed_slot_value_representation': 3, 'task_slot_schema_constraints': 1}",
+      "Confidence distribution: {'HIGH': 5, 'LOW': 1, 'MEDIUM': 2}",
+      "Paired movement: persistent=70, recovered=10, regressed=12",
+      "Top pressure slot paths: city, reason, query, ambiguity, field"
+    ]
+  },
+  "representation_counts": {
+    "copy_or_normalize": 4,
+    "mixed_slot_value_representation": 3,
+    "task_slot_schema_constraints": 1
+  },
+  "top_slot_profiles": [
+    {
+      "confidence": "LOW",
+      "copyable_rate": 0.0,
+      "extra_key_rate": 0.5,
+      "mechanism_counts": {
+        "EXTRA_SLOT_KEY": 1,
+        "SLOT_CORRECT_ABSENT": 1
+      },
+      "missing_key_rate": 0.0,
+      "movement_counts": {
+        "SLOT_ADDED_INCORRECTLY": 1
+      },
+      "partial_span_rate": 0.0,
+      "prediction_provenance_counts": {
+        "unavailable": 1,
+        "unsupported_by_source": 1
+      },
+      "recommended_representation": "task_slot_schema_constraints",
+      "sample_count": 1,
+      "slot_path": "city",
+      "source_support_counts": {},
+      "split_counts": {
+        "test": 1
+      },
+      "task_family_counts": {
+        "clarify:clarify": 1
+      },
+      "treatment_recovery_rate": 0.0,
+      "treatment_regression_rate": 1.0,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 1.0,
+      "wrong_entity_rate": 0.0
+    },
+    {
+      "confidence": "HIGH",
+      "copyable_rate": 0.0,
+      "extra_key_rate": 0.024193548387096774,
+      "mechanism_counts": {
+        "EXTRA_SLOT_KEY": 3,
+        "PARTIAL_VALUE_SPAN": 25,
+        "SLOT_CORRECT_ABSENT": 1,
+        "SLOT_CORRECT_EXACT": 95
+      },
+      "missing_key_rate": 0.0,
+      "movement_counts": {
+        "CORRECT_IN_BOTH": 47,
+        "ERROR_IN_BOTH_SAME_MECHANISM": 13,
+        "INTRODUCED_BY_TREATMENT": 1,
+        "SLOT_ADDED_INCORRECTLY": 1
+      },
+      "partial_span_rate": 0.20833333333333334,
+      "prediction_provenance_counts": {
+        "unavailable": 1,
+        "unsupported_by_source": 123
+      },
+      "recommended_representation": "mixed_slot_value_representation",
+      "sample_count": 62,
+      "slot_path": "reason",
+      "source_support_counts": {
+        "source_absent_or_generation_required": 60
+      },
+      "split_counts": {
+        "dev": 28,
+        "test": 34
+      },
+      "task_family_counts": {
+        "blocked:deny": 60,
+        "clarify:clarify": 1,
+        "form_fill:fill_form": 1
+      },
+      "treatment_recovery_rate": 0.0,
+      "treatment_regression_rate": 0.03225806451612903,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 1.0,
+      "wrong_entity_rate": 0.0
+    },
+    {
+      "confidence": "HIGH",
+      "copyable_rate": 0.8245614035087719,
+      "extra_key_rate": 0.040983606557377046,
+      "mechanism_counts": {
+        "EXTRA_SLOT_KEY": 5,
+        "PARTIAL_VALUE_SPAN": 24,
+        "SLOT_CORRECT_ABSENT": 3,
+        "SLOT_CORRECT_EXACT": 90
+      },
+      "missing_key_rate": 0.0,
+      "movement_counts": {
+        "CORRECT_IN_BOTH": 43,
+        "ERROR_IN_BOTH_SAME_MECHANISM": 11,
+        "RECOVERED_BY_TREATMENT": 4,
+        "SLOT_REMOVED_CORRECTLY": 3
+      },
+      "partial_span_rate": 0.21052631578947367,
+      "prediction_provenance_counts": {
+        "exact_span_from_source": 98,
+        "partial_span_from_source": 18,
+        "unavailable": 3,
+        "unsupported_by_source": 3
+      },
+      "recommended_representation": "copy_or_normalize",
+      "sample_count": 61,
+      "slot_path": "query",
+      "source_support_counts": {
+        "exact_source_supported": 47,
+        "source_absent_or_generation_required": 10
+      },
+      "split_counts": {
+        "dev": 31,
+        "test": 30
+      },
+      "task_family_counts": {
+        "clarify:clarify": 1,
+        "extract:extract_page": 3,
+        "search:search_web": 57
+      },
+      "treatment_recovery_rate": 0.06557377049180328,
+      "treatment_regression_rate": 0.0,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 0.025210084033613446,
+      "wrong_entity_rate": 0.0
+    },
+    {
+      "confidence": "HIGH",
+      "copyable_rate": 0.0,
+      "extra_key_rate": 0.011363636363636364,
+      "mechanism_counts": {
+        "EXTRA_SLOT_KEY": 2,
+        "MISSING_SLOT_KEY": 11,
+        "PARTIAL_VALUE_SPAN": 15,
+        "SLOT_CORRECT_EXACT": 148
+      },
+      "missing_key_rate": 0.06321839080459771,
+      "movement_counts": {
+        "CORRECT_IN_BOTH": 72,
+        "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 1,
+        "ERROR_IN_BOTH_SAME_MECHANISM": 11,
+        "INTRODUCED_BY_TREATMENT": 3,
+        "RECOVERED_BY_TREATMENT": 1
+      },
+      "partial_span_rate": 0.08620689655172414,
+      "prediction_provenance_counts": {
+        "partial_span_from_source": 120,
+        "unavailable": 11,
+        "unsupported_by_source": 45
+      },
+      "recommended_representation": "mixed_slot_value_representation",
+      "sample_count": 88,
+      "slot_path": "ambiguity",
+      "source_support_counts": {
+        "source_absent_or_generation_required": 87
+      },
+      "split_counts": {
+        "dev": 45,
+        "test": 43
+      },
+      "task_family_counts": {
+        "clarify:clarify": 87,
+        "form_fill:fill_form": 1
+      },
+      "treatment_recovery_rate": 0.011363636363636364,
+      "treatment_regression_rate": 0.03409090909090909,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 0.2727272727272727,
+      "wrong_entity_rate": 0.0
+    },
+    {
+      "confidence": "HIGH",
+      "copyable_rate": 0.896551724137931,
+      "extra_key_rate": 0.03333333333333333,
+      "mechanism_counts": {
+        "EXTRA_SLOT_KEY": 6,
+        "MISSING_SLOT_KEY": 3,
+        "PARTIAL_VALUE_SPAN": 10,
+        "SLOT_CORRECT_EXACT": 150,
+        "SOURCE_COPY_FAILURE": 4,
+        "UNSUPPORTED_OR_HALLUCINATED_VALUE": 7
+      },
+      "missing_key_rate": 0.017241379310344827,
+      "movement_counts": {
+        "CORRECT_IN_BOTH": 71,
+        "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 1,
+        "ERROR_IN_BOTH_SAME_MECHANISM": 10,
+        "INTRODUCED_BY_TREATMENT": 5,
+        "RECOVERED_BY_TREATMENT": 3
+      },
+      "partial_span_rate": 0.05747126436781609,
+      "prediction_provenance_counts": {
+        "exact_span_from_source": 155,
+        "partial_span_from_source": 4,
+        "unavailable": 3,
+        "unsupported_by_source": 18
+      },
+      "recommended_representation": "copy_or_normalize",
+      "sample_count": 90,
+      "slot_path": "field",
+      "source_support_counts": {
+        "exact_source_supported": 78,
+        "source_absent_or_generation_required": 9
+      },
+      "split_counts": {
+        "dev": 45,
+        "test": 45
+      },
+      "task_family_counts": {
+        "clarify:clarify": 3,
+        "form_fill:fill_form": 87
+      },
+      "treatment_recovery_rate": 0.03333333333333333,
+      "treatment_regression_rate": 0.05555555555555555,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 0.1016949152542373,
+      "wrong_entity_rate": 0.0
+    },
+    {
+      "confidence": "HIGH",
+      "copyable_rate": 0.8070175438596491,
+      "extra_key_rate": 0.041666666666666664,
+      "mechanism_counts": {
+        "EXTRA_SLOT_KEY": 5,
+        "MISSING_SLOT_KEY": 5,
+        "PARTIAL_VALUE_SPAN": 6,
+        "SLOT_CORRECT_ABSENT": 1,
+        "SLOT_CORRECT_EXACT": 96,
+        "UNSUPPORTED_OR_HALLUCINATED_VALUE": 7
+      },
+      "missing_key_rate": 0.043859649122807015,
+      "movement_counts": {
+        "CORRECT_IN_BOTH": 48,
+        "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 5,
+        "ERROR_IN_BOTH_SAME_MECHANISM": 6,
+        "SLOT_REMOVED_CORRECTLY": 1
+      },
+      "partial_span_rate": 0.05263157894736842,
+      "prediction_provenance_counts": {
+        "exact_span_from_source": 96,
+        "partial_span_from_source": 8,
+        "unavailable": 6,
+        "unsupported_by_source": 10
+      },
+      "recommended_representation": "copy_or_normalize",
+      "sample_count": 60,
+      "slot_path": "action",
+      "source_support_counts": {
+        "exact_source_supported": 46,
+        "source_absent_or_generation_required": 11
+      },
+      "split_counts": {
+        "dev": 27,
+        "test": 33
+      },
+      "task_family_counts": {
+        "blocked:deny": 59,
+        "clarify:clarify": 1
+      },
+      "treatment_recovery_rate": 0.0,
+      "treatment_regression_rate": 0.0,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 0.08771929824561403,
+      "wrong_entity_rate": 0.0
+    },
+    {
+      "confidence": "MEDIUM",
+      "copyable_rate": 0.855072463768116,
+      "extra_key_rate": 0.0,
+      "mechanism_counts": {
+        "MISSING_SLOT_KEY": 2,
+        "PARTIAL_VALUE_SPAN": 3,
+        "SLOT_CORRECT_EXACT": 125,
+        "SOURCE_COPY_FAILURE": 1,
+        "UNSUPPORTED_OR_HALLUCINATED_VALUE": 5,
+        "WRONG_SLOT_KEY_SEMANTIC": 2
+      },
+      "missing_key_rate": 0.014492753623188406,
+      "movement_counts": {
+        "CORRECT_IN_BOTH": 62,
+        "ERROR_IN_BOTH_DIFFERENT_MECHANISM": 2,
+        "ERROR_IN_BOTH_SAME_MECHANISM": 4,
+        "RECOVERED_BY_TREATMENT": 1
+      },
+      "partial_span_rate": 0.021739130434782608,
+      "prediction_provenance_counts": {
+        "exact_span_from_source": 123,
+        "partial_span_from_source": 1,
+        "unavailable": 4,
+        "unsupported_by_source": 10
+      },
+      "recommended_representation": "copy_or_normalize",
+      "sample_count": 69,
+      "slot_path": "target",
+      "source_support_counts": {
+        "exact_source_supported": 59,
+        "source_absent_or_generation_required": 10
+      },
+      "split_counts": {
+        "dev": 36,
+        "test": 33
+      },
+      "task_family_counts": {
+        "extract:extract_page": 69
+      },
+      "treatment_recovery_rate": 0.014492753623188406,
+      "treatment_regression_rate": 0.0,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 0.07462686567164178,
+      "wrong_entity_rate": 0.0
+    },
+    {
+      "confidence": "MEDIUM",
+      "copyable_rate": 0.14814814814814814,
+      "extra_key_rate": 0.00909090909090909,
+      "mechanism_counts": {
+        "EXTRA_SLOT_KEY": 1,
+        "NORMALIZATION_FAILURE": 14,
+        "SLOT_CORRECT_ABSENT": 1,
+        "SLOT_CORRECT_EXACT": 94
+      },
+      "missing_key_rate": 0.0,
+      "movement_counts": {
+        "CORRECT_IN_BOTH": 46,
+        "ERROR_IN_BOTH_SAME_MECHANISM": 6,
+        "INTRODUCED_BY_TREATMENT": 1,
+        "RECOVERED_BY_TREATMENT": 1,
+        "SLOT_REMOVED_CORRECTLY": 1
+      },
+      "partial_span_rate": 0.0,
+      "prediction_provenance_counts": {
+        "normalized_span_from_source": 16,
+        "unavailable": 1,
+        "unsupported_by_source": 93
+      },
+      "recommended_representation": "mixed_slot_value_representation",
+      "sample_count": 55,
+      "slot_path": "url",
+      "source_support_counts": {
+        "normalized_source_supported": 8,
+        "source_absent_or_generation_required": 46
+      },
+      "split_counts": {
+        "dev": 28,
+        "test": 27
+      },
+      "task_family_counts": {
+        "clarify:clarify": 1,
+        "navigate:open_url": 54
+      },
+      "treatment_recovery_rate": 0.01818181818181818,
+      "treatment_regression_rate": 0.01818181818181818,
+      "typed_derivable_rate": 0.0,
+      "unsupported_prediction_rate": 0.8532110091743119,
+      "wrong_entity_rate": 0.0
+    }
+  ]
+}

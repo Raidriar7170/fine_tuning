@@ -38,6 +38,19 @@
       "superseded_by": null
     },
     {
+      "id": "slot-error-mechanism-analysis",
+      "status": "CURRENT",
+      "phase": "analyze-slot-error-mechanisms-and-design-slot-representation",
+      "path": "reports/public-sample/slot-error-mechanism-analysis/summary.json",
+      "manifest_id": "public-sample-20260619T090925Z",
+      "model_run_id": "step-matched-canonical-slot-ablation-20260620T000000Z",
+      "boundary": "Recovered step-matched Control/Treatment prediction contracts and gold contracts; read-only slot-level analysis.",
+      "summary": "Decision MIXED_SLOT_REPRESENTATION_REQUIRED; exact/normalized source-copyable gold slots 50.53%; typed-derivable slots 0.00%; generation-required slots 49.47%; prediction unsupported-by-source 32.17%.",
+      "conclusion": "Analysis/design evidence only; next recommended bounded change is design-hybrid-slot-representation-v1; no training, prediction rerun, evaluator relaxation, schema/runtime migration, or model improvement claim.",
+      "current_claim_allowed": true,
+      "superseded_by": null
+    },
+    {
       "id": "contract-v2-projection-rerun",
       "status": "CURRENT",
       "phase": "rerun-contract-v2-projection-with-recovered-inputs",
