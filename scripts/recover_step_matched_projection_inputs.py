@@ -19,6 +19,7 @@ if str(REPO_ROOT / "src") not in sys.path:
 
 from run_step_matched_canonical_slot_ablation_eval import _metric_bundle  # noqa: E402
 from step_matched_canonical_slot_ablation_report import REQUIRED_METRICS  # noqa: E402
+
 from voice2task.io import read_json, write_json  # noqa: E402
 from voice2task.schemas import SFTDatasetRow, ValidationError, as_contract  # noqa: E402
 
@@ -64,8 +65,12 @@ CONFIG_PATHS = {
     "treatment_training": REPO_ROOT / "configs/sft-a100-step-matched-canonical-slot-treatment.json",
     "control_dev_prediction": REPO_ROOT / "configs/sft-a100-step-matched-canonical-slot-control-dev-prediction.json",
     "control_test_prediction": REPO_ROOT / "configs/sft-a100-step-matched-canonical-slot-control-test-prediction.json",
-    "treatment_dev_prediction": REPO_ROOT / "configs/sft-a100-step-matched-canonical-slot-treatment-dev-prediction.json",
-    "treatment_test_prediction": REPO_ROOT / "configs/sft-a100-step-matched-canonical-slot-treatment-test-prediction.json",
+    "treatment_dev_prediction": (
+        REPO_ROOT / "configs/sft-a100-step-matched-canonical-slot-treatment-dev-prediction.json"
+    ),
+    "treatment_test_prediction": (
+        REPO_ROOT / "configs/sft-a100-step-matched-canonical-slot-treatment-test-prediction.json"
+    ),
 }
 OUTPUT_RELATIVE = Path("reports/public-sample/step-matched-canonical-slot-ablation/raw-inputs")
 COMMITTED_REPORT_ROOT = REPO_ROOT / "reports/public-sample/step-matched-canonical-slot-ablation"
@@ -424,7 +429,9 @@ def _build_prediction_rows(
         raw_model_output = canonical_json(prediction_contract)
         raw_hash = sha256_text(raw_model_output)
         decoded_hash = str(raw_summary.get("decoded_sha256", ""))
-        schema_guard = source_prediction.get("schema_guard") if isinstance(source_prediction.get("schema_guard"), dict) else {}
+        schema_guard = (
+            source_prediction.get("schema_guard") if isinstance(source_prediction.get("schema_guard"), dict) else {}
+        )
         valid = (
             raw_hash == decoded_hash
             and schema_guard.get("validated_output_schema_valid", True) is True
@@ -823,13 +830,17 @@ def recover(args: argparse.Namespace) -> dict[str, Any]:
             f"- Recovery method: `{RECOVERY_METHOD}`",
             "- Raw predictions found: yes, four original step-matched prediction files were recovered.",
             "- Prediction-only reproduction: not used.",
-            "- Adapter identity: verified by adapter model hash, adapter metadata, training manifest, row count, and optimizer step count.",
-            "- Boundary: dev=207 rows, test=207 rows; Control, Treatment, and Gold IDs match; dev/test IDs do not overlap.",
+            "- Adapter identity: verified by adapter model hash, adapter metadata, training manifest, row count, "
+            "and optimizer step count.",
+            "- Boundary: dev=207 rows, test=207 rows; Control, Treatment, and Gold IDs match; dev/test IDs do "
+            "not overlap.",
             f"- Dev gold hash: `{gold_hashes['dev']}`",
             f"- Test gold hash: `{gold_hashes['test']}`",
-            "- Metric reproduction: passed against the committed step-matched aggregate report using the current evaluator.",
+            "- Metric reproduction: passed against the committed step-matched aggregate report using the current "
+            "evaluator.",
             "- Projection inputs ready: true for a later bounded Contract V2 projection rerun.",
-            "- Not done: no training, no prediction-only reproduction, no prediction repair, no evaluator/schema/prompt/gold/split change, no Contract V2 projection.",
+            "- Not done: no training, no prediction-only reproduction, no prediction repair, no evaluator/schema/"
+            "prompt/gold/split change, no Contract V2 projection.",
             "- Next recommended change: `rerun-contract-v2-projection-with-recovered-inputs`.",
             "",
         ]

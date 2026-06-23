@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-22",
+  "generated_at": "2026-06-23",
   "project": "Voice2Task Post-Training",
   "allowed_statuses": [
     "CURRENT",
@@ -99,6 +99,19 @@
             "boundary": "Review-and-hardening evidence that splits gold-free OnlineShadowSidecar rows from offline EvaluationAudit rows before any prediction-pipeline shadow hook.",
             "summary": "Decision SHADOW_INTERFACE_READY_FOR_PREDICTION_HOOK; 828/828 online sidecars have no gold fields; 942 audit rows; trusted exact rate 87.44%; eligible verification failure rate 12.56%; false accepts, silent fallbacks, contract mutations, runtime deltas, action trusted, and normalized trusted all 0.",
             "conclusion": "Interface evidence only; next recommended bounded change is integrate-copy-backed-verification-prediction-shadow-hook; no runtime enforcement, action enablement, evaluator change, prediction repair, training, or model improvement claim.",
+            "current_claim_allowed": true,
+            "superseded_by": null
+        },
+        {
+            "id": "copy-backed-prediction-shadow-hook",
+            "status": "CURRENT",
+            "phase": "integrate-copy-backed-verification-prediction-shadow-hook",
+            "path": "reports/public-sample/copy-backed-prediction-shadow-hook/summary.json",
+            "manifest_id": "public-sample-20260619T090925Z",
+            "model_run_id": null,
+            "boundary": "Default-off prediction-pipeline copy-backed sidecar hook over public fixture predictions; no enforcement.",
+            "summary": "Decision PREDICTION_SHADOW_HOOK_READY_OBSERVE_ONLY; disabled/NullSink/JsonlSink prediction output hashes match; deterministic rerun true; V1 metric delta 0; trusted exact public fixture count 3; normalized candidate count 1.",
+            "conclusion": "Observe-only prediction hook evidence; next recommended bounded change is evaluate-frozen-copy-shadow-policy-on-template-disjoint-challenge-set; no runtime enforcement, action enablement, normalized trusted provenance, evaluator change, prediction repair, training, or model improvement claim.",
             "current_claim_allowed": true,
             "superseded_by": null
         },

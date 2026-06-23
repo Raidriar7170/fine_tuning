@@ -1,0 +1,61 @@
+{
+  "benchmark_kind": "full_hook_local_cpu_benchmark_not_production_slo",
+  "hardware": "generic_local_cpu_process",
+  "measured_path": "prediction result -> hook guard -> policy lookup -> contract read -> slot extraction -> exact verify -> normalized diagnostic -> sidecar build -> serialization -> optional local JSONL sink",
+  "results": {
+    "disabled_hook_overhead": {
+      "input_char_count": 8,
+      "iterations": 80,
+      "mean_ms": 0.0007686879143875558,
+      "p50_ms": 0.0007500057108700275,
+      "p95_ms": 0.0008330025593750179,
+      "p99_ms": 0.0008749993867240846,
+      "warmup": 5
+    },
+    "duplicate_span_fixture": {
+      "input_char_count": 9,
+      "iterations": 80,
+      "mean_ms": 0.09058687473952887,
+      "p50_ms": 0.08525000157533213,
+      "p95_ms": 0.12312499893596396,
+      "p99_ms": 0.1507500055595301,
+      "warmup": 5
+    },
+    "invalid_contract": {
+      "input_char_count": 8,
+      "iterations": 80,
+      "mean_ms": 0.05888276182304253,
+      "p50_ms": 0.05583299935096875,
+      "p95_ms": 0.06541699985973537,
+      "p99_ms": 0.11533300130395219,
+      "warmup": 5
+    },
+    "jsonl_sink_valid_contract": {
+      "input_char_count": 8,
+      "iterations": 80,
+      "mean_ms": 0.14972443732403917,
+      "p50_ms": 0.13316699914867058,
+      "p95_ms": 0.25495900626992807,
+      "p99_ms": 0.3552919952198863,
+      "warmup": 5
+    },
+    "long_chinese_input": {
+      "input_char_count": 346,
+      "iterations": 80,
+      "mean_ms": 0.0981535624305252,
+      "p50_ms": 0.0919170051929541,
+      "p95_ms": 0.14995800302131101,
+      "p99_ms": 0.16037500608945265,
+      "warmup": 5
+    },
+    "null_sink_valid_contract": {
+      "input_char_count": 8,
+      "iterations": 80,
+      "mean_ms": 0.09293636276197503,
+      "p50_ms": 0.08845800039125606,
+      "p95_ms": 0.13312500232132152,
+      "p99_ms": 0.14929199824109674,
+      "warmup": 5
+    }
+  }
+}

@@ -81,7 +81,17 @@ def test_online_sidecar_generation_has_no_gold_dependency() -> None:
     assert diagnostic["status"] == "VERIFIED_EXACT_UNIQUE"
     assert diagnostic["trusted_provenance"] is True
     assert diagnostic["candidate_provenance"] is False
-    assert diagnostic["source_span"]["text"] == "北京天气"
+    assert diagnostic["source_span"]["span_hash"]
+    assert "text" not in diagnostic["source_span"]
+
+    local_debug_sidecar = generate_online_shadow_sidecar(
+        "帮我搜索北京天气",
+        _contract("search", "search_web", {"query": "北京天气"}),
+        request_id="req-1",
+        scope_policy=policy,
+        retain_span_text=True,
+    )
+    assert local_debug_sidecar["slot_diagnostics"][0]["source_span"]["text"] == "北京天气"
 
 
 def test_normalized_candidate_and_disabled_action_are_not_trusted() -> None:

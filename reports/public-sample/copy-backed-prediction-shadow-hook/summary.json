@@ -1,0 +1,64 @@
+{
+  "action_trusted_count": 0,
+  "cannot_claim": [
+    "runtime enforcement is active",
+    "slot accuracy improved",
+    "executable quality improved",
+    "source-backed means task-correct",
+    "normalized provenance is trusted",
+    "action is supported",
+    "production-ready",
+    "safety-ready",
+    "challenge-set generalization proven"
+  ],
+  "canonical_prediction_entrypoint": "voice2task-train sft-predict -> voice2task.training.run_sft_prediction_export",
+  "change_id": "integrate-copy-backed-verification-prediction-shadow-hook",
+  "contract_mutation_count": 0,
+  "decision_label": "PREDICTION_SHADOW_HOOK_READY_OBSERVE_ONLY",
+  "evidence_kind": "copy_backed_prediction_shadow_hook",
+  "hook_default_enabled": false,
+  "normalized_path": "candidate-only",
+  "output_invariance": {
+    "deterministic_rerun": true,
+    "deterministic_rerun_ignored_fields": [
+      "hook_latency_ms"
+    ],
+    "hashes_equal": true,
+    "metrics_equal": true,
+    "prediction_output_hash_disabled": "76ca6ab416293825dc01eac35b7a13cec35ee2f770483e09d3cb00613900c173",
+    "prediction_output_hash_jsonl_sink": "76ca6ab416293825dc01eac35b7a13cec35ee2f770483e09d3cb00613900c173",
+    "prediction_output_hash_null_sink": "76ca6ab416293825dc01eac35b7a13cec35ee2f770483e09d3cb00613900c173"
+  },
+  "policy": {
+    "policy_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7",
+    "policy_id": "copy-backed-scope-policy-v1",
+    "policy_version": "1.0.0"
+  },
+  "prior_offline_evaluation_audit_reference": {
+    "eligible_verification_failure_rate": 0.12558139534883722,
+    "source": "reports/public-sample/copy-backed-shadow-mode-review/summary.json",
+    "source_verified_gold_mismatch_rate": 0.07712765957446809,
+    "trusted_exact_rate": 0.8744186046511628
+  },
+  "provenance_false_accept_count": 0,
+  "recommended_next_change": "evaluate-frozen-copy-shadow-policy-on-template-disjoint-challenge-set",
+  "runtime_decision_delta_count": 0,
+  "sidecar_default_retention": "hash-and-offset-only",
+  "silent_fallback_count": 0,
+  "trusted_statuses": [
+    "VERIFIED_EXACT_UNIQUE"
+  ],
+  "v1_metric_delta": {
+    "confirmation_accuracy": 0.0,
+    "contract_exact_match": 0.0,
+    "json_valid_rate": 0.0,
+    "route_accuracy": 0.0,
+    "safety_gold_stop_support": 0.0,
+    "safety_precision": 0.0,
+    "safety_predicted_stop_support": 0.0,
+    "safety_recall": 0.0,
+    "slot_f1": 0.0,
+    "slot_f1_soft": 0.0,
+    "task_type_accuracy": 0.0
+  }
+}

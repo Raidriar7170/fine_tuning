@@ -168,6 +168,7 @@ def build_review_payload(repo_root: Path, policy: dict[str, Any]) -> dict[str, A
             split=row["split"],
             run_role=row["run_role"],
             scope_policy=policy,
+            retain_request_id=True,
         )
         after_hash = stable_hash(row["prediction_contract"])
         if before_hash != after_hash:

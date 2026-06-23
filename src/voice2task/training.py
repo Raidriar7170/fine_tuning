@@ -12,6 +12,12 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, cast
 
+from voice2task.copy_backed_prediction_shadow_hook import (
+    PredictionShadowHookOutcome,
+    run_prediction_shadow_hook,
+    shadow_config_from_mapping,
+    summarize_prediction_shadow_outcomes,
+)
 from voice2task.formatting import (
     FORMATTING_POLICY,
     format_dpo_pair,
@@ -983,6 +989,38 @@ def _write_fixture_predictions(rows: list[SFTDatasetRow], output_path: Path) -> 
     return len(records)
 
 
+def _run_copy_backed_prediction_shadow_hook(
+    *,
+    config: dict[str, Any],
+    config_path: Path,
+    rows: list[SFTDatasetRow],
+    output_path: Path,
+) -> dict[str, Any] | None:
+    if "copy_backed_shadow" not in config:
+        return None
+    hook_config = shadow_config_from_mapping(
+        config.get("copy_backed_shadow"),
+        config_dir=config_path.parent,
+        output_dir=output_path.parent,
+    )
+    if not hook_config.enabled:
+        return summarize_prediction_shadow_outcomes([], enabled=False)
+    row_by_id = {row.id: row for row in rows}
+    outcomes: list[PredictionShadowHookOutcome] = []
+    for record in read_jsonl(output_path):
+        row_id = str(record.get("id", ""))
+        source_row = row_by_id.get(row_id)
+        outcomes.append(
+            run_prediction_shadow_hook(
+                source_text=source_row.input_text if source_row is not None else None,
+                prediction=record.get("prediction"),
+                config=hook_config,
+                request_id=row_id,
+            )
+        )
+    return summarize_prediction_shadow_outcomes(outcomes, enabled=True)
+
+
 def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -1679,6 +1717,14 @@ def run_sft_prediction_export(
             max_new_tokens=int(config.get("max_new_tokens", 256)),
             decoding_policy=metadata["decoding_policy"],
         )
+        copy_shadow = _run_copy_backed_prediction_shadow_hook(
+            config=config,
+            config_path=config_path,
+            rows=rows,
+            output_path=output_path,
+        )
+        if copy_shadow is not None:
+            metadata["copy_backed_shadow"] = copy_shadow
         metadata["prediction_status"] = "fixture_predictions_written"
         metadata["prediction_source_kind"] = "public_sample_contract_fixture"
         metadata["notes"] = (
@@ -1710,6 +1756,14 @@ def run_sft_prediction_export(
         return _write_private_prediction_unavailable(metadata)
     metadata["prediction_count"] = _run_real_prediction_with_optional_sidecars(config, rows, output_path, sidecar_paths)
     _mark_sidecars_written(metadata)
+    copy_shadow = _run_copy_backed_prediction_shadow_hook(
+        config=config,
+        config_path=config_path,
+        rows=rows,
+        output_path=output_path,
+    )
+    if copy_shadow is not None:
+        metadata["copy_backed_shadow"] = copy_shadow
     metadata["prediction_status"] = "private_adapter_predictions_written"
     metadata["prediction_source_kind"] = "private_a100_adapter"
     metadata["notes"] = (

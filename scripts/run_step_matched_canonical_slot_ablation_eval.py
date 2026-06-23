@@ -17,11 +17,16 @@ from step_matched_canonical_slot_ablation_report import (
     assert_public_safe_text,
     decide_pilot_gate,
 )
+
 from voice2task.evaluation import evaluate_predictions, load_predictions
 from voice2task.io import read_json, write_json
-from voice2task.layered_evaluation import _executable_contract_pass, _prediction_to_contract
-from voice2task.layered_evaluation import evaluate_layered_predictions
-from voice2task.layered_evaluation import normalize_slot_key, normalize_slot_value
+from voice2task.layered_evaluation import (
+    _executable_contract_pass,
+    _prediction_to_contract,
+    evaluate_layered_predictions,
+    normalize_slot_key,
+    normalize_slot_value,
+)
 from voice2task.schemas import SFTDatasetRow, as_contract
 
 CONTROL_REF = "c25a09874ae10c052364aaf5bfa55ee45b819e9a"
@@ -97,7 +102,10 @@ def _boundary_for_split(control_rows: list[dict[str, Any]], treatment_rows: list
     }
 
 
-def _mismatch_examples(control_rows: list[dict[str, Any]], treatment_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _mismatch_examples(
+    control_rows: list[dict[str, Any]],
+    treatment_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     examples: list[dict[str, Any]] = []
     for index, (control, treatment) in enumerate(zip(control_rows, treatment_rows, strict=False)):
         if (
@@ -399,11 +407,18 @@ def _split_analysis(rows: list[SFTDatasetRow], control: dict[str, Any], treatmen
         c = control["row_status"][row.id]
         t = treatment["row_status"][row.id]
         item = {"id": row.id, "family": c["family"]}
-        def rec(metric: str, recoveries: list[dict[str, str]], regressions: list[dict[str, str]]) -> None:
-            if not c[metric] and t[metric]:
-                recoveries.append(item)
-            if c[metric] and not t[metric]:
-                regressions.append(item)
+        def rec(
+            metric: str,
+            recoveries: list[dict[str, str]],
+            regressions: list[dict[str, str]],
+            control_status: dict[str, Any] = c,
+            treatment_status: dict[str, Any] = t,
+            row_item: dict[str, str] = item,
+        ) -> None:
+            if not control_status[metric] and treatment_status[metric]:
+                recoveries.append(row_item)
+            if control_status[metric] and not treatment_status[metric]:
+                regressions.append(row_item)
         rec("exact", exact_recoveries, exact_regressions)
         rec("executable", executable_recoveries, executable_regressions)
         rec("slot_exact", slot_recoveries, slot_regressions)
@@ -468,7 +483,10 @@ def _family_deltas(family: dict[str, dict[str, list[Any]]]) -> list[dict[str, An
                 - _rate(bucket["control_task_type_correct"]),
             }
         )
-    out.sort(key=lambda item: (abs(item["slot_value_exact_f1_delta"]) + abs(item["executable_delta"]), item["count"]), reverse=True)
+    out.sort(
+        key=lambda item: (abs(item["slot_value_exact_f1_delta"]) + abs(item["executable_delta"]), item["count"]),
+        reverse=True,
+    )
     return out
 
 
@@ -511,11 +529,19 @@ def _comparison_markdown(comparison: dict[str, Any]) -> str:
         f"- Gate passed: `{comparison['pilot_gate']['passed']}`",
         f"- Recommended next step: `{comparison['recommended_next_step']}`",
         "- Scope: one fixed-seed SFT A/B; step-matched, not token-matched.",
-        "- Non-goals: no DPO/GRPO, no evaluator change, no LLM judge, no prediction repair, no semantic-equivalence scoring, no public adapter/checkpoint release.",
+        "- Non-goals: no DPO/GRPO, no evaluator change, no LLM judge, no prediction repair, no "
+        "semantic-equivalence scoring, no public adapter/checkpoint release.",
         "",
     ]
     for split in ("dev", "test"):
-        lines.extend([f"## {split}", "", "| metric | control | treatment | delta |", "| --- | ---: | ---: | ---: |"])
+        lines.extend(
+            [
+                f"## {split}",
+                "",
+                "| metric | control | treatment | delta |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
         payload = comparison["splits"][split]
         for metric in REQUIRED_METRICS:
             lines.append(
@@ -523,7 +549,15 @@ def _comparison_markdown(comparison: dict[str, Any]) -> str:
                 f"{payload['treatment_metrics'][metric]:.6f} | "
                 f"{payload['absolute_delta_treatment_minus_control'][metric]:+.6f} |"
             )
-        lines.extend(["", "Top family-level deltas:", "", "| family | count | exact | executable | slot exact F1 |", "| --- | ---: | ---: | ---: | ---: |"])
+        lines.extend(
+            [
+                "",
+                "Top family-level deltas:",
+                "",
+                "| family | count | exact | executable | slot exact F1 |",
+                "| --- | ---: | ---: | ---: | ---: |",
+            ]
+        )
         for item in payload["top_family_level_deltas"][:8]:
             lines.append(
                 f"| `{item['family']}` | {item['count']} | {item['exact_delta']:+.6f} | "
@@ -545,7 +579,8 @@ def _decision_markdown(comparison: dict[str, Any]) -> str:
             f"- Gate passed: `{comparison['pilot_gate']['passed']}`",
             f"- Recommended next step: `{comparison['recommended_next_step']}`",
             "- This is one fixed seed and is not statistical confirmation.",
-            "- Do not claim public adapter/checkpoint release, production readiness, safety certification, live-browser improvement, or held-out recovery beyond observed metrics.",
+            "- Do not claim public adapter/checkpoint release, production readiness, safety certification, "
+            "live-browser improvement, or held-out recovery beyond observed metrics.",
             "",
         ]
     )
@@ -663,14 +698,16 @@ def run(args: argparse.Namespace) -> None:
 def _required_answers(comparison: dict[str, Any]) -> list[str]:
     return [
         "Step-matched: yes; both arms use the same explicit max_steps and scheduler step count.",
-        "Examples/tokens: examples are step-matched by optimizer updates; target token exposure is recorded but not matched.",
+        "Examples/tokens: examples are step-matched by optimizer updates; target token exposure is recorded but "
+        "not matched.",
         "Canonical data gain: answer is limited to observed treatment-minus-control deltas in comparison.json.",
         "Search concentration: see family-level-deltas.json for concentration by family.",
         "Regressions: see paired-row-analysis.json exact/executable/slot regressions.",
         "Safety and confirmation: see safety and confirmation regression counts plus guardrail deltas.",
         f"Decision label: {comparison['decision_label']}.",
         f"Next recommendation: {comparison['recommended_next_step']}.",
-        "Cannot claim: public adapter/checkpoint release, production readiness, safety certification, live-browser improvement, or held-out recovery beyond observed metrics.",
+        "Cannot claim: public adapter/checkpoint release, production readiness, safety certification, "
+        "live-browser improvement, or held-out recovery beyond observed metrics.",
     ]
 
 
@@ -679,8 +716,16 @@ def main() -> int:
     parser.add_argument("--prediction-root", type=Path, required=True)
     parser.add_argument("--control-metadata", type=Path, required=True)
     parser.add_argument("--treatment-metadata", type=Path, required=True)
-    parser.add_argument("--control-config", type=Path, default=Path("configs/sft-a100-step-matched-canonical-slot-control.json"))
-    parser.add_argument("--treatment-config", type=Path, default=Path("configs/sft-a100-step-matched-canonical-slot-treatment.json"))
+    parser.add_argument(
+        "--control-config",
+        type=Path,
+        default=Path("configs/sft-a100-step-matched-canonical-slot-control.json"),
+    )
+    parser.add_argument(
+        "--treatment-config",
+        type=Path,
+        default=Path("configs/sft-a100-step-matched-canonical-slot-treatment.json"),
+    )
     parser.add_argument("--output-dir", type=Path, default=EVIDENCE_ROOT)
     run(parser.parse_args())
     return 0

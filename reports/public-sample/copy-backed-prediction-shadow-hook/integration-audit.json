@@ -1,0 +1,157 @@
+{
+  "canonical_prediction_entrypoint": "voice2task-train sft-predict -> voice2task.training.run_sft_prediction_export",
+  "change_id": "integrate-copy-backed-verification-prediction-shadow-hook",
+  "default_enabled": false,
+  "evidence_kind": "copy_backed_prediction_shadow_hook_integration_audit",
+  "fault_injection": [
+    {
+      "candidate_provenance_count": 0,
+      "case": "malformed_json",
+      "error_code": "prediction_malformed_json",
+      "exception_isolated": true,
+      "hook_status": "SHADOW_INVALID_INPUT",
+      "main_prediction_unchanged": true,
+      "sidecar": null,
+      "sidecar_write_status": "disabled",
+      "trusted_provenance_count": 0
+    },
+    {
+      "candidate_provenance_count": 0,
+      "case": "invalid_contract",
+      "error_code": "prediction_schema_invalid",
+      "exception_isolated": true,
+      "hook_status": "SHADOW_INVALID_CONTRACT",
+      "main_prediction_unchanged": true,
+      "sidecar": null,
+      "sidecar_write_status": "disabled",
+      "trusted_provenance_count": 0
+    },
+    {
+      "candidate_provenance_count": 0,
+      "case": "missing_policy",
+      "error_code": "policy_load_or_validation_failed",
+      "exception_isolated": true,
+      "hook_status": "SHADOW_POLICY_INVALID",
+      "main_prediction_unchanged": true,
+      "sidecar": null,
+      "sidecar_write_status": "disabled",
+      "trusted_provenance_count": 0
+    },
+    {
+      "candidate_provenance_count": 0,
+      "case": "sink_failure",
+      "error_code": "sink_write_failed",
+      "exception_isolated": true,
+      "hook_status": "SHADOW_SINK_ERROR_ISOLATED",
+      "main_prediction_unchanged": true,
+      "sidecar": null,
+      "sidecar_write_status": "failed_isolated",
+      "trusted_provenance_count": 1
+    }
+  ],
+  "feature_flag": "copy_backed_shadow",
+  "gates": {
+    "action_trusted_count": 0,
+    "contract_mutation_count": 0,
+    "deterministic_rerun": true,
+    "feature_flag_default_off": true,
+    "hashes_equal": true,
+    "metrics_equal": true,
+    "normalized_trusted_count": 0,
+    "provenance_false_accept_count": 0,
+    "public_leak_scan_clean": true,
+    "runtime_decision_delta_count": 0,
+    "silent_fallback_count": 0,
+    "v1_metric_delta_zero": true
+  },
+  "hook_location": "post-prediction artifact observation inside run_sft_prediction_export",
+  "invariance": {
+    "deterministic_rerun": true,
+    "deterministic_rerun_ignored_fields": [
+      "hook_latency_ms"
+    ],
+    "disabled_metadata_has_copy_shadow": false,
+    "hashes_equal": true,
+    "jsonl_sink_summary": {
+      "candidate_provenance_count": 1,
+      "contract_mutated": false,
+      "enabled": true,
+      "error_code_counts": {},
+      "exception_isolated_count": 0,
+      "gold_fields_absent": true,
+      "hook_invocation_count": 7,
+      "hook_status_counts": {
+        "COMPLETED": 7
+      },
+      "hook_version": "copy-backed-prediction-shadow-hook-v1",
+      "main_prediction_unchanged": true,
+      "runtime_decision_changed": false,
+      "sidecar_version": "copy-prediction-shadow-v1",
+      "sidecar_write_status": "written",
+      "trusted_provenance_count": 3
+    },
+    "metrics_equal": true,
+    "null_sink_summary": {
+      "candidate_provenance_count": 1,
+      "contract_mutated": false,
+      "enabled": true,
+      "error_code_counts": {},
+      "exception_isolated_count": 0,
+      "gold_fields_absent": true,
+      "hook_invocation_count": 7,
+      "hook_status_counts": {
+        "COMPLETED": 7
+      },
+      "hook_version": "copy-backed-prediction-shadow-hook-v1",
+      "main_prediction_unchanged": true,
+      "runtime_decision_changed": false,
+      "sidecar_version": "copy-prediction-shadow-v1",
+      "sidecar_write_status": "disabled",
+      "trusted_provenance_count": 3
+    },
+    "prediction_output_hash_disabled": "76ca6ab416293825dc01eac35b7a13cec35ee2f770483e09d3cb00613900c173",
+    "prediction_output_hash_jsonl_sink": "76ca6ab416293825dc01eac35b7a13cec35ee2f770483e09d3cb00613900c173",
+    "prediction_output_hash_null_sink": "76ca6ab416293825dc01eac35b7a13cec35ee2f770483e09d3cb00613900c173",
+    "v1_metric_delta": {
+      "confirmation_accuracy": 0.0,
+      "contract_exact_match": 0.0,
+      "json_valid_rate": 0.0,
+      "route_accuracy": 0.0,
+      "safety_gold_stop_support": 0.0,
+      "safety_precision": 0.0,
+      "safety_predicted_stop_support": 0.0,
+      "safety_recall": 0.0,
+      "slot_f1": 0.0,
+      "slot_f1_soft": 0.0,
+      "task_type_accuracy": 0.0
+    }
+  },
+  "policy_validation": {
+    "action_enabled": false,
+    "blocking_reasons": [],
+    "computed_policy_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7",
+    "disabled_row_set_matches_disabled_triples": true,
+    "disabled_triples": [
+      "blocked:deny:action"
+    ],
+    "enabled_disabled_overlap": [],
+    "enabled_row_set_matches_enabled_triples": true,
+    "enabled_triples": [
+      "search:search_web:query",
+      "form_fill:fill_form:field",
+      "extract:extract_page:target"
+    ],
+    "normalized_trusted": false,
+    "ok": true,
+    "policy_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7",
+    "policy_id": "copy-backed-scope-policy-v1",
+    "policy_version": "1.0.0",
+    "scope_row_keys": [
+      "search:search_web:query",
+      "form_fill:fill_form:field",
+      "extract:extract_page:target",
+      "blocked:deny:action"
+    ],
+    "scope_row_keys_match_policy_sets": true
+  }
+}
