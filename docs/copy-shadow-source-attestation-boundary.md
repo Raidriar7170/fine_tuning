@@ -91,8 +91,9 @@ Per-scope proposal:
 - Deterministic Policy V2 design: `extract:extract_page:target` -> `INSUFFICIENT_EVIDENCE`
 
 Recommended next change:
-`review-and-freeze-copy-shadow-policy-v2-before-naturalistic-challenge`
+`design-and-materialize-naturalistic-copy-shadow-challenge-v2`
 
-This recommendation is a proposal boundary only. It does not create policy v2,
+Policy V2 has since been frozen as an inactive reference in
+`configs/copy-backed-scope-policy-v2.frozen.json`. The freeze does not create
 naturalistic challenge v2, runtime enforcement, training, data expansion,
 action enablement, or normalized trusted provenance.

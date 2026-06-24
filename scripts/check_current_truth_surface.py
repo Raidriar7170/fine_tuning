@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -17,6 +18,8 @@ INDEX_MD_PATH = REPO_ROOT / "reports/public-sample/EVIDENCE_INDEX.md"
 README_PATH = REPO_ROOT / "README.md"
 README_EN_PATH = REPO_ROOT / "README_en.md"
 CONTEXT_PATH = REPO_ROOT / "CONTEXT.md"
+FREEZE_SUMMARY_PATH = REPO_ROOT / "reports/public-sample/copy-shadow-policy-v2-freeze/summary.json"
+FROZEN_POLICY_PATH = REPO_ROOT / "configs/copy-backed-scope-policy-v2.frozen.json"
 
 ALLOWED_STATUSES = {
     "CURRENT",
@@ -40,10 +43,21 @@ EXPECTED_CANNOT_CLAIM = {
     "DPO justification",
     "another canonical-candidate loop",
 }
+EXPECTED_FROZEN_SCOPE_STATUSES = {
+    "extract:extract_page:target": "INSUFFICIENT_EVIDENCE",
+    "form_fill:fill_form:field": "PROPOSE_DISABLE",
+    "search:search_web:query": "INSUFFICIENT_EVIDENCE",
+}
+EXPECTED_FREEZE_DECISION = "POLICY_V2_FROZEN_INACTIVE_REFERENCE_READY_FOR_NATURALISTIC_CHALLENGE_DESIGN"
+EXPECTED_FREEZE_NEXT_CHANGE = "design-and-materialize-naturalistic-copy-shadow-challenge-v2"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _one_line(path: Path) -> str:
@@ -200,6 +214,8 @@ def _check_current_docs(errors: list[str]) -> None:
         f"{internal_summary['derive_display_unsupported_count']} unsupported",
         internal_summary["recommended_next_change"],
         internal_summary["default_external_schema"],
+        EXPECTED_FREEZE_DECISION,
+        EXPECTED_FREEZE_NEXT_CHANGE,
         "strict exact remains canonical",
         "reports/public-sample/EVIDENCE_INDEX.md",
     }
@@ -230,6 +246,57 @@ def _check_current_docs(errors: list[str]) -> None:
             errors.append(f"{doc_name} missing slot bottleneck share")
 
 
+def _check_copy_shadow_freeze(errors: list[str], items: list[dict[str, Any]]) -> None:
+    by_id = {str(item.get("id")): item for item in items}
+    freeze_item = by_id.get("copy-shadow-policy-v2-freeze")
+    if not freeze_item:
+        errors.append("evidence-index missing copy-shadow-policy-v2-freeze")
+        return
+    if freeze_item.get("status") != "CURRENT":
+        errors.append("copy-shadow-policy-v2-freeze must be CURRENT")
+    if freeze_item.get("path") != "reports/public-sample/copy-shadow-policy-v2-freeze/summary.json":
+        errors.append("copy-shadow-policy-v2-freeze path mismatch")
+    if freeze_item.get("current_claim_allowed") is not True:
+        errors.append("copy-shadow-policy-v2-freeze must set current_claim_allowed=true")
+
+    summary = _load_json(FREEZE_SUMMARY_PATH)
+    frozen = _load_json(FROZEN_POLICY_PATH)
+    audit = _load_json(REPO_ROOT / "reports/public-sample/copy-shadow-policy-v2-freeze/freeze-input-audit.json")
+
+    if summary.get("decision_label") != EXPECTED_FREEZE_DECISION:
+        errors.append("freeze summary decision label mismatch")
+    if summary.get("recommended_next_change") != EXPECTED_FREEZE_NEXT_CHANGE:
+        errors.append("freeze summary recommended next change mismatch")
+    if summary.get("frozen_policy_path") != "configs/copy-backed-scope-policy-v2.frozen.json":
+        errors.append("freeze summary frozen policy path mismatch")
+
+    for key in ("active", "runtime_loaded", "enforcement_enabled"):
+        if frozen.get(key) is not False:
+            errors.append(f"frozen policy {key} must be false")
+    if frozen.get("status") != "frozen_reference":
+        errors.append("frozen policy status must be frozen_reference")
+    if frozen.get("recommended_next_change") != EXPECTED_FREEZE_NEXT_CHANGE:
+        errors.append("frozen policy recommended next change mismatch")
+    if summary.get("source_policy_v1_hash") != frozen.get("source_policy_v1_hash"):
+        errors.append("freeze summary/frozen policy source Policy V1 hash mismatch")
+    if summary.get("challenge_v1_hash") != frozen.get("challenge_v1_hash"):
+        errors.append("freeze summary/frozen policy challenge hash mismatch")
+
+    scopes = frozen.get("scopes", {})
+    if {scope: row.get("final_status") for scope, row in scopes.items()} != EXPECTED_FROZEN_SCOPE_STATUSES:
+        errors.append("frozen scope statuses mismatch")
+    for scope, row in scopes.items():
+        if row.get("reviewer_required") is not True:
+            errors.append(f"{scope}: reviewer_required must be true")
+        if row.get("execution_eligible") is not False:
+            errors.append(f"{scope}: execution_eligible must be false")
+
+    expected_proposal_key = "configs/copy-backed-scope-policy-v2.proposed.json"
+    source_hashes = audit.get("source_hashes", {})
+    if source_hashes.get(expected_proposal_key) != _sha256_file(REPO_ROOT / expected_proposal_key):
+        errors.append("freeze audit proposed policy hash mismatch")
+
+
 def validate() -> list[str]:
     errors: list[str] = []
     required_paths = [
@@ -248,7 +315,8 @@ def validate() -> list[str]:
     if errors:
         return errors
 
-    _check_index(errors)
+    items = _check_index(errors)
+    _check_copy_shadow_freeze(errors, items)
     _check_current_docs(errors)
     _check_doc_links(errors, README_PATH)
     _check_doc_links(errors, README_EN_PATH)

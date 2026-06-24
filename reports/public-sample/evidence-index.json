@@ -137,7 +137,20 @@
       "model_run_id": "step-matched-canonical-slot-ablation-20260620T000000Z",
       "boundary": "Offline false-trust diagnosis over committed challenge rows, predictions, sidecars, audits, hook-safety audit, prediction-run audit, and frozen policy v1.",
       "summary": "Decision SOURCE_ATTESTATION_HARDENED_SCOPE_REDUCTION_REQUIRED; 16 source-attested-but-gold-mismatch cases; 6 normalized-equivalent collision downgrades; post-diagnosis source_attested_exact 58; execution eligible 0.",
-      "conclusion": "Source-attestation semantics are source-only; form_fill field proposes disable, search query limited observe, extract target observe-only; next recommended change is design-copy-shadow-scope-policy-v2; no training, prediction rerun, policy v2 creation, naturalistic challenge v2, runtime enforcement, action enablement, normalized trusted provenance, or model improvement claim.",
+      "conclusion": "Source-attestation semantics are source-only; diagnosis-layer Policy V2 statuses are deferred to deterministic design/freeze evidence; no training, prediction rerun, naturalistic challenge v2, runtime enforcement, action enablement, normalized trusted provenance, or model improvement claim.",
+      "current_claim_allowed": true,
+      "superseded_by": null
+    },
+    {
+      "id": "copy-shadow-policy-v2-freeze",
+      "status": "CURRENT",
+      "phase": "review-and-freeze-copy-shadow-policy-v2-before-naturalistic-challenge",
+      "path": "reports/public-sample/copy-shadow-policy-v2-freeze/summary.json",
+      "manifest_id": "copy-shadow-template-disjoint-challenge-v1",
+      "model_run_id": "step-matched-canonical-slot-ablation-20260620T000000Z",
+      "boundary": "Inactive Policy V2 frozen reference derived from committed design artifacts; no runtime loading or enforcement.",
+      "summary": "Decision POLICY_V2_FROZEN_INACTIVE_REFERENCE_READY_FOR_NATURALISTIC_CHALLENGE_DESIGN; form_fill field PROPOSE_DISABLE; search query and extract target INSUFFICIENT_EVIDENCE; reviewer_required true and execution_eligible false for all scopes.",
+      "conclusion": "Frozen inactive reference for later naturalistic challenge design only; no runtime enforcement, action enablement, normalized trusted provenance, training, prediction repair, data expansion in this phase, evaluator change, or model improvement claim.",
       "current_claim_allowed": true,
       "superseded_by": null
     },

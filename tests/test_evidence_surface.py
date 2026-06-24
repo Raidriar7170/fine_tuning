@@ -40,6 +40,10 @@ def test_evidence_index_classifies_current_superseded_blocked_and_raw_inputs() -
     assert by_id["internal-contract-v2-core"]["path"] == "reports/public-sample/internal-contract-v2-core/summary.json"
     assert by_id["contract-v2-projection-rerun"]["status"] == "CURRENT"
     assert by_id["step-matched-canonical-slot-ablation"]["status"] == "CURRENT"
+    assert by_id["copy-shadow-policy-v2-freeze"]["status"] == "CURRENT"
+    assert by_id["copy-shadow-policy-v2-freeze"]["path"] == (
+        "reports/public-sample/copy-shadow-policy-v2-freeze/summary.json"
+    )
     assert by_id["contract-v2-projection-blocked"]["status"] == "BLOCKED"
     assert by_id["contract-v2-projection-blocked"]["superseded_by"] == "contract-v2-projection-rerun"
     assert by_id["step-matched-projection-raw-inputs"]["status"] == "RAW_INPUT"
@@ -69,6 +73,8 @@ def test_public_current_docs_are_compact_and_no_overclaim() -> None:
         "68.79%",
         "decide-contract-v2-core-implementation-scope",
         "INTERNAL_V2_CORE_READY_RENDERER_PARTIAL",
+        "POLICY_V2_FROZEN_INACTIVE_REFERENCE_READY_FOR_NATURALISTIC_CHALLENGE_DESIGN",
+        "design-and-materialize-naturalistic-copy-shadow-challenge-v2",
         "99.77%",
         "5 unsupported",
         "analyze-slot-error-mechanisms-and-design-slot-representation",

@@ -10,8 +10,10 @@ Authoritative generated artifacts:
 - `reports/public-sample/copy-shadow-scope-policy-v2-design/scope-decisions.json`
 - `reports/public-sample/copy-shadow-scope-policy-v2-design/taxonomy-migration.json`
 - `configs/copy-backed-scope-policy-v2.proposed.json`
+- `configs/copy-backed-scope-policy-v2.frozen.json`
+- `reports/public-sample/copy-shadow-policy-v2-freeze/summary.json`
 
-Current decision: `POLICY_V2_SCOPE_REDUCTION_READY_FOR_REVIEW`.
+Current decision: `POLICY_V2_FROZEN_INACTIVE_REFERENCE_READY_FOR_NATURALISTIC_CHALLENGE_DESIGN`.
 
 ## Gate order
 
@@ -86,8 +88,8 @@ outcomes are policy decisions that should be confirmed before freeze.
 
 ## Runtime boundary
 
-The proposed policy is inactive: `status=proposal`, `active=false`,
-`runtime_loaded=false`, and `enforcement_enabled=false`.
+The frozen policy is an inactive reference: `status=frozen_reference`,
+`active=false`, `runtime_loaded=false`, and `enforcement_enabled=false`.
 
 This phase does not modify Policy V1, challenge v1 rows or gold, predictions,
 sidecars, evaluator behavior, prompts, decoding, runtime hook behavior,

@@ -1,0 +1,25 @@
+{
+  "audit_kind": "copy_shadow_policy_v2_freeze_input_audit",
+  "blocking_reasons": [],
+  "challenge_v1_hash": "12eccdd54b2c89f1127ec23f18d7179e1ebaacb1a644ae5ca1a14b3309f11324",
+  "design_report_dir": "reports/public-sample/copy-shadow-scope-policy-v2-design",
+  "diagnosis_artifact_hash": "55bfc3a3c7c574e41e6be30677552cb671bf624a8834a49759566e4b4450a7ee",
+  "ok": true,
+  "proposal_runtime_boundary": {
+    "required_active": false,
+    "required_enforcement_enabled": false,
+    "required_runtime_loaded": false,
+    "required_status": "proposal"
+  },
+  "proposed_policy_path": "configs/copy-backed-scope-policy-v2.proposed.json",
+  "source_design_decision_label": "POLICY_V2_SCOPE_REDUCTION_READY_FOR_REVIEW",
+  "source_hashes": {
+    "configs/copy-backed-scope-policy-v2.proposed.json": "e5400951d522c74855cfcef4140b88df5e21a0dc703f36eddac44c89c9ccb3db",
+    "reports/public-sample/copy-shadow-scope-policy-v2-design/gate-config.json": "57cdd8aab98e42c1b76687154b824cec8f1404ef0d56888dc6d17b8103521b97",
+    "reports/public-sample/copy-shadow-scope-policy-v2-design/post-hardening-scope-metrics.json": "516eca523f72d23ff171f150c1ea74d9573b66c102e92a2de16a1423aa57ca43",
+    "reports/public-sample/copy-shadow-scope-policy-v2-design/scope-decisions.json": "b279385a5b5f8cc59589db93fda2094498f876a7b6beeaaf1a39bf3282a97772",
+    "reports/public-sample/copy-shadow-scope-policy-v2-design/summary.json": "0e47676605ccf4a9ddcbe6aebedefe1fe54bbf4234af253e8e280b9509dc6618",
+    "reports/public-sample/copy-shadow-scope-policy-v2-design/taxonomy-migration.json": "9aadb41f99c36e121c542932ad670005cb8c0316f0aa454d075941f9004ddd51"
+  },
+  "source_policy_v1_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7"
+}
