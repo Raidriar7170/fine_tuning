@@ -1,0 +1,15 @@
+{
+  "action_trusted_count": 0,
+  "audit_kind": "recovered_adapter_challenge_hook_safety",
+  "contract_mutation_count": 0,
+  "full_input_text_retained": false,
+  "invalid_output_fail_isolated_count": 0,
+  "main_prediction_unchanged_all": true,
+  "normalized_trusted_count": 0,
+  "online_sidecar_has_no_gold_fields": true,
+  "private_path_or_secret_detected": false,
+  "provenance_false_accept_count": 0,
+  "raw_model_output_retained": false,
+  "runtime_decision_delta_count": 0,
+  "span_text_retained": false
+}

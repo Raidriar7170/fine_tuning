@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recovered Adapter Challenge Evaluation</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #17211f; background: #f7f8f4; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+    header { border-bottom: 3px solid #2d5f63; padding-bottom: 18px; margin-bottom: 24px; }
+    h1 { margin: 0 0 10px; font-size: 30px; letter-spacing: 0; }
+    h2 { margin: 24px 0 10px; font-size: 18px; }
+    p { line-height: 1.65; margin: 8px 0; }
+    .status { display: inline-block; padding: 5px 8px; border-radius: 6px; background: #d7ecd9; color: #12391e; font-weight: 700; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .tile { border: 1px solid #c8d4cf; border-radius: 8px; padding: 14px; background: #fff; }
+    .label { color: #5f6f6b; font-size: 12px; text-transform: uppercase; }
+    code { background: #eef2ef; border-radius: 4px; padding: 2px 5px; }
+    a { color: #1f6675; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>冻结适配器挑战评估恢复</h1>
+      <span class="status">当前状态：needs archive</span>
+      <p>结论：SSH 恢复后已在 A100 上找到并以 config/model hash 校验 step-matched Control/Treatment adapters，冻结 challenge v1 已通过 canonical prediction hook 完成评估；最终 label 为 hook unsafe，因为 adversarial traps 出现 false-trust 计数。</p>
+    </header>
+
+    <section class="grid">
+      <div class="tile"><div class="label">Decision</div><code>CHALLENGE_V1_HOOK_UNSAFE_OR_INVALID</code></div>
+      <div class="tile"><div class="label">Challenge Hash</div><code>12eccdd54b2c89f1127ec23f18d7179e1ebaacb1a644ae5ca1a14b3309f11324</code></div>
+      <div class="tile"><div class="label">Policy Hash</div><code>5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7</code></div>
+      <div class="tile"><div class="label">Runs</div><code>6 prediction runs / 120 rows each</code></div>
+    </section>
+
+    <h2>本阶段变更</h2>
+    <p>新增 <code>scripts/run_recovered_adapter_challenge_evaluation.py</code>，先验证冻结 challenge、policy、template-disjoint audit 和 OpenSpec active-change 边界，再从私有 override 或环境变量解析适配器路径并校验公开期望 hash。路径不会进入公开报告。</p>
+    <p>适配器通过身份校验后，runner 生成 SFT-compatible challenge manifest，并通过 <code>voice2task.training.run_sft_prediction_export</code> 对 Control/Treatment 分别运行 disabled、NullSink、JsonlSink 三种 hook 边界。成功态会清理旧的 <code>blocked.json</code>，避免残留 fail-closed artifact 与当前结论冲突。</p>
+
+    <h2>关键文件</h2>
+    <p><a href="../../scripts/run_recovered_adapter_challenge_evaluation.py">runner</a> · <a href="../../tests/test_recovered_adapter_challenge_evaluation.py">focused tests</a> · <a href="../../reports/public-sample/copy-shadow-template-disjoint-challenge-v1/adapter-evaluation/challenge-evaluation-summary.json">summary.json</a> · <a href="../../reports/public-sample/copy-shadow-template-disjoint-challenge-v1/adapter-evaluation/hook-safety-audit.json">hook safety</a> · <a href="../../reports/public-sample/copy-shadow-template-disjoint-challenge-v1/adapter-evaluation/evaluation-audits.jsonl">offline audits</a></p>
+
+    <h2>验证结果</h2>
+    <p>A100 评估输出 6 个预测 artifact，每个 120 条；Control/Treatment 在 disabled、NullSink、JsonlSink 之间的预测输出 hash、parsed contract、evaluator input、runtime decision、sidecar path 和 V1 metric delta 均保持 invariant。离线 audit 为 252 条 observed slot events。</p>
+    <p>Hook privacy/invariance：online sidecar 无 gold、无 full input text、无 span text、无 raw model output、无私有路径；normalized trusted、action trusted、provenance false accept、contract mutation、runtime decision delta、policy drift、sidecar unmatched、prediction hash mismatch 均为 0。</p>
+    <p>失败原因：source-absent false trust 为 3，normalization-collision false trust 为 6，partial-span false trust 为 3。该结果不能进入 enforcement 或 naturalistic challenge v2。</p>
+
+    <h2>剩余风险</h2>
+    <p>Challenge v1 只应称为 copy-shadow verifier adversarial fixture，不应称为自然语言或 ASR 泛化 benchmark。当前阶段不能声称模型质量、slot accuracy、runtime enforcement、安全或生产 readiness。</p>
+
+    <h2>建议下一步</h2>
+    <p>完成本地验证、只修复 Reviewer 的 Must Fix，然后 archive 这个 OpenSpec change；后续如要继续，应另开 false-trust 诊断/加固 change，不要在本阶段训练、改 policy、启用 action/normalized trusted provenance、创建 challenge v2 或引入 runtime enforcement。</p>
+  </main>
+</body>
+</html>

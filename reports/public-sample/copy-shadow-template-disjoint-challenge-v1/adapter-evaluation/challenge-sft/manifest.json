@@ -1,0 +1,13 @@
+{
+  "challenge_hash": "12eccdd54b2c89f1127ec23f18d7179e1ebaacb1a644ae5ca1a14b3309f11324",
+  "challenge_id": "copy-shadow-template-disjoint-challenge-v1",
+  "challenge_version": "copy-shadow-template-disjoint-challenge-v1",
+  "counts": {
+    "sft_rows": 120
+  },
+  "files": {
+    "sft": "sft_public_sample.jsonl"
+  },
+  "manifest_id": "copy-shadow-template-disjoint-challenge-v1-adapter-evaluation",
+  "public_safe": true
+}

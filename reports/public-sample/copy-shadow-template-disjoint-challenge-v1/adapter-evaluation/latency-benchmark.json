@@ -1,0 +1,8 @@
+{
+  "benchmark_kind": "adapter_prediction_export_wall_time_not_production_slo",
+  "max_ms": 219678.438,
+  "p50_ms": 218949.903,
+  "production_slo_claim": false,
+  "sample_count": 6,
+  "total_ms": 1296558.488
+}

@@ -1,0 +1,64 @@
+{
+  "active_change_boundary": {
+    "active_changes": [],
+    "archived_changes": [
+      "2026-06-24-recover-and-run-frozen-adapter-challenge-evaluation"
+    ],
+    "blocking_reasons": [],
+    "conflicting_active_changes": [],
+    "expected_active_change": "recover-and-run-frozen-adapter-challenge-evaluation",
+    "method": "openspec_list",
+    "ok": true
+  },
+  "audit_kind": "recovered_adapter_challenge_boundary_audit",
+  "blocking_reasons": [],
+  "challenge_hash": "12eccdd54b2c89f1127ec23f18d7179e1ebaacb1a644ae5ca1a14b3309f11324",
+  "challenge_id": "copy-shadow-template-disjoint-challenge-v1",
+  "challenge_manifest_hash": "12eccdd54b2c89f1127ec23f18d7179e1ebaacb1a644ae5ca1a14b3309f11324",
+  "challenge_version": "copy-shadow-template-disjoint-challenge-v1",
+  "expected_challenge_hash": "12eccdd54b2c89f1127ec23f18d7179e1ebaacb1a644ae5ca1a14b3309f11324",
+  "expected_policy_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7",
+  "expected_row_count": 120,
+  "gold_hash": "be2483d29a00d238ac96140138711e11cb3747f3df491d3f6e849ce23d500010",
+  "ok": true,
+  "policy_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7",
+  "policy_validation": {
+    "action_enabled": false,
+    "blocking_reasons": [],
+    "computed_policy_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7",
+    "disabled_row_set_matches_disabled_triples": true,
+    "disabled_triples": [
+      "blocked:deny:action"
+    ],
+    "enabled_disabled_overlap": [],
+    "enabled_row_set_matches_enabled_triples": true,
+    "enabled_triples": [
+      "search:search_web:query",
+      "form_fill:fill_form:field",
+      "extract:extract_page:target"
+    ],
+    "normalized_trusted": false,
+    "ok": true,
+    "policy_hash": "5dc14efb8ded13dc048ddb067c7c63a1a62b6c03896950e861303973d505cbc7",
+    "policy_id": "copy-backed-scope-policy-v1",
+    "policy_version": "1.0.0",
+    "scope_row_keys": [
+      "search:search_web:query",
+      "form_fill:fill_form:field",
+      "extract:extract_page:target",
+      "blocked:deny:action"
+    ],
+    "scope_row_keys_match_policy_sets": true
+  },
+  "row_count": 120,
+  "template_disjoint_audit": {
+    "accepted": true,
+    "overlap_counts": {
+      "exact_input_text": 0,
+      "sample_id": 0,
+      "slot_value_stripped_signature": 0,
+      "template_signature": 0
+    },
+    "row_count": 120
+  }
+}

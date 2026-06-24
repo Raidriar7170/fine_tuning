@@ -1,0 +1,65 @@
+{
+  "adapters": [
+    {
+      "adapter_config_hash": "462d4897a7b4051ad20d7c322fadaaaf51c5e2fe4908c751de6a669360f60bc8",
+      "adapter_model_filename": "adapter_model.safetensors",
+      "adapter_model_hash": "27aaffc10f39d497af08bfa35d4f914bd198dafc514798449e0e5292b56a6359",
+      "available": true,
+      "config_fields": {
+        "base_model_id": "<private_path>",
+        "lora_alpha": 32,
+        "lora_dropout": 0.05,
+        "lora_rank": 16,
+        "peft_type": "LORA",
+        "target_modules": [
+          "k_proj",
+          "o_proj",
+          "q_proj",
+          "v_proj"
+        ],
+        "tokenizer_id": "<private_path>"
+      },
+      "expected_adapter_config_hash": "462d4897a7b4051ad20d7c322fadaaaf51c5e2fe4908c751de6a669360f60bc8",
+      "expected_adapter_model_hash": "27aaffc10f39d497af08bfa35d4f914bd198dafc514798449e0e5292b56a6359",
+      "failures": [],
+      "identity_status": "verified",
+      "manifest_id": "public-sample-20260617T152259Z",
+      "private_path_recorded": false,
+      "role": "control",
+      "run_id": "step-matched-canonical-slot-ablation-20260620T000000Z:control"
+    },
+    {
+      "adapter_config_hash": "b8ac8b6a5751315463da9e8465781b179807441f10d9a7996e773d9f418ef868",
+      "adapter_model_filename": "adapter_model.safetensors",
+      "adapter_model_hash": "a23c54e7c157de2dd80c88777ac752272803096f7e9a19aa69669d13c8eb9238",
+      "available": true,
+      "config_fields": {
+        "base_model_id": "<private_path>",
+        "lora_alpha": 32,
+        "lora_dropout": 0.05,
+        "lora_rank": 16,
+        "peft_type": "LORA",
+        "target_modules": [
+          "k_proj",
+          "o_proj",
+          "q_proj",
+          "v_proj"
+        ],
+        "tokenizer_id": "<private_path>"
+      },
+      "expected_adapter_config_hash": "b8ac8b6a5751315463da9e8465781b179807441f10d9a7996e773d9f418ef868",
+      "expected_adapter_model_hash": "a23c54e7c157de2dd80c88777ac752272803096f7e9a19aa69669d13c8eb9238",
+      "failures": [],
+      "identity_status": "verified",
+      "manifest_id": "public-sample-20260619T090925Z",
+      "private_path_recorded": false,
+      "role": "treatment",
+      "run_id": "step-matched-canonical-slot-ablation-20260620T000000Z:treatment"
+    }
+  ],
+  "audit_kind": "recovered_adapter_identity_audit",
+  "decision": null,
+  "overall_status": "verified",
+  "private_override_path_recorded": false,
+  "private_override_used": true
+}
