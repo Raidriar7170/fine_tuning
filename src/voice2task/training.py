@@ -23,6 +23,8 @@ from voice2task.copy_backed_prediction_shadow_hook import (
 )
 from voice2task.formatting import (
     FORMATTING_POLICY,
+    UNIFIED_GOLD_FREE_PROMPT_POLICY_ID,
+    PredictionInput,
     format_dpo_pair,
     format_schema_retry_prompt_text,
     format_sft_prediction_prompt,
@@ -946,6 +948,7 @@ def _prediction_metadata_common(
         "release_status": "not_released",
         "adapter_release_status": "not_released",
         "formatting_policy": dict(FORMATTING_POLICY),
+        "prompt_policy": UNIFIED_GOLD_FREE_PROMPT_POLICY_ID,
         "prompt_constraints": prediction_prompt_constraint_summary(),
         "prediction_output_boundary": prediction_output_boundary_summary(),
         "retry_prompt_constraints": schema_retry_prompt_constraint_summary(),
@@ -970,6 +973,7 @@ def _prediction_metadata_common(
             "mode": "fixture_mode" if fixture_mode else ("dry_run" if dry_run else "run_prediction"),
             "requires_cli_run_prediction": not dry_run,
             "requires_config_allow_private_prediction": True,
+            "prompt_policy": UNIFIED_GOLD_FREE_PROMPT_POLICY_ID,
         },
         "notes": "Prediction metadata only; no private adapter artifacts were loaded.",
     }
@@ -1074,6 +1078,7 @@ def _write_prompt_snapshot(
             "artifact_kind": "sft_prediction_prompt_snapshot",
             "prediction_split": prediction_split,
             "formatting_policy": dict(FORMATTING_POLICY),
+            "prompt_policy": UNIFIED_GOLD_FREE_PROMPT_POLICY_ID,
             "prompt_constraints": prediction_prompt_constraint_summary(),
             "prediction_output_boundary": prediction_output_boundary_summary(),
             "retry_prompt_constraints": schema_retry_prompt_constraint_summary(),
@@ -1223,7 +1228,7 @@ def _write_fixture_sidecars(
     raw_rows: list[dict[str, Any]] = []
     trace_rows: list[dict[str, Any]] = []
     for row in rows:
-        prompt = format_sft_prediction_prompt(row, tokenizer=None)
+        prompt = format_sft_prediction_prompt(PredictionInput.from_sft_row(row), tokenizer=None)
         prompt_rows.append(_prompt_snapshot_row(row, prompt))
         decoded = json.dumps(as_contract(row.target_contract).to_dict(), ensure_ascii=False, sort_keys=True)
         raw_rows.append(_raw_decoded_summary_row(row.id, decoded))
@@ -1340,7 +1345,9 @@ def _schema_guard_status(prediction: Any) -> dict[str, Any]:
     }
 
 
-def _schema_retry_prompt(row: SFTDatasetRow, raw_prediction: Any, guard_status: dict[str, Any]) -> str:
+def _schema_retry_prompt(prediction_input: PredictionInput, raw_prediction: Any, guard_status: dict[str, Any]) -> str:
+    if not isinstance(prediction_input, PredictionInput):
+        raise TypeError("schema retry prompt rendering requires PredictionInput")
     missing = guard_status.get("missing_required_fields", [])
     missing_text = ", ".join(str(field) for field in missing) if missing else "unknown"
     raw_summary = json.dumps(_sanitize_prediction_value(raw_prediction), ensure_ascii=False, sort_keys=True)
@@ -1351,7 +1358,7 @@ def _schema_retry_prompt(row: SFTDatasetRow, raw_prediction: Any, guard_status: 
             "safety": {"allow": True, "reason": "public_readonly"},
             "confirmation_required": False,
             "slots": {},
-            "normalized_command": row.input_text,
+            "normalized_command": prediction_input.input_text,
             "language": "zh-CN",
             "contract_version": "v1",
         },
@@ -1385,7 +1392,7 @@ def _schema_retry_prompt(row: SFTDatasetRow, raw_prediction: Any, guard_status: 
             "不要使用自然语言 wrapper/preamble，例如“这是”、“以下”或 Here is。",
             "不要在 JSON 后添加解释、分析或用户输入复述；不要输出第二个 JSON object。",
             "否则 strict parser 会拒绝 retry attempt。",
-            f"用户输入: {row.input_text}",
+            f"用户输入: {prediction_input.input_text}",
             f"上一轮输出摘要: {raw_summary[:500]}",
         ]
     )
@@ -1418,7 +1425,11 @@ def schema_retry_prompt_constraint_summary(prompt: str | None = None) -> dict[st
             "language": "zh-CN",
             "contract_version": "v1",
         }
-        prompt = _schema_retry_prompt(row, raw_prediction, _schema_guard_status(raw_prediction))
+        prompt = _schema_retry_prompt(
+            PredictionInput.from_sft_row(row),
+            raw_prediction,
+            _schema_guard_status(raw_prediction),
+        )
     return {
         "minified_json_only_visible": "只输出一个 minified JSON object" in prompt,
         "single_root_json_object_visible": "同一个 root object" in prompt,
@@ -1601,7 +1612,8 @@ def _run_real_sft_prediction(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
         for row in rows:
-            prompt = format_sft_prediction_prompt(row, tokenizer=tokenizer)
+            prediction_input = PredictionInput.from_sft_row(row)
+            prompt = format_sft_prediction_prompt(prediction_input, tokenizer=tokenizer)
             prompt_rows.append(_prompt_snapshot_row(row, prompt))
             decoded, new_tokens, _ = _decode_prediction_attempt(
                 model=model,
@@ -1619,7 +1631,7 @@ def _run_real_sft_prediction(
             retry_attempted = False
             if schema_retry_enabled and not raw_status["schema_valid"]:
                 retry_attempted = True
-                retry_instruction = _schema_retry_prompt(row, raw_prediction, raw_status)
+                retry_instruction = _schema_retry_prompt(prediction_input, raw_prediction, raw_status)
                 retry_prompt = format_schema_retry_prompt_text(retry_instruction, tokenizer=tokenizer)
                 retry_decoded, retry_new_tokens, _ = _decode_prediction_attempt(
                     model=model,

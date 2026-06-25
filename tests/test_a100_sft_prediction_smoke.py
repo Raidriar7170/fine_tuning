@@ -490,6 +490,11 @@ def test_sft_prediction_export_requires_explicit_opt_in_and_adapter_config(tmp_p
     assert dry_run["prediction_status"] == "prediction_skipped_no_opt_in"
     assert dry_run["release_status"] == "not_released"
     assert dry_run["formatting_policy"]["prediction_prompt"] == "shared_contract_chat_template"
+    assert dry_run["formatting_policy"]["prediction_prompt_policy_id"] == "unified_gold_free_v1"
+    assert dry_run["formatting_policy"]["prediction_input_type"] == "PredictionInput"
+    assert dry_run["formatting_policy"]["legacy_oracle_prompt_policy_available"] is False
+    assert dry_run["prompt_policy"] == "unified_gold_free_v1"
+    assert dry_run["command_summary"]["prompt_policy"] == "unified_gold_free_v1"
     assert dry_run["prompt_constraints"]["task_type_enum_visible"] is True
     assert dry_run["prompt_constraints"]["route_enum_visible"] is True
     assert dry_run["prompt_constraints"]["route_not_url_or_path_visible"] is True
@@ -6663,6 +6668,8 @@ def test_real_sft_prediction_sidecars_summarize_sanitized_decoded_and_generation
     assert trace_rows[0]["actual_stop_reason_recorded"] is False
     assert trace_rows[0]["actual_stop_reason"] is None
     assert prompt_payload["rows"][0]["id"] == "sft-test-1"
+    assert prompt_payload["prompt_policy"] == "unified_gold_free_v1"
+    assert prompt_payload["formatting_policy"]["prediction_prompt_policy_id"] == "unified_gold_free_v1"
     assert "/mnt/data/" not in json.dumps(raw_rows + trace_rows + prompt_payload["rows"], ensure_ascii=False)
 
 
@@ -6867,7 +6874,11 @@ def test_schema_retry_prompt_declares_canonical_json_only_contract_shape() -> No
         "safety": {"reason": "query_weather_request"},
     }
 
-    prompt = training._schema_retry_prompt(row, raw_prediction, training._schema_guard_status(raw_prediction))
+    prompt = training._schema_retry_prompt(
+        training.PredictionInput.from_sft_row(row),
+        raw_prediction,
+        training._schema_guard_status(raw_prediction),
+    )
 
     assert all(task_type in prompt for task_type in sorted(TASK_TYPES))
     assert all(route in prompt for route in sorted(ROUTES))

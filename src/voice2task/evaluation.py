@@ -12,6 +12,7 @@ from voice2task.formatting import (
     CONTRACT_CANONICAL_ONE_SHOT,
     FORMATTING_POLICY,
     PREDICTION_OUTPUT_BOUNDARY_RULES,
+    PredictionInput,
     format_sft_prediction_prompt,
     format_sft_training_text,
     prompt_constraint_summary,
@@ -1396,7 +1397,7 @@ def _diagnose_sft_target_template_alignment(
     row_evidence: list[dict[str, Any]] = []
     for row in selected_rows:
         training_text = format_sft_training_text(row, tokenizer=None)
-        prediction_prompt = format_sft_prediction_prompt(row, tokenizer=None)
+        prediction_prompt = format_sft_prediction_prompt(PredictionInput.from_sft_row(row), tokenizer=None)
         assistant_target = canonical_contract_json(as_contract(row.target_contract))
         span = _target_span(training_text, assistant_target)
         same_prefix = _system_user_prefix(training_text) == _system_user_prefix(prediction_prompt)

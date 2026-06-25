@@ -523,7 +523,7 @@ def test_prompt_snapshot_row_records_actual_extract_prompt_constraints() -> None
         provenance={"source_id": "seed-extract-price", "public_safe": True},
     )
 
-    prompt = training.format_sft_prediction_prompt(row, tokenizer=None)
+    prompt = training.format_sft_prediction_prompt(training.PredictionInput.from_sft_row(row), tokenizer=None)
     snapshot = training._prompt_snapshot_row(row, prompt)  # noqa: SLF001
 
     assert snapshot["prompt_constraints"]["public_readonly_extract_policy_visible"] is True

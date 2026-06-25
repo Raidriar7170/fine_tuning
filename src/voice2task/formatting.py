@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from typing import Any
 
 from voice2task.schemas import (
@@ -9,7 +10,6 @@ from voice2task.schemas import (
     BrowserTaskContract,
     DPOPair,
     SFTDatasetRow,
-    as_contract,
     canonical_contract_json,
 )
 
@@ -111,6 +111,7 @@ NORMALIZED_COMMAND_CANONICALIZATION_POLICY = (
     "不是 evaluator normalization；"
     "contract_exact_match 仍然 strict，不做 semantic-equivalence scoring、prediction repair 或 re-score。"
 )
+UNIFIED_GOLD_FREE_PROMPT_POLICY_ID = "unified_gold_free_v1"
 
 BASE_SYSTEM_PROMPT_PREFIX = (
     "V2T。"
@@ -126,38 +127,39 @@ BASE_SYSTEM_PROMPT_SUFFIX = (
     f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
     "禁 GUI 动作。"
 )
-SYSTEM_PROMPT = f"{BASE_SYSTEM_PROMPT_PREFIX}{PUBLIC_READONLY_SEARCH_CONTRACT_POLICY}{BASE_SYSTEM_PROMPT_SUFFIX}"
-EXTRACT_SYSTEM_PROMPT = (
-    f"{BASE_SYSTEM_PROMPT_PREFIX}{PUBLIC_READONLY_EXTRACT_CONTRACT_POLICY}"
-    f"{EXTRACT_PRICE_CANONICAL_WORDING_POLICY}{BASE_SYSTEM_PROMPT_SUFFIX}"
+SYSTEM_PROMPT = (
+    f"{BASE_SYSTEM_PROMPT_PREFIX}{PUBLIC_READONLY_SEARCH_CONTRACT_POLICY}"
+    f"{PUBLIC_READONLY_EXTRACT_CONTRACT_POLICY}{EXTRACT_PRICE_CANONICAL_WORDING_POLICY}"
+    f"{HELDOUT_RESIDUAL_REPAIR_POLICY}{BASE_SYSTEM_PROMPT_SUFFIX}"
 )
-REPAIR_SYSTEM_PROMPT = (
-    f"{BASE_SYSTEM_PROMPT_PREFIX}{HELDOUT_RESIDUAL_REPAIR_POLICY}"
-    "slots 必须是 JSON object，不是 array/list；"
-    f"{REPAIR_CONTRACT_REQUIRED_FIELD_SKELETON}"
-    f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
-    "禁 GUI 动作。"
-)
-TRAINING_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
-    f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
-    "",
-)
-EXTRACT_TRAINING_SYSTEM_PROMPT = EXTRACT_SYSTEM_PROMPT.replace(
-    f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
-    "",
-)
-REPAIR_TRAINING_SYSTEM_PROMPT = REPAIR_SYSTEM_PROMPT.replace(
-    f"Canonical valid one-shot example:{CONTRACT_CANONICAL_ONE_SHOT}。",
-    "",
-)
+EXTRACT_SYSTEM_PROMPT = SYSTEM_PROMPT
+REPAIR_SYSTEM_PROMPT = SYSTEM_PROMPT
 PREDICTION_SYSTEM_PROMPT = f"{SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
 EXTRACT_PREDICTION_SYSTEM_PROMPT = f"{EXTRACT_SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
 REPAIR_PREDICTION_SYSTEM_PROMPT = f"{REPAIR_SYSTEM_PROMPT}{PREDICTION_OUTPUT_BOUNDARY_RULES}"
+UNIFIED_TRAINING_SYSTEM_PROMPT = (
+    f"{BASE_SYSTEM_PROMPT_PREFIX}"
+    "Unified gold-free training policy: do not choose the prompt from target_contract/task/route/slots. "
+    "Supported mappings: search/search_web public_readonly query; extract/extract_page public_readonly target; "
+    "navigate/open_url public_readonly url; clarify/clarify ambiguous_request ambiguity; "
+    "form_fill/fill_form requires_confirmation field; blocked/deny unsafe_payment reason. "
+    "Use canonical Chinese normalized_command, not verbatim ASR. "
+    "slots 必须是 JSON object，不是 array/list；"
+    f"{CONTRACT_REQUIRED_FIELD_SKELETON}"
+    f"{CONTRACT_OUTPUT_BOUNDARY_RULES}"
+    "禁 GUI 动作。"
+)
+TRAINING_SYSTEM_PROMPT = UNIFIED_TRAINING_SYSTEM_PROMPT
+EXTRACT_TRAINING_SYSTEM_PROMPT = UNIFIED_TRAINING_SYSTEM_PROMPT
+REPAIR_TRAINING_SYSTEM_PROMPT = UNIFIED_TRAINING_SYSTEM_PROMPT
 
 FORMATTING_POLICY: dict[str, Any] = {
     "policy": "shared_contract_chat_template",
     "sft_training_text": "shared_contract_chat_template",
     "prediction_prompt": "shared_contract_chat_template",
+    "prediction_prompt_policy_id": UNIFIED_GOLD_FREE_PROMPT_POLICY_ID,
+    "prediction_input_type": "PredictionInput",
+    "legacy_oracle_prompt_policy_available": False,
     "tokenizer_chat_template": "used_when_available_with_tokenize_false",
     "fallback": "deterministic_role_plain_text",
     "prediction_target_policy": "generation_prompt_without_gold_contract",
@@ -169,6 +171,22 @@ RETRY_TEMPLATE_SYSTEM_PROMPT = (
     "This is not a conversational assistant answer. "
     "The assistant output channel is the assistant JSON payload only."
 )
+
+
+@dataclass(frozen=True)
+class PredictionInput:
+    id: str
+    input_text: str
+
+    @classmethod
+    def from_sft_row(cls, row: SFTDatasetRow) -> PredictionInput:
+        return cls(id=row.id, input_text=row.input_text)
+
+
+def _ensure_prediction_input(value: Any) -> PredictionInput:
+    if not isinstance(value, PredictionInput):
+        raise TypeError("prediction prompt rendering requires PredictionInput")
+    return value
 
 
 def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
@@ -299,13 +317,7 @@ def prompt_constraint_summary(prompt: str = SYSTEM_PROMPT) -> dict[str, bool]:
 
 
 def prediction_prompt_constraint_summary() -> dict[str, bool]:
-    summaries = [
-        prompt_constraint_summary(PREDICTION_SYSTEM_PROMPT),
-        prompt_constraint_summary(EXTRACT_PREDICTION_SYSTEM_PROMPT),
-        prompt_constraint_summary(REPAIR_PREDICTION_SYSTEM_PROMPT),
-    ]
-    keys = set().union(*(summary.keys() for summary in summaries))
-    return {key: any(summary.get(key, False) for summary in summaries) for key in sorted(keys)}
+    return prompt_constraint_summary(PREDICTION_SYSTEM_PROMPT)
 
 
 def prediction_output_boundary_summary(prompt: str = PREDICTION_SYSTEM_PROMPT) -> dict[str, bool]:
@@ -330,44 +342,19 @@ def _contract_json(contract: BrowserTaskContract | dict[str, Any]) -> str:
     return json.dumps(contract, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def _uses_extract_policy(row: SFTDatasetRow) -> bool:
-    contract = as_contract(row.target_contract)
-    return (
-        contract.task_type == "extract"
-        and contract.route == "extract_page"
-        and contract.safety.get("reason") == "public_readonly"
-    )
-
-
-def _uses_repair_policy(row: SFTDatasetRow) -> bool:
-    contract = as_contract(row.target_contract)
-    return contract.task_type in {"navigate", "clarify", "form_fill", "blocked"}
-
-
 def format_sft_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
-    if _uses_extract_policy(row):
-        system_prompt = EXTRACT_TRAINING_SYSTEM_PROMPT
-    elif _uses_repair_policy(row):
-        system_prompt = REPAIR_TRAINING_SYSTEM_PROMPT
-    else:
-        system_prompt = TRAINING_SYSTEM_PROMPT
     return [
-        {"role": "system", "content": system_prompt},
+        {"role": "system", "content": TRAINING_SYSTEM_PROMPT},
         {"role": "user", "content": row.input_text},
         {"role": "assistant", "content": canonical_contract_json(row.target_contract)},
     ]
 
 
-def format_sft_prompt_messages(row: SFTDatasetRow) -> list[dict[str, str]]:
-    if _uses_extract_policy(row):
-        system_prompt = EXTRACT_PREDICTION_SYSTEM_PROMPT
-    elif _uses_repair_policy(row):
-        system_prompt = REPAIR_PREDICTION_SYSTEM_PROMPT
-    else:
-        system_prompt = PREDICTION_SYSTEM_PROMPT
+def format_sft_prompt_messages(prediction_input: PredictionInput) -> list[dict[str, str]]:
+    prediction_input = _ensure_prediction_input(prediction_input)
     return [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": row.input_text},
+        {"role": "system", "content": PREDICTION_SYSTEM_PROMPT},
+        {"role": "user", "content": prediction_input.input_text},
     ]
 
 
@@ -412,8 +399,12 @@ def format_sft_training_text(row: SFTDatasetRow, *, tokenizer: Any | None = None
     return _chat_template_text(format_sft_messages(row), tokenizer=tokenizer, add_generation_prompt=False)
 
 
-def format_sft_prediction_prompt(row: SFTDatasetRow, *, tokenizer: Any | None = None) -> str:
-    return _chat_template_text(format_sft_prompt_messages(row), tokenizer=tokenizer, add_generation_prompt=True)
+def format_sft_prediction_prompt(prediction_input: PredictionInput, *, tokenizer: Any | None = None) -> str:
+    return _chat_template_text(
+        format_sft_prompt_messages(prediction_input),
+        tokenizer=tokenizer,
+        add_generation_prompt=True,
+    )
 
 
 def format_schema_retry_prompt_text(retry_instruction: str, *, tokenizer: Any | None = None) -> str:
