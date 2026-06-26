@@ -1,0 +1,15 @@
+{
+  "manifest_id": "lockbox-YYYYMMDDTHHMMSSZ",
+  "schema_version": "lockbox.v1",
+  "created_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "frozen_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "frozen": true,
+  "row_count": 0,
+  "family_count": 0,
+  "provenance_summary": {
+    "new_lockbox_authoring": 0
+  },
+  "content_hashes": [],
+  "lockbox_hash": "sha256-over-content-hashes",
+  "dataset_sha256": "sha256-over-content-hashes"
+}

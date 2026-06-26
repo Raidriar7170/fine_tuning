@@ -19,14 +19,27 @@ Each lockbox JSONL row must contain:
   `new_lockbox_authoring`; it must not be `train`, `training`, `analysis`, or
   `remediation`.
 - `source.provenance`: non-empty provenance object.
-- `derived_from`: ancestry list; it must not reach train or remediation rows.
+- `derived_from`: ancestry list; it must not reach train, analysis, or
+  remediation rows.
 - `analysis_seen`: boolean flag. Final lockbox rows must be `false`.
 - `content_hash`: deterministic SHA-256 over the row excluding `content_hash`.
 
-The manifest must contain `frozen=true`, `row_count`, and at least one hash
-declaration: `content_hashes` in row order or `lockbox_hash` /
-`lockbox_sha256` over those row hashes. Supplying both is allowed and both are
-checked when present.
+The manifest must contain:
+
+- `frozen`: exactly `true`.
+- `row_count`: number of JSONL rows.
+- `family_count`: number of unique `semantic_family_id` values.
+- `schema_version` or `schema_id`: non-empty schema identifier.
+- `created_at` or `frozen_at`: non-empty timestamp string.
+- `provenance_summary`: non-empty object summarizing lockbox source categories.
+- `content_hashes`: optional row-ordered list; when present it must match the
+  deterministic row hashes in lockbox order.
+- `lockbox_hash`, `lockbox_sha256`, or `dataset_sha256`: deterministic SHA-256
+  over the row content hash list. Supplying multiple hash fields is allowed;
+  every supplied hash field is checked.
+
+See [`lockbox-manifest-template.json`](lockbox-manifest-template.json) for a
+minimal template. The template is not a real frozen lockbox manifest.
 
 ## Validator
 
@@ -62,14 +75,16 @@ It exits `0` only when all checks pass and `1` when any failure is present.
 The validator fails closed for:
 
 - duplicate `row_id`
+- lockbox `row_id` overlap with train or analysis reference `id` / `row_id`
 - exact input text overlap with train or analysis data
 - normalized input text overlap with train or analysis data
 - semantic family overlap when `--require-family-disjointness` is set
-- ancestry that reaches train or remediation rows
+- ancestry that reaches train, analysis, or remediation rows
 - missing provenance fields
 - duplicate content hashes
 - row content hash mismatch
-- manifest hash or count mismatch
+- manifest row count, family count, schema, timestamp, provenance summary, or
+  hash mismatch
 - final manifest not marked frozen
 
 ## One-Look Rule

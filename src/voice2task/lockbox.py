@@ -79,11 +79,13 @@ def validate_lockbox(
     reference_exact_inputs = _index_reference_values(reference_rows, "input_text")
     reference_normalized_inputs = _index_reference_values(reference_rows, "normalized_input_text")
     reference_family_ids = _index_reference_values(reference_rows, "semantic_family_id")
+    reference_row_ids = _index_reference_multivalue(reference_rows, "reference_ids")
     forbidden_ancestor_ids = _forbidden_ancestor_ids(reference_rows)
 
     row_ids: dict[str, int] = {}
     content_hashes: dict[str, int] = {}
     computed_hashes: list[str] = []
+    semantic_family_ids: set[str] = set()
 
     for index, row in enumerate(lockbox_rows, start=1):
         row_id = _string_field(row, "row_id")
@@ -98,6 +100,14 @@ def validate_lockbox(
             )
         else:
             row_ids[row_id] = index
+
+        _check_overlap(
+            failures,
+            category="row_id_overlap",
+            row_id=row_id,
+            value=row_id,
+            references=reference_row_ids,
+        )
 
         expected_hash = _safe_compute_row_hash(row, row_id, failures)
         if expected_hash is not None:
@@ -147,6 +157,8 @@ def validate_lockbox(
             )
 
         family_id = _semantic_family_id(row)
+        if family_id:
+            semantic_family_ids.add(family_id)
         if require_family_disjointness and family_id:
             _check_overlap(
                 failures,
@@ -170,12 +182,12 @@ def validate_lockbox(
                     _failure(
                         "forbidden_ancestry",
                         row_id,
-                        "lockbox ancestry must not reach train or remediation rows",
+                        "lockbox ancestry must not reach train, analysis, or remediation rows",
                         ancestor=ancestor,
                     )
                 )
 
-    _validate_manifest(manifest, computed_hashes, len(lockbox_rows), failures)
+    _validate_manifest(manifest, computed_hashes, len(lockbox_rows), len(semantic_family_ids), failures)
 
     counts = {
         "lockbox_rows": len(lockbox_rows),
@@ -191,7 +203,9 @@ def validate_lockbox(
             "manifest_id": manifest.get("manifest_id"),
             "frozen": manifest.get("frozen"),
             "row_count": manifest.get("row_count"),
-            "lockbox_hash": manifest.get("lockbox_hash", manifest.get("lockbox_sha256")),
+            "family_count": manifest.get("family_count"),
+            "schema_version": manifest.get("schema_version", manifest.get("schema_id")),
+            "lockbox_hash": _first_manifest_hash(manifest),
         },
     )
 
@@ -208,6 +222,7 @@ def _reference_record(row: dict[str, Any], source: str) -> dict[str, str]:
     return {
         "source": source,
         "row_id": _record_id(row),
+        "reference_ids": "\n".join(sorted(_record_ids(row))),
         "lineage_ids": "\n".join(sorted(_lineage_ids(row))),
         "input_text": input_text,
         "normalized_input_text": normalize_input_text(input_text),
@@ -215,10 +230,20 @@ def _reference_record(row: dict[str, Any], source: str) -> dict[str, str]:
     }
 
 
+def _record_ids(row: dict[str, Any]) -> set[str]:
+    identifiers: set[str] = set()
+    for key in ("id", "row_id"):
+        value = row.get(key)
+        if isinstance(value, str) and value.strip():
+            identifiers.add(value)
+    return identifiers
+
+
 def _record_id(row: dict[str, Any]) -> str:
-    row_id = row.get("row_id", row.get("id"))
-    if isinstance(row_id, str) and row_id:
-        return row_id
+    for key in ("row_id", "id"):
+        row_id = row.get(key)
+        if isinstance(row_id, str) and row_id.strip():
+            return row_id
     return "<unknown>"
 
 
@@ -249,11 +274,19 @@ def _index_reference_values(rows: list[dict[str, str]], field_name: str) -> dict
     return indexed
 
 
+def _index_reference_multivalue(rows: list[dict[str, str]], field_name: str) -> dict[str, list[dict[str, str]]]:
+    indexed: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        for value in row.get(field_name, "").splitlines():
+            if value:
+                indexed.setdefault(value, []).append(row)
+    return indexed
+
+
 def _forbidden_ancestor_ids(reference_rows: list[dict[str, str]]) -> set[str]:
     forbidden: set[str] = set()
     for row in reference_rows:
-        if row["source"] != "train":
-            continue
+        forbidden.update(identifier for identifier in row["reference_ids"].splitlines() if identifier)
         if row["row_id"]:
             forbidden.add(row["row_id"])
         forbidden.update(identifier for identifier in row["lineage_ids"].splitlines() if identifier)
@@ -363,7 +396,7 @@ def _flatten_ancestry(ancestry: list[Any]) -> list[str]:
 
 
 def _lineage_ids(row: dict[str, Any]) -> set[str]:
-    identifiers = {_record_id(row)}
+    identifiers = _record_ids(row)
     provenance = row.get("provenance")
     if isinstance(provenance, dict):
         for key in (
@@ -388,12 +421,12 @@ def _canonical_ancestry(ancestry: list[Any]) -> list[Any]:
     return sorted(ancestry, key=lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True))
 
 
-def _is_forbidden_ancestor(ancestor: str, forbidden_train_ids: set[str]) -> bool:
+def _is_forbidden_ancestor(ancestor: str, forbidden_ancestor_ids: set[str]) -> bool:
     lowered = ancestor.strip().casefold()
     return (
-        ancestor in forbidden_train_ids
+        ancestor in forbidden_ancestor_ids
         or lowered in FORBIDDEN_SOURCE_CATEGORIES
-        or bool(re.search(r"\b(train|training|remediation)\b", lowered))
+        or bool(re.search(r"\b(train|training|analysis|remediation)\b", lowered))
     )
 
 
@@ -401,6 +434,7 @@ def _validate_manifest(
     manifest: dict[str, Any],
     computed_hashes: list[str],
     row_count: int,
+    family_count: int,
     failures: list[Failure],
 ) -> None:
     manifest_id = str(manifest.get("manifest_id", "manifest"))
@@ -416,14 +450,49 @@ def _validate_manifest(
                 observed=manifest.get("row_count"),
             )
         )
+    if manifest.get("family_count") != family_count:
+        failures.append(
+            _failure(
+                "manifest_family_count_mismatch",
+                manifest_id,
+                "manifest family_count must match unique lockbox semantic_family_id count",
+                expected=family_count,
+                observed=manifest.get("family_count"),
+            )
+        )
+    if _optional_string(manifest.get("schema_version")) is None and _optional_string(manifest.get("schema_id")) is None:
+        failures.append(
+            _failure(
+                "manifest_schema_missing",
+                manifest_id,
+                "manifest must declare non-empty schema_version or schema_id",
+            )
+        )
+    if _optional_string(manifest.get("created_at")) is None and _optional_string(manifest.get("frozen_at")) is None:
+        failures.append(
+            _failure(
+                "manifest_timestamp_missing",
+                manifest_id,
+                "manifest must declare non-empty created_at or frozen_at timestamp",
+            )
+        )
+    provenance_summary = manifest.get("provenance_summary")
+    if not isinstance(provenance_summary, dict) or not provenance_summary:
+        failures.append(
+            _failure(
+                "manifest_provenance_summary_missing",
+                manifest_id,
+                "manifest provenance_summary must be a non-empty object",
+            )
+        )
     manifest_hashes = manifest.get("content_hashes")
-    observed_lockbox_hash = manifest.get("lockbox_hash", manifest.get("lockbox_sha256"))
-    if manifest_hashes is None and observed_lockbox_hash is None:
+    observed_lockbox_hashes = _manifest_hashes(manifest)
+    if not observed_lockbox_hashes:
         failures.append(
             _failure(
                 "manifest_hash_mismatch",
                 manifest_id,
-                "manifest must declare content_hashes or lockbox_hash",
+                "manifest must declare lockbox_hash, lockbox_sha256, or dataset_sha256",
             )
         )
     if manifest_hashes is not None and manifest_hashes != computed_hashes:
@@ -435,16 +504,41 @@ def _validate_manifest(
             )
         )
     expected_lockbox_hash = compute_lockbox_manifest_hash(computed_hashes)
-    if observed_lockbox_hash is not None and observed_lockbox_hash != expected_lockbox_hash:
-        failures.append(
-            _failure(
-                "manifest_hash_mismatch",
-                manifest_id,
-                "manifest lockbox_hash must match deterministic hash over row content hashes",
-                expected=expected_lockbox_hash,
-                observed=observed_lockbox_hash,
+    for field_name, observed_hash in observed_lockbox_hashes.items():
+        if observed_hash != expected_lockbox_hash:
+            failures.append(
+                _failure(
+                    "manifest_hash_mismatch",
+                    manifest_id,
+                    f"manifest {field_name} must match deterministic hash over row content hashes",
+                    expected=expected_lockbox_hash,
+                    observed=observed_hash,
+                    hash_field=field_name,
+                )
             )
-        )
+
+
+def _optional_string(value: Any) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value
+    return None
+
+
+def _manifest_hashes(manifest: dict[str, Any]) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for field_name in ("lockbox_hash", "lockbox_sha256", "dataset_sha256"):
+        value = _optional_string(manifest.get(field_name))
+        if value is not None:
+            hashes[field_name] = value
+    return hashes
+
+
+def _first_manifest_hash(manifest: dict[str, Any]) -> str | None:
+    hashes = _manifest_hashes(manifest)
+    for field_name in ("lockbox_hash", "lockbox_sha256", "dataset_sha256"):
+        if field_name in hashes:
+            return hashes[field_name]
+    return None
 
 
 def _failure(category: str, row_id: str, message: str, **details: Any) -> Failure:

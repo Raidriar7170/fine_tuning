@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from voice2task.cli import data as data_cli
-from voice2task.lockbox import compute_lockbox_row_hash, validate_lockbox
+from voice2task.lockbox import compute_lockbox_manifest_hash, compute_lockbox_row_hash, validate_lockbox
 
 
 def _contract(query: str = "天气") -> dict[str, object]:
@@ -63,11 +63,20 @@ def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
 
 
 def _manifest(rows: list[dict[str, object]], *, frozen: bool = True) -> dict[str, object]:
+    content_hashes = [str(row["content_hash"]) for row in rows]
+    lockbox_hash = compute_lockbox_manifest_hash(content_hashes)
     return {
         "manifest_id": "lockbox-unit-test",
+        "schema_version": "lockbox.v1",
+        "created_at": "2026-06-26T00:00:00Z",
+        "frozen_at": "2026-06-26T00:00:00Z",
         "frozen": frozen,
         "row_count": len(rows),
-        "content_hashes": [str(row["content_hash"]) for row in rows],
+        "family_count": len({str(row["semantic_family_id"]) for row in rows}),
+        "provenance_summary": {"new_lockbox_authoring": len(rows)},
+        "content_hashes": content_hashes,
+        "lockbox_hash": lockbox_hash,
+        "dataset_sha256": lockbox_hash,
     }
 
 
@@ -106,6 +115,72 @@ def test_lockbox_fails_duplicate_row_id(tmp_path: Path) -> None:
 
     assert result.ok is False
     assert {failure["category"] for failure in result.failures} == {"duplicate_row_id"}
+
+
+def test_lockbox_fails_when_row_id_overlaps_train_id(tmp_path: Path) -> None:
+    rows = [_lockbox_row("train-1", input_text="全新锁盒输入一")]
+    train_path = tmp_path / "train.jsonl"
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    _write_jsonl(train_path, [_reference_row("train-1", input_text="训练输入")])
+    manifest_path.write_text(json.dumps(_manifest(rows), ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path, train_paths=[train_path])
+
+    assert result.ok is False
+    assert any(failure["category"] == "row_id_overlap" for failure in result.failures)
+
+
+def test_lockbox_fails_when_row_id_overlaps_analysis_id(tmp_path: Path) -> None:
+    rows = [_lockbox_row("analysis-1", input_text="全新锁盒输入二")]
+    analysis_path = tmp_path / "analysis.jsonl"
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    _write_jsonl(analysis_path, [_reference_row("analysis-1", input_text="分析输入", split="dev")])
+    manifest_path.write_text(json.dumps(_manifest(rows), ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path, analysis_paths=[analysis_path])
+
+    assert result.ok is False
+    assert any(failure["category"] == "row_id_overlap" for failure in result.failures)
+
+
+def test_lockbox_fails_when_row_id_overlaps_train_row_id(tmp_path: Path) -> None:
+    rows = [_lockbox_row("train-row-1", input_text="全新锁盒输入三")]
+    train_path = tmp_path / "train.jsonl"
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    _write_jsonl(
+        train_path,
+        [{**_reference_row("train-id-1", input_text="训练输入"), "row_id": "train-row-1"}],
+    )
+    manifest_path.write_text(json.dumps(_manifest(rows), ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path, train_paths=[train_path])
+
+    assert result.ok is False
+    assert any(failure["category"] == "row_id_overlap" for failure in result.failures)
+
+
+def test_lockbox_fails_when_row_id_overlaps_analysis_row_id(tmp_path: Path) -> None:
+    rows = [_lockbox_row("analysis-row-1", input_text="全新锁盒输入四")]
+    analysis_path = tmp_path / "analysis.jsonl"
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    _write_jsonl(
+        analysis_path,
+        [{**_reference_row("analysis-id-1", input_text="分析输入", split="dev"), "row_id": "analysis-row-1"}],
+    )
+    manifest_path.write_text(json.dumps(_manifest(rows), ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path, analysis_paths=[analysis_path])
+
+    assert result.ok is False
+    assert any(failure["category"] == "row_id_overlap" for failure in result.failures)
 
 
 def test_lockbox_fails_exact_text_overlap_with_train_data(tmp_path: Path) -> None:
@@ -195,6 +270,39 @@ def test_lockbox_fails_forbidden_ancestry_to_train_provenance_source_id(tmp_path
     manifest_path.write_text(json.dumps(_manifest(rows), ensure_ascii=False), encoding="utf-8")
 
     result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path, train_paths=[train_path])
+
+    assert result.ok is False
+    assert any(failure["category"] == "forbidden_ancestry" for failure in result.failures)
+
+
+def test_lockbox_fails_forbidden_ancestry_to_analysis_row_id(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1", derived_from=["analysis-1"])]
+    analysis_path = tmp_path / "analysis.jsonl"
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    _write_jsonl(analysis_path, [_reference_row("analysis-1", input_text="分析输入", split="dev")])
+    manifest_path.write_text(json.dumps(_manifest(rows), ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path, analysis_paths=[analysis_path])
+
+    assert result.ok is False
+    assert any(failure["category"] == "forbidden_ancestry" for failure in result.failures)
+
+
+def test_lockbox_fails_forbidden_ancestry_to_analysis_provenance_source_id(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1", derived_from=[{"source_id": "analysis-source-1"}])]
+    analysis_path = tmp_path / "analysis.jsonl"
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    _write_jsonl(
+        analysis_path,
+        [_reference_row("analysis-row-1", input_text="分析输入", split="dev", source_id="analysis-source-1")],
+    )
+    manifest_path.write_text(json.dumps(_manifest(rows), ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path, analysis_paths=[analysis_path])
 
     assert result.ok is False
     assert any(failure["category"] == "forbidden_ancestry" for failure in result.failures)
@@ -325,13 +433,105 @@ def test_lockbox_fails_manifest_count_hash_mismatch_and_unfrozen_manifest(tmp_pa
     assert "manifest_not_frozen" in categories
 
 
+def test_lockbox_fails_manifest_missing_family_count(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1")]
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    manifest = _manifest(rows)
+    manifest.pop("family_count")
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path)
+
+    assert result.ok is False
+    assert any(failure["category"] == "manifest_family_count_mismatch" for failure in result.failures)
+
+
+def test_lockbox_fails_manifest_wrong_family_count(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1"), _lockbox_row("lb-2", semantic_family_id="lockbox-family-lb-1")]
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    manifest = _manifest(rows)
+    manifest["family_count"] = 2
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path)
+
+    assert result.ok is False
+    assert any(failure["category"] == "manifest_family_count_mismatch" for failure in result.failures)
+
+
+def test_lockbox_fails_manifest_missing_schema_version_or_id(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1")]
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    manifest = _manifest(rows)
+    manifest.pop("schema_version")
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path)
+
+    assert result.ok is False
+    assert any(failure["category"] == "manifest_schema_missing" for failure in result.failures)
+
+
+def test_lockbox_fails_manifest_missing_frozen_timestamp(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1")]
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    manifest = _manifest(rows)
+    manifest.pop("created_at")
+    manifest.pop("frozen_at")
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path)
+
+    assert result.ok is False
+    assert any(failure["category"] == "manifest_timestamp_missing" for failure in result.failures)
+
+
+def test_lockbox_fails_manifest_missing_provenance_summary(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1")]
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    manifest = _manifest(rows)
+    manifest.pop("provenance_summary")
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path)
+
+    assert result.ok is False
+    assert any(failure["category"] == "manifest_provenance_summary_missing" for failure in result.failures)
+
+
+def test_lockbox_fails_manifest_dataset_sha256_mismatch(tmp_path: Path) -> None:
+    rows = [_lockbox_row("lb-1")]
+    lockbox_path = tmp_path / "lockbox.jsonl"
+    manifest_path = tmp_path / "manifest.json"
+    _write_jsonl(lockbox_path, rows)
+    manifest = _manifest(rows)
+    manifest["dataset_sha256"] = "wrong-lockbox-hash"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path)
+
+    assert result.ok is False
+    assert any(failure["category"] == "manifest_hash_mismatch" for failure in result.failures)
+
+
 def test_lockbox_fails_manifest_missing_hash_declaration(tmp_path: Path) -> None:
     rows = [_lockbox_row("lb-1")]
     lockbox_path = tmp_path / "lockbox.jsonl"
     manifest_path = tmp_path / "manifest.json"
     _write_jsonl(lockbox_path, rows)
     manifest = _manifest(rows)
-    manifest.pop("content_hashes")
+    manifest.pop("lockbox_hash")
+    manifest.pop("dataset_sha256")
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
 
     result = validate_lockbox(lockbox_path=lockbox_path, manifest_path=manifest_path)
