@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice2Task Must Fix Phase 3</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #17212b; background: #f6f8fa; }
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin: 26px 0 10px; font-size: 18px; }
+    p, li { line-height: 1.6; }
+    code { background: #e9eef3; padding: 2px 5px; border-radius: 4px; }
+    .status { display: inline-block; margin: 8px 0 20px; padding: 4px 8px; border-radius: 4px; background: #fff2cc; color: #6b4b00; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .box { background: white; border: 1px solid #d8e0e8; border-radius: 6px; padding: 14px 16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Must Fix Phase 3: frozen lockbox and lineage guard</h1>
+    <div class="status">Status: workflow implemented; final lockbox content blocked</div>
+    <p><strong>结论：</strong>Phase 3 现在有 deterministic lockbox validator 和 CLI guard，可以 fail-closed 检查 row id、文本重叠、family overlap、ancestry、provenance、hash、manifest count/hash 与 frozen flag；但仓库里还没有真实新 lockbox rows，所以不能报告 final lockbox metrics。</p>
+
+    <section class="grid">
+      <div class="box">
+        <h2>本阶段改动</h2>
+        <ul>
+          <li>新增 <code>src/voice2task/lockbox.py</code>：定义 lockbox row hash、manifest hash、normalization、lineage overlap 和 frozen manifest validation。</li>
+          <li>新增 <code>voice2task-data validate-lockbox</code>：输出 JSON，任何 failure 都返回非 0。</li>
+          <li>新增 synthetic fixtures 测试 clean pass、duplicate id、exact/normalized overlap、semantic family overlap、forbidden ancestry、hash mismatch、unfrozen manifest、missing provenance。</li>
+          <li>新增 <code>docs/lockbox.md</code>：记录 one-look rule 与当前 blocker。</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h2>关键边界</h2>
+        <ul>
+          <li>没有训练、没有 GPU prediction、没有 Phase 4、没有 README recruiter rewrite。</li>
+          <li>没有把旧 dev/test rows remix 成 lockbox。</li>
+          <li>没有 fake final metrics；真实 lockbox 内容必须单独 author、freeze、validate。</li>
+        </ul>
+      </div>
+    </section>
+
+    <h2>验证</h2>
+    <p>Focused RED/GREEN 已完成：新增测试先因缺少 <code>voice2task.lockbox</code> 失败，随后 <code>PYTHONPATH=src pytest -q tests/test_lockbox_validation.py</code> 通过 10 个测试。最终完整验证结果以终局命令输出为准。</p>
+
+    <h2>下一步</h2>
+    <p>单独 author 真实 Phase 3 lockbox rows，冻结 manifest/hash，然后只在 code/model/prompt/decoding/evaluator 都冻结后执行一次 final evaluation。</p>
+  </main>
+</body>
+</html>

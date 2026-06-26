@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
+import sys
 from pathlib import Path
 
 from voice2task.dataset import (
@@ -34,6 +37,7 @@ from voice2task.dataset import (
     scaled_public_sample_public_sample_merge_evidence,
 )
 from voice2task.dpo import summarize_dpo_slices, validate_dpo_pairs_file
+from voice2task.lockbox import validate_lockbox
 from voice2task.reports import (
     write_blocked_payment_safety_repair_public_sample_merge_report,
     write_canonical_slot_boundary_public_sample_merge_report,
@@ -63,6 +67,13 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser.add_argument("--dpo", type=Path, required=True)
     validate_parser.add_argument("--manifest", type=Path, required=True)
     validate_parser.add_argument("--public", action="store_true")
+
+    validate_lockbox_parser = subcommands.add_parser("validate-lockbox")
+    validate_lockbox_parser.add_argument("--lockbox", type=Path, required=True)
+    validate_lockbox_parser.add_argument("--manifest", type=Path, required=True)
+    validate_lockbox_parser.add_argument("--train", type=Path, action="append", default=[])
+    validate_lockbox_parser.add_argument("--analysis", type=Path, action="append", default=[])
+    validate_lockbox_parser.add_argument("--require-family-disjointness", action="store_true")
 
     dpo_parser = subcommands.add_parser("dpo-check")
     dpo_parser.add_argument("--dpo", type=Path, required=True)
@@ -186,8 +197,39 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _is_validate_lockbox_argv(argv: list[str] | None) -> bool:
+    args = list(sys.argv[1:] if argv is None else argv)
+    return bool(args and args[0] == "validate-lockbox")
+
+
+def _parser_error_payload(message: str, manifest_path: str | None = None) -> dict[str, object]:
+    return {
+        "ok": False,
+        "failures": [
+            {
+                "category": "ArgumentParserError",
+                "row_id": "input",
+                "message": message.strip(),
+            }
+        ],
+        "counts": {},
+        "manifest": {"path": manifest_path},
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    if _is_validate_lockbox_argv(argv):
+        argparse_stderr = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(argparse_stderr):
+                args = parser.parse_args(argv)
+        except SystemExit as exc:
+            payload = _parser_error_payload(argparse_stderr.getvalue())
+            print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+            return exc.code if isinstance(exc.code, int) else 2
+    else:
+        args = parser.parse_args(argv)
     if args.command == "build-public":
         manifest = build_public_sample_dataset(seed_path=args.seed, output_dir=args.output)
         print(json.dumps(manifest.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
@@ -206,6 +248,31 @@ def main(argv: list[str] | None = None) -> int:
         payload = {"ok": result.ok, "failures": result.failures, "counts": result.counts}
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if result.ok else 1
+    if args.command == "validate-lockbox":
+        try:
+            lockbox_result = validate_lockbox(
+                lockbox_path=args.lockbox,
+                manifest_path=args.manifest,
+                train_paths=args.train,
+                analysis_paths=args.analysis,
+                require_family_disjointness=args.require_family_disjointness,
+            )
+            payload = lockbox_result.to_dict()
+        except Exception as exc:  # noqa: BLE001 - CLI validation failures must stay machine-readable.
+            payload = {
+                "ok": False,
+                "failures": [
+                    {
+                        "category": type(exc).__name__,
+                        "row_id": "input",
+                        "message": str(exc),
+                    }
+                ],
+                "counts": {},
+                "manifest": {"path": args.manifest.as_posix()},
+            }
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if payload["ok"] else 1
     if args.command == "dpo-check":
         pairs = validate_dpo_pairs_file(args.dpo)
         print(json.dumps(summarize_dpo_slices(pairs), ensure_ascii=False, indent=2, sort_keys=True))

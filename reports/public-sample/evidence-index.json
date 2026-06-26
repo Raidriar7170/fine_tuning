@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-23",
+  "generated_at": "2026-06-26",
   "project": "Voice2Task Post-Training",
   "allowed_statuses": [
     "CURRENT",
@@ -268,6 +268,19 @@
       "boundary": "Current-boundary prediction baseline attempt.",
       "summary": "Blocked before A100 prediction; no current model metrics.",
       "conclusion": "Blocked execution-status evidence only.",
+      "current_claim_allowed": false,
+      "superseded_by": null
+    },
+    {
+      "id": "must-fix-phase-3-lockbox-lineage-guard",
+      "status": "BLOCKED",
+      "phase": "must-fix-phase-3-lockbox-lineage-guard",
+      "path": "docs/lockbox.md",
+      "manifest_id": null,
+      "model_run_id": null,
+      "boundary": "Deterministic lockbox validator and one-look rule documentation; no real frozen lockbox rows committed.",
+      "summary": "Workflow implemented for frozen lockbox row hashes, lineage overlap checks, manifest frozen/hash/count checks, and JSON CLI validation.",
+      "conclusion": "Blocked for final lockbox evaluation until real new lockbox content is independently authored and frozen; no current model metrics.",
       "current_claim_allowed": false,
       "superseded_by": null
     },
