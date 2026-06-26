@@ -1,11 +1,11 @@
 # Frozen Lockbox and Lineage Guard
 
-Updated: 2026-06-26
+Updated: 2026-06-27
 
 The Phase 3 lockbox workflow is implemented as a deterministic validator and
-CLI guard. It does not include real final lockbox rows, does not run model
-prediction, and does not report final lockbox metrics. Real lockbox content
-must be authored separately before any final one-look evaluation.
+CLI guard. `lockbox-v1` has now been authored from the manually reviewed draft
+and frozen under `data/lockbox/`. Final model evaluation has not been run, and
+no lockbox metrics exist yet.
 
 ## Lockbox Row Contract
 
@@ -105,9 +105,22 @@ Then run final evaluation once. Report aggregate results only. Do not tune,
 patch, select, or reweight anything against individual lockbox failures. Any
 post-lockbox diagnosis is a new phase with the lockbox result already spent.
 
-## Current Blocker
+## Frozen Lockbox V1
 
-No committed real Phase 3 lockbox rows are present in this checkout. This phase
-therefore implements the guard workflow only. Final lockbox metrics must remain
-blocked until new real lockbox content is independently authored, frozen, and
-validated.
+Committed lockbox v1 artifacts:
+
+- `data/lockbox/lockbox-v1.draft.jsonl`: manually reviewed candidate input.
+- `data/lockbox/lockbox-v1.jsonl`: frozen materialized lockbox with
+  deterministic `content_hash` values.
+- `data/lockbox/lockbox-v1.manifest.json`: frozen manifest.
+
+Freeze summary:
+
+- `row_count`: 120.
+- `family_count`: 120.
+- `lockbox_hash`: `06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33`.
+- `dataset_sha256`: `06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33`.
+
+Final model evaluation has not been run. No lockbox metrics exist yet. The
+one-look rule still applies: freeze code, prompt, evaluator, model/adapter,
+decoding config, and lockbox hash before running the final evaluation once.
