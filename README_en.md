@@ -8,10 +8,11 @@
 ![Scope](https://img.shields.io/badge/scope-evidence--first-f59e0b)
 
 Voice2Task is a post-training project for Chinese spoken commands / ASR
-transcripts to browser task contracts. It does not control a browser. It
-converts user commands into strict Browser Task Contract JSON so a downstream
-browser agent can decide whether to search, open a URL, fill a form, extract
-page information, clarify, or refuse a risky action.
+transcripts to browser task contracts.
+It does not control a browser.
+It converts user commands into strict Browser Task Contract JSON so a downstream
+browser agent can decide whether to search, open a URL, fill a form,
+extract page information, clarify, or refuse a risky action.
 
 ## Recruiter Summary
 
@@ -28,8 +29,9 @@ page information, clarify, or refuse a risky action.
 
 Frozen protocol:
 `lockbox_hash=06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33`,
-prompt policy `unified_gold_free_v1`, greedy decoding, schema guard + one schema
-retry, strict evaluator, and exactly two pre-registered arms.
+prompt policy `unified_gold_free_v1`, greedy decoding,
+schema guard + one schema retry, strict evaluator,
+and exactly two pre-registered arms.
 
 | Metric | Base Qwen2.5-7B | Final SFT adapter | Delta |
 | --- | ---: | ---: | ---: |
@@ -70,9 +72,10 @@ This repository does **not** claim:
 - adapter/checkpoint release;
 - live-browser benchmark improvement.
 
-The strongest supported claim is narrower: under a frozen 120-row lockbox and a
-gold-free strict evaluator, final SFT improved several semantic/channel aggregate
-metrics but reduced strict full-contract exact match.
+The strongest supported claim is narrower:
+under a frozen 120-row lockbox and a gold-free strict evaluator,
+final SFT improved several semantic/channel aggregate metrics
+but reduced strict full-contract exact match.
 
 ## Repository Role
 
@@ -179,10 +182,10 @@ complete archived map.
 ## A100 Boundary
 
 GPU-heavy training and prediction are designed for a private A100 development
-machine. Public repo artifacts intentionally omit checkpoints, LoRA adapters,
-raw logs, remote caches, private corpus rows, hostnames, SSH details,
-credentials, private paths, private override configs, and production-readiness
-claims.
+machine.
+Public repo artifacts intentionally omit checkpoints, LoRA adapters, raw logs,
+remote caches, private corpus rows, hostnames, SSH details, credentials,
+private paths, private override configs, and production-readiness claims.
 
 ## Validation
 
