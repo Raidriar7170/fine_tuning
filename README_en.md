@@ -7,7 +7,11 @@
 ![Model](https://img.shields.io/badge/model-Qwen2.5--7B%20LoRA-6f42c1)
 ![Scope](https://img.shields.io/badge/scope-evidence--first-f59e0b)
 
-Voice2Task is a post-training project for Chinese spoken commands / ASR transcripts to browser task contracts. It does not control a browser. It converts user commands into strict Browser Task Contract JSON so a downstream browser agent can decide whether to search, open a URL, fill a form, extract page information, clarify, or refuse a risky action.
+Voice2Task is a post-training project for Chinese spoken commands / ASR
+transcripts to browser task contracts. It does not control a browser. It
+converts user commands into strict Browser Task Contract JSON so a downstream
+browser agent can decide whether to search, open a URL, fill a form, extract
+page information, clarify, or refuse a risky action.
 
 ## Recruiter Summary
 
@@ -22,7 +26,10 @@ Voice2Task is a post-training project for Chinese spoken commands / ASR transcri
 
 ## Final Lockbox v1 Result
 
-Frozen protocol: `lockbox_hash=06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33`, prompt policy `unified_gold_free_v1`, greedy decoding, schema guard + one schema retry, strict evaluator, and exactly two pre-registered arms.
+Frozen protocol:
+`lockbox_hash=06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33`,
+prompt policy `unified_gold_free_v1`, greedy decoding, schema guard + one schema
+retry, strict evaluator, and exactly two pre-registered arms.
 
 | Metric | Base Qwen2.5-7B | Final SFT adapter | Delta |
 | --- | ---: | ---: | ---: |
@@ -38,7 +45,9 @@ Frozen protocol: `lockbox_hash=06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107
 Interpretation:
 
 - Final SFT did **not** improve strict contract exact match on the frozen lockbox.
-- Final SFT improved several semantic/channel metrics: `semantic_contract_valid_rate +0.0417`, `task_type_accuracy +0.0667`, `route_accuracy +0.0583`, `confirmation_accuracy +0.0833`.
+- Final SFT improved several semantic/channel metrics:
+  `semantic_contract_valid_rate +0.0417`, `task_type_accuracy +0.0667`,
+  `route_accuracy +0.0583`, `confirmation_accuracy +0.0833`.
 - This is aggregate-only one-look evidence. Public reports do not include row-level failure analysis.
 
 Evidence links:
@@ -61,7 +70,9 @@ This repository does **not** claim:
 - adapter/checkpoint release;
 - live-browser benchmark improvement.
 
-The strongest supported claim is narrower: under a frozen 120-row lockbox and a gold-free strict evaluator, final SFT improved several semantic/channel aggregate metrics but reduced strict full-contract exact match.
+The strongest supported claim is narrower: under a frozen 120-row lockbox and a
+gold-free strict evaluator, final SFT improved several semantic/channel aggregate
+metrics but reduced strict full-contract exact match.
 
 ## Repository Role
 
@@ -78,7 +89,9 @@ The strongest supported claim is narrower: under a frozen 120-row lockbox and a 
 2. Render Qwen chat prompts with no gold contract in prediction prompts.
 3. Train LoRA SFT adapters on existing training data only.
 4. Decode greedily with `max_new_tokens=256`, schema guard enabled, and at most one schema retry.
-5. Score with strict layered metrics: JSON parse, strict schema validity, semantic contract validity, exact match, slot-level metrics, route/task/confirmation/safety metrics.
+5. Score with strict layered metrics: JSON parse, strict schema validity,
+   semantic contract validity, exact match, slot-level metrics,
+   route/task/confirmation/safety metrics.
 6. Freeze lockbox rows and manifest before the final one-look evaluation.
 
 ## Quick Start
@@ -136,24 +149,40 @@ PYTHONPATH=src python -m voice2task.cli.train dpo \
 
 ## Metric Interpretation Boundaries
 
-`contract_exact_match` is a hard full-contract exact-match metric. `normalized_command` string-mismatch diagnostics are explanatory row-level evidence only: they do not relax, normalize, semantically score, repair, replace, or re-score predictions, and they do not automatically mark Chinese phrase differences such as `搜索/查询` or `明天的天气/明天天气` as equivalent.
+`contract_exact_match` is a hard full-contract exact-match metric.
+`normalized_command` string-mismatch diagnostics are explanatory row-level
+evidence only: they do not relax, normalize, semantically score, repair, replace,
+or re-score predictions, and they do not automatically mark Chinese phrase
+differences such as `搜索/查询` or `明天的天气/明天天气` as equivalent.
 
-`normalized_command` gold targets are canonical Chinese intent phrases, not verbatim transcripts or ASR text. This is target-writing guidance for SFT/DPO data and prompts, not evaluator-side normalization, semantic-equivalence scoring, prediction repair, or re-scoring.
+`normalized_command` gold targets are canonical Chinese intent phrases, not
+verbatim transcripts or ASR text. This is target-writing guidance for SFT/DPO
+data and prompts, not evaluator-side normalization, semantic-equivalence
+scoring, prediction repair, or re-scoring.
 
 ## Evidence Archive
 
 Longer-running internal evidence remains documented below the headline result:
 
-- Contract V2 projection: `PARTIAL_SCHEMA_BENEFIT`; derived-field-only strict failures are 14.65%, normalized-command-only strict failures are 14.65%, and core slot failures remain 68.79% of V1 strict failures. This is useful schema-burden evidence, not model-quality evidence.
+- Contract V2 projection: `PARTIAL_SCHEMA_BENEFIT`; derived-field-only strict
+  failures are 14.65%, normalized-command-only strict failures are 14.65%, and
+  core slot failures remain 68.79% of V1 strict failures. This is useful
+  schema-burden evidence, not model-quality evidence.
 - Copy-backed verification and shadow mode: observe-only provenance/interface evidence, not runtime enforcement.
 - Copy-shadow template-disjoint challenge v1: adversarial verifier fixture, not a naturalistic language benchmark.
 - Earlier step-matched SFT ablations: mixed/inconclusive; no stable broad canonical-slot benefit.
 
-See [current status](docs/current-status.md) and the [public evidence index](reports/public-sample/EVIDENCE_INDEX.md) for the complete archived map.
+See [current status](docs/current-status.md) and the
+[public evidence index](reports/public-sample/EVIDENCE_INDEX.md) for the
+complete archived map.
 
 ## A100 Boundary
 
-GPU-heavy training and prediction are designed for a private A100 development machine. Public repo artifacts intentionally omit checkpoints, LoRA adapters, raw logs, remote caches, private corpus rows, hostnames, SSH details, credentials, private paths, private override configs, and production-readiness claims.
+GPU-heavy training and prediction are designed for a private A100 development
+machine. Public repo artifacts intentionally omit checkpoints, LoRA adapters,
+raw logs, remote caches, private corpus rows, hostnames, SSH details,
+credentials, private paths, private override configs, and production-readiness
+claims.
 
 ## Validation
 
