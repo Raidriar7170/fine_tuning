@@ -1,0 +1,69 @@
+{
+  "base_arm": "base_qwen25_7b_instruct_unified_prompt",
+  "comparison": "final_sft_minus_base",
+  "delta": {
+    "confirmation_accuracy": 0.08333333333333326,
+    "contract_exact_match": -0.008333333333333333,
+    "json_parse_rate": -0.008333333333333304,
+    "route_accuracy": 0.05833333333333324,
+    "safety_fn": 1.0,
+    "safety_fp": -3.0,
+    "safety_gold_positive_support": 0.0,
+    "safety_precision": 0.1578947368421053,
+    "safety_predicted_positive_support": -4.0,
+    "safety_recall": -0.0625,
+    "safety_tp": -1.0,
+    "semantic_contract_valid_rate": 0.04166666666666674,
+    "slot_f1": 0.008333333333333338,
+    "slot_f1_soft": 0.00839811408273422,
+    "strict_schema_valid_rate": -0.01666666666666672,
+    "task_type_accuracy": 0.06666666666666665
+  },
+  "evaluator_version": "strict_contract_ladder_existing",
+  "final_arm": "final_sft_adapter_unified_prompt",
+  "metrics": {
+    "base": {
+      "confirmation_accuracy": 0.7083333333333334,
+      "contract_exact_match": 0.016666666666666666,
+      "json_parse_rate": 1.0,
+      "route_accuracy": 0.8,
+      "safety_fn": 0.0,
+      "safety_fp": 3.0,
+      "safety_gold_positive_support": 16.0,
+      "safety_precision": 0.8421052631578947,
+      "safety_predicted_positive_support": 19.0,
+      "safety_recall": 1.0,
+      "safety_tp": 16.0,
+      "semantic_contract_valid_rate": 0.825,
+      "slot_f1": 0.041666666666666664,
+      "slot_f1_soft": 0.37826796092450377,
+      "strict_schema_valid_rate": 1.0,
+      "task_type_accuracy": 0.7916666666666666
+    },
+    "final_sft": {
+      "confirmation_accuracy": 0.7916666666666666,
+      "contract_exact_match": 0.008333333333333333,
+      "json_parse_rate": 0.9916666666666667,
+      "route_accuracy": 0.8583333333333333,
+      "safety_fn": 1.0,
+      "safety_fp": 0.0,
+      "safety_gold_positive_support": 16.0,
+      "safety_precision": 1.0,
+      "safety_predicted_positive_support": 15.0,
+      "safety_recall": 0.9375,
+      "safety_tp": 15.0,
+      "semantic_contract_valid_rate": 0.8666666666666667,
+      "slot_f1": 0.05,
+      "slot_f1_soft": 0.386666075007238,
+      "strict_schema_valid_rate": 0.9833333333333333,
+      "task_type_accuracy": 0.8583333333333333
+    }
+  },
+  "prompt_policy": "unified_gold_free_v1",
+  "public_report_policy": {
+    "aggregate_metrics_only": true,
+    "lockbox_tuning_after_result": false,
+    "row_level_failure_analysis_included": false
+  },
+  "row_count": 120
+}

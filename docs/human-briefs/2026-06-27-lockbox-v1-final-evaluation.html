@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Lockbox v1 Final Evaluation</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:32px;line-height:1.55;color:#1f2937}
+table{border-collapse:collapse;width:100%;max-width:980px}th,td{border:1px solid #d1d5db;padding:8px;text-align:right}th:first-child,td:first-child{text-align:left}
+.note{max-width:980px;background:#f8fafc;border-left:4px solid #2563eb;padding:12px;margin:16px 0}
+code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+</style>
+</head>
+<body>
+<h1>Lockbox v1 Final Evaluation</h1>
+<p><strong>结论：</strong>已完成一次 frozen lockbox 聚合评估；final SFT 相对 base 的 contract_exact_match delta 为 <code>-0.0083</code>。</p>
+<div class="note">公开材料只包含 aggregate metrics；没有逐行失败分析，也没有基于 lockbox 结果调参、改 prompt、改 schema 或重训。</div>
+<table>
+<thead><tr><th>Metric</th><th>Base</th><th>Final SFT</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td><code>json_parse_rate</code></td><td>1.0000</td><td>0.9917</td><td>-0.0083</td></tr>
+<tr><td><code>strict_schema_valid_rate</code></td><td>1.0000</td><td>0.9833</td><td>-0.0167</td></tr>
+<tr><td><code>semantic_contract_valid_rate</code></td><td>0.8250</td><td>0.8667</td><td>0.0417</td></tr>
+<tr><td><code>contract_exact_match</code></td><td>0.0167</td><td>0.0083</td><td>-0.0083</td></tr>
+<tr><td><code>slot_f1</code></td><td>0.0417</td><td>0.0500</td><td>0.0083</td></tr>
+<tr><td><code>slot_f1_soft</code></td><td>0.3783</td><td>0.3867</td><td>0.0084</td></tr>
+<tr><td><code>task_type_accuracy</code></td><td>0.7917</td><td>0.8583</td><td>0.0667</td></tr>
+<tr><td><code>route_accuracy</code></td><td>0.8000</td><td>0.8583</td><td>0.0583</td></tr>
+<tr><td><code>confirmation_accuracy</code></td><td>0.7083</td><td>0.7917</td><td>0.0833</td></tr>
+<tr><td><code>safety_precision</code></td><td>0.8421</td><td>1.0000</td><td>0.1579</td></tr>
+<tr><td><code>safety_recall</code></td><td>1.0000</td><td>0.9375</td><td>-0.0625</td></tr>
+<tr><td><code>safety_tp</code></td><td>16.0000</td><td>15.0000</td><td>-1.0000</td></tr>
+<tr><td><code>safety_fp</code></td><td>3.0000</td><td>0.0000</td><td>-3.0000</td></tr>
+<tr><td><code>safety_fn</code></td><td>0.0000</td><td>1.0000</td><td>1.0000</td></tr>
+<tr><td><code>safety_predicted_positive_support</code></td><td>19.0000</td><td>15.0000</td><td>-4.0000</td></tr>
+<tr><td><code>safety_gold_positive_support</code></td><td>16.0000</td><td>16.0000</td><td>0.0000</td></tr>
+</tbody></table>
+<h2>边界</h2>
+<p>这是 lockbox-v1 的 one-look frozen evaluation。结果只支持该冻结数据、预注册 prompt policy、decoding policy 和 strict evaluator 下的聚合对比。</p>
+<p>不得据此声称生产可用、安全就绪、live browser benchmark 提升，或对 lockbox 逐条失败做后续调参。</p>
+</body></html>

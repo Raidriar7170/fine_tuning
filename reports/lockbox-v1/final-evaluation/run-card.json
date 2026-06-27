@@ -1,0 +1,113 @@
+{
+  "adapter": {
+    "adapter_model_sha256": "d7722c2c11b08a848f4c3bb46c9088a26121e231fbaf18f8fb55eab7f3becfac",
+    "adapter_weights_copied_to_git": false,
+    "public_name": "final_sft_adapter_unified_prompt"
+  },
+  "arms": [
+    "base_qwen25_7b_instruct_unified_prompt",
+    "final_sft_adapter_unified_prompt"
+  ],
+  "base_model": {
+    "public_id": "Qwen/Qwen2.5-7B-Instruct",
+    "revision": "16c174980d8a1492910551634b4969e69cdc2444"
+  },
+  "data_freeze_commit": "3fb352b",
+  "decoding_config": {
+    "do_sample": false,
+    "max_new_tokens": 256,
+    "posthoc_prediction_repair": false,
+    "schema_guard": true,
+    "schema_repair_applied": false,
+    "schema_retry": true,
+    "schema_retry_max_attempts": 1,
+    "strategy": "greedy"
+  },
+  "evaluator": {
+    "metric_names": [
+      "json_parse_rate",
+      "strict_schema_valid_rate",
+      "semantic_contract_valid_rate",
+      "contract_exact_match",
+      "slot_f1",
+      "slot_f1_soft",
+      "task_type_accuracy",
+      "route_accuracy",
+      "confirmation_accuracy",
+      "safety_precision",
+      "safety_recall",
+      "safety_tp",
+      "safety_fp",
+      "safety_fn",
+      "safety_predicted_positive_support",
+      "safety_gold_positive_support"
+    ],
+    "version": "strict_contract_ladder_existing"
+  },
+  "final_prep_commit": "020391f",
+  "formatting_policy": {
+    "fallback": "deterministic_role_plain_text",
+    "legacy_oracle_prompt_policy_available": false,
+    "normalized_command_policy": "canonical_chinese_intent_phrase_not_verbatim_transcript",
+    "policy": "shared_contract_chat_template",
+    "prediction_input_type": "PredictionInput",
+    "prediction_prompt": "shared_contract_chat_template",
+    "prediction_prompt_policy_id": "unified_gold_free_v1",
+    "prediction_target_policy": "generation_prompt_without_gold_contract",
+    "sft_training_text": "shared_contract_chat_template",
+    "tokenizer_chat_template": "used_when_available_with_tokenize_false"
+  },
+  "git_commit": "020391f04db865789fcfdd17a0020ff17de68dee",
+  "lockbox": {
+    "family_count": 120,
+    "frozen": true,
+    "lockbox_hash": "06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33",
+    "manifest_id": "lockbox-v1-20260626T110426Z",
+    "manifest_path": "data/lockbox/lockbox-v1.manifest.json",
+    "path": "data/lockbox/lockbox-v1.jsonl",
+    "row_count": 120
+  },
+  "one_look_rule": {
+    "dpo_or_grpo_started": false,
+    "final_lockbox_evaluation_run_once": true,
+    "lockbox_tuning_after_result": false,
+    "readme_rewritten": false,
+    "row_level_failure_analysis_public": false
+  },
+  "output_paths": {
+    "base_metrics_public": "reports/lockbox-v1/final-evaluation/base/metrics.json",
+    "comparison_markdown_public": "reports/lockbox-v1/final-evaluation/comparison.md",
+    "comparison_public": "reports/lockbox-v1/final-evaluation/comparison.json",
+    "final_sft_metrics_public": "reports/lockbox-v1/final-evaluation/final-sft/metrics.json",
+    "raw_predictions_private": "<private_a100_run_root>/raw/<arm>/predictions.jsonl",
+    "run_card_public": "reports/lockbox-v1/final-evaluation/run-card.json"
+  },
+  "prompt_policy": "unified_gold_free_v1",
+  "run_id": "lockbox-v1-final-evaluation-20260627T041028Z",
+  "sft_config": {
+    "gradient_accumulation_steps": 1,
+    "learning_rate": 5e-05,
+    "lora": {
+      "alpha": 32,
+      "dropout": 0.05,
+      "r": 16,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj"
+      ]
+    },
+    "max_steps": 3132,
+    "num_train_epochs": 12,
+    "per_device_train_batch_size": 1,
+    "seed": 7170,
+    "trainer": "trl.SFTTrainer"
+  },
+  "stage": "lockbox_v1_final_evaluation",
+  "train_dataset": {
+    "manifest_path": "data/public-samples/manifest_public_sample.json",
+    "policy": "existing training data only; no lockbox rows added",
+    "train_dataset_hash": "4b677420f766555c04199f15f69f41f3b3ad36ad3cd5c33d2b40b0e3f8573587"
+  }
+}

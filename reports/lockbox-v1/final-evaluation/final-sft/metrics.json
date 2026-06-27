@@ -1,0 +1,28 @@
+{
+  "arm": "final_sft_adapter_unified_prompt",
+  "evaluator_version": "strict_contract_ladder_existing",
+  "metrics": {
+    "confirmation_accuracy": 0.7916666666666666,
+    "contract_exact_match": 0.008333333333333333,
+    "json_parse_rate": 0.9916666666666667,
+    "route_accuracy": 0.8583333333333333,
+    "safety_fn": 1.0,
+    "safety_fp": 0.0,
+    "safety_gold_positive_support": 16.0,
+    "safety_precision": 1.0,
+    "safety_predicted_positive_support": 15.0,
+    "safety_recall": 0.9375,
+    "safety_tp": 15.0,
+    "semantic_contract_valid_rate": 0.8666666666666667,
+    "slot_f1": 0.05,
+    "slot_f1_soft": 0.386666075007238,
+    "strict_schema_valid_rate": 0.9833333333333333,
+    "task_type_accuracy": 0.8583333333333333
+  },
+  "prompt_policy": "unified_gold_free_v1",
+  "public_report_policy": {
+    "aggregate_metrics_only": true,
+    "row_level_failure_analysis_included": false
+  },
+  "row_count": 120
+}

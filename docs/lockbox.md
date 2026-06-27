@@ -4,8 +4,8 @@ Updated: 2026-06-27
 
 The Phase 3 lockbox workflow is implemented as a deterministic validator and
 CLI guard. `lockbox-v1` has now been authored from the manually reviewed draft
-and frozen under `data/lockbox/`. Final model evaluation has not been run, and
-no lockbox metrics exist yet.
+and frozen under `data/lockbox/`. The one-look final model evaluation has now
+been run once; public lockbox artifacts report aggregate metrics only.
 
 ## Lockbox Row Contract
 
@@ -121,6 +121,8 @@ Freeze summary:
 - `lockbox_hash`: `06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33`.
 - `dataset_sha256`: `06114cf3ad6029930284af5f2245fb2c4a8174fd35c6a1107f4c73482b555b33`.
 
-Final model evaluation has not been run. No lockbox metrics exist yet. The
-one-look rule still applies: freeze code, prompt, evaluator, model/adapter,
-decoding config, and lockbox hash before running the final evaluation once.
+Final model evaluation was run once under the frozen protocol. Public aggregate
+artifacts are under `reports/lockbox-v1/final-evaluation/`; raw predictions
+remain private evidence and are not part of the public summary. The one-look
+rule remains spent for this lockbox: do not tune prompts, decoding, schema,
+training data, or model weights against individual lockbox failures.
